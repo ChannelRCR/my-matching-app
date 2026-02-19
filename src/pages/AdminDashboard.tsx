@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Users, DollarSign, Activity, AlertTriangle, ShieldAlert, CheckCircle, Ban } from 'lucide-react';
 import { useMarket } from '../contexts/MarketContext';
 import { useData } from '../contexts/DataContext';
@@ -120,8 +120,8 @@ export const AdminDashboard: React.FC = () => {
                                         <td className="px-6 py-4 font-bold text-slate-900">¥{deal.currentAmount.toLocaleString()}</td>
                                         <td className="px-6 py-4">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${deal.status === 'agreed' ? 'bg-green-100 text-green-800' :
-                                                    deal.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                                        'bg-amber-100 text-amber-800'
+                                                deal.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                                    'bg-amber-100 text-amber-800'
                                                 }`}>
                                                 {deal.status === 'agreed' ? '成立' :
                                                     deal.status === 'rejected' ? '不成立' : '交渉中'}
@@ -173,7 +173,7 @@ export const AdminDashboard: React.FC = () => {
                                     </td>
                                     <td className="px-6 py-4">
                                         <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-bold ${user.role === 'seller' ? 'bg-blue-100 text-blue-800' :
-                                                user.role === 'buyer' ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-200 text-slate-800'
+                                            user.role === 'buyer' ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-200 text-slate-800'
                                             }`}>
                                             {user.role.toUpperCase()}
                                         </span>
@@ -195,8 +195,8 @@ export const AdminDashboard: React.FC = () => {
                                     <td className="px-6 py-4 text-right">
                                         <Button
                                             size="sm"
-                                            variant={user.status === 'suspended' ? 'outline' : 'warning'} // Assuming warning variant exists or red style
-                                            className={`${user.status === 'suspended' ? 'bg-white border-slate-300 text-slate-600' : 'bg-red-50 text-red-600 hover:bg-red-100 border-red-200 shadow-none'}`}
+                                            variant="outline"
+                                            className={`${user.status === 'suspended' ? 'bg-white border-slate-300 text-slate-600' : 'text-red-600 border-red-600 hover:bg-red-50'}`}
                                             onClick={() => handleSuspendUser(user.id, user.status)}
                                         >
                                             {user.status === 'suspended' ? (
