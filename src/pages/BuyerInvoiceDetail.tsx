@@ -82,6 +82,18 @@ export const BuyerInvoiceDetail: React.FC = () => {
                                 売り手希望額
                             </h3>
                             <p className="text-3xl font-bold text-indigo-700">¥{invoice.requestedAmount?.toLocaleString()}</p>
+
+                            <div className="mt-4 pt-4 border-t border-indigo-200">
+                                <div className="flex items-center justify-between mb-1">
+                                    <span className="text-sm font-bold text-indigo-900">想定利回り (年率)</span>
+                                    <span className="text-xl font-bold text-green-600">
+                                        {invoice.requestedAmount && invoice.amount ?
+                                            (((invoice.amount - invoice.requestedAmount) / invoice.requestedAmount) * 12 * 100).toFixed(1)
+                                            : '0.0'}%
+                                    </span>
+                                </div>
+                                <p className="text-xs text-indigo-400 text-right">※1か月後の入金を前提</p>
+                            </div>
                         </div>
                     </div>
 

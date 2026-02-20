@@ -18,8 +18,9 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
         amount: '',
         dueDate: '',
         industry: '',
-        companySize: '',
+        companySize: 'SMB', // Default
         companyCredit: '',
+        requestedAmount: '', // Manual input
     });
     const [evidenceFile, setEvidenceFile] = useState<{ file: File, url: string } | null>(null);
 
@@ -64,10 +65,10 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
             amount: Number(formData.amount),
             dueDate: formData.dueDate,
             industry: formData.industry,
-            companySize: formData.companySize,
+            companySize: formData.companySize as any,
             companyCredit: formData.companyCredit,
             status: 'open',
-            requestedAmount: Math.floor(Number(formData.amount) * 0.95), // Default 95%
+            requestedAmount: Number(formData.requestedAmount), // Manual input
             evidenceUrl: evidenceFile?.url,
             evidenceName: evidenceFile?.file.name,
         };
@@ -80,8 +81,9 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
                 amount: '',
                 dueDate: '',
                 industry: '',
-                companySize: '',
+                companySize: 'SMB',
                 companyCredit: '',
+                requestedAmount: '',
             });
             setEvidenceFile(null);
             onClose();
@@ -120,39 +122,45 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
                             />
 
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-700">業種 *</label>
-                                <select
+                                <label className="text-sm font-medium text-slate-700">取引先企業の業種 *</label>
+                                <Input
                                     name="industry"
                                     value={formData.industry}
                                     onChange={handleInputChange}
-                                    className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="例: 建設業、IT、運送業..."
                                     required
-                                >
-                                    <option value="">選択してください</option>
-                                    <option value="建設業">建設業</option>
-                                    <option value="IT・通信">IT・通信</option>
-                                    <option value="製造業">製造業</option>
-                                    <option value="卸売・小売業">卸売・小売業</option>
-                                    <option value="運送業">運送業</option>
-                                    <option value="サービス業">サービス業</option>
-                                    <option value="その他">その他</option>
-                                </select>
+                                />
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-700">企業規模</label>
+                                <label className="text-sm font-medium text-slate-700">取引先企業の規模</label>
                                 <select
                                     name="companySize"
                                     value={formData.companySize}
                                     onChange={handleInputChange}
                                     className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50"
                                 >
-                                    <option value="">選択してください</option>
-                                    <option value="上場企業">上場企業</option>
-                                    <option value="大企業">大企業</option>
-                                    <option value="中小企業">中小企業</option>
-                                    <option value="その他">その他</option>
+                                    <option value="Listed">上場企業</option>
+                                    <option value="Large">大手企業（資本金1億以上、従業員1000人以上）</option>
+                                    <option value="SMB">中小企業</option>
+                                    <option value="Individual">個人（企業）</option>
                                 </select>
+                                <p className="text-xs text-slate-500 mt-1">※売却対象の取引先企業について選択してください</p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    売却希望額 (円) *
+                                    <span className="ml-2 text-xs font-normal text-red-500">※粗利を前提に無理のない設定としましょう。</span>
+                                </label>
+                                <Input
+                                    name="requestedAmount"
+                                    type="number"
+                                    value={formData.requestedAmount}
+                                    onChange={handleInputChange}
+                                    placeholder="例: 900000"
+                                    required
+                                />
                             </div>
                         </div>
 

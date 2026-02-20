@@ -109,8 +109,8 @@ export const BuyerDashboard: React.FC = () => {
                                         <CardTitle className="text-base flex justify-between">
                                             <span>{inv?.industry || '案件'} #{inv?.id || deal.invoiceId}</span>
                                             <span className={`text-xs px-2 py-1 rounded-full font-bold ${deal.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                    deal.status === 'negotiating' ? 'bg-orange-100 text-orange-800' :
-                                                        deal.status === 'agreed' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-500'
+                                                deal.status === 'negotiating' ? 'bg-orange-100 text-orange-800' :
+                                                    deal.status === 'agreed' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-500'
                                                 }`}>
                                                 {deal.status === 'pending' ? '承諾待ち' :
                                                     deal.status === 'negotiating' ? '交渉中' :
@@ -185,6 +185,18 @@ export const BuyerDashboard: React.FC = () => {
                                     希望買取額
                                 </div>
                                 <div className="text-lg font-bold text-primary">¥{inv.requestedAmount?.toLocaleString()}</div>
+                            </div>
+
+                            <div className="bg-green-50 p-3 rounded-md">
+                                <div className="flex items-center justify-between text-green-800">
+                                    <span className="font-bold text-sm">想定利回り (年率)</span>
+                                    <span className="font-bold text-lg">
+                                        {inv.requestedAmount && inv.amount ?
+                                            (((inv.amount - inv.requestedAmount) / inv.requestedAmount) * 12 * 100).toFixed(1)
+                                            : '0.0'}%
+                                    </span>
+                                </div>
+                                <p className="text-[10px] text-green-600 text-right mt-1">※1か月後の入金を前提</p>
                             </div>
 
                             <div className="flex items-center justify-between">

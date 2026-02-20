@@ -10,6 +10,23 @@ export interface User {
     appealPoint?: string;
     status?: 'active' | 'suspended';
     registeredAt?: string;
+    // New Profile Fields
+    tradeName?: string;
+    representativeName?: string;
+    contactPerson?: string;
+    address?: string;
+    bankAccountInfo?: string;
+    phoneNumber?: string;
+    emailAddress?: string; // For display/contact, separate from auth email
+    privacySettings?: {
+        tradeName: boolean;
+        representativeName: boolean;
+        contactPerson: boolean;
+        address: boolean;
+        bankAccountInfo: boolean;
+        phoneNumber: boolean;
+        emailAddress: boolean;
+    };
 }
 
 export interface Invoice {
@@ -18,7 +35,7 @@ export interface Invoice {
     amount: number;
     dueDate: string; // YYYY-MM-DD
     industry: string;
-    companySize?: string; // e.g. 'Listed', 'Large', 'SMB'
+    companySize?: 'Listed' | 'Large' | 'SMB' | 'Individual'; // Updated enum
     companyCredit: string; // Credit info of the debtor company
     status: 'open' | 'negotiating' | 'sold';
     requestedAmount?: number;

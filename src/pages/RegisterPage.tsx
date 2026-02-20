@@ -16,12 +16,47 @@ export const RegisterPage: React.FC = () => {
     const defaultRole = (searchParams.get('role') as UserRole) || 'seller';
 
     const [role, setRole] = useState<UserRole>(defaultRole);
+
+    // Auth fields
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+
+    // Basic profile fields
     const [name, setName] = useState('');
     const [companyName, setCompanyName] = useState('');
+
+    // Detailed profile fields
+    const [formData, setFormData] = useState({
+        tradeName: '',
+        representativeName: '',
+        contactPerson: '',
+        address: '',
+        bankAccountInfo: '',
+        phoneNumber: '',
+        emailAddress: '',
+    });
+
+    const [privacySettings, setPrivacySettings] = useState({
+        tradeName: true,
+        representativeName: true,
+        contactPerson: true,
+        address: true,
+        bankAccountInfo: true,
+        phoneNumber: true,
+        emailAddress: true,
+    });
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    const handleChange = (field: string, value: string) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+    };
+
+    const togglePrivacy = (field: string) => {
+        // @ts-ignore
+        setPrivacySettings(prev => ({ ...prev, [field]: !prev[field] }));
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -34,7 +69,12 @@ export const RegisterPage: React.FC = () => {
             return;
         }
 
-        const { error: signUpError } = await signUp(email, password, role, { name, companyName });
+        const { error: signUpError } = await signUp(email, password, role, {
+            name,
+            companyName,
+            ...formData,
+            privacySettings
+        });
 
         if (signUpError) {
             console.error(signUpError);
@@ -55,14 +95,45 @@ export const RegisterPage: React.FC = () => {
         }
     };
 
+    const renderInputWithPrivacy = (label: string, field: keyof typeof formData, placeholder: string = "", type: string = "text") => (
+        <div className="space-y-1">
+            <div className="flex justify-between items-center">
+                <label className="text-sm font-medium text-gray-700">{label}</label>
+                <div className="flex items-center gap-2 text-xs">
+                    <span className={privacySettings[field] ? "text-blue-600 font-bold" : "text-slate-400"}>
+                        {privacySettings[field] ? "公開" : "非公開"}
+                    </span>
+                    <button
+                        type="button"
+                        onClick={() => togglePrivacy(field as any)}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${privacySettings[field] ? 'bg-primary' : 'bg-slate-200'
+                            }`}
+                    >
+                        <span
+                            className={`${privacySettings[field] ? 'translate-x-5' : 'translate-x-1'
+                                } inline-block h-3 w-3 transform rounded-full bg-white transition-transform`}
+                        />
+                    </button>
+                </div>
+            </div>
+            <Input
+                value={formData[field]}
+                onChange={(e) => handleChange(field, e.target.value)}
+                placeholder={placeholder}
+                type={type}
+                required
+            />
+        </div>
+    );
+
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 py-12">
             <Link to="/" className="flex items-center gap-2 font-bold text-2xl text-primary tracking-tight mb-8">
                 <Briefcase className="h-8 w-8" />
                 <span>FactorMatch</span>
             </Link>
 
-            <Card className="w-full max-w-md">
+            <Card className="w-full max-w-2xl">
                 <CardHeader>
                     <CardTitle className="text-center">新規アカウント登録</CardTitle>
                 </CardHeader>
@@ -92,34 +163,63 @@ export const RegisterPage: React.FC = () => {
                         </button>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <Input
-                            label="氏名 (担当者名)"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            required
-                        />
-                        <Input
-                            label="会社名 / 屋号"
-                            value={companyName}
-                            onChange={(e) => setCompanyName(e.target.value)}
-                            required
-                        />
-                        <Input
-                            label="メールアドレス"
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                        />
-                        <Input
-                            label="パスワード (6文字以上)"
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                            minLength={6}
-                        />
+                    <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg mb-6 text-sm text-yellow-800">
+                        <strong>重要なお知らせ：</strong><br />
+                        ご登録いただく連絡先や口座情報は、通常時はプロフィールの設定に従い公開/非公開が制御されます。<br />
+                        <span className="font-bold text-red-600">なお、クロージング（契約締結）の際には、{role === 'seller' ? '買い手' : '売り手'}に全てオープンとなります。</span>
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Input
+                                label="氏名 (担当者名)"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                required
+                            />
+                            <Input
+                                label="会社名 / 屋号"
+                                value={companyName}
+                                onChange={(e) => setCompanyName(e.target.value)}
+                                required
+                            />
+                        </div>
+
+                        <div className="space-y-4 border-t border-slate-100 pt-4">
+                            <h3 className="font-bold text-slate-700">詳細プロフィール情報</h3>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {renderInputWithPrivacy("商号（屋号）", "tradeName", "例: ○○商店")}
+                                {renderInputWithPrivacy("代表者名", "representativeName", "例: 山田 太郎")}
+                                {renderInputWithPrivacy("担当者名", "contactPerson", "例: 鈴木 一郎")}
+                                {renderInputWithPrivacy("連絡先電話番号", "phoneNumber", "例: 03-1234-5678", "tel")}
+                                {renderInputWithPrivacy("連絡先メールアドレス", "emailAddress", "例: contact@example.com", "email")}
+                            </div>
+
+                            {renderInputWithPrivacy("住所", "address", "例: 東京都千代田区...")}
+                            {renderInputWithPrivacy("入金口座（本人名義）", "bankAccountInfo", "例: ○○銀行 ××支店 普通 1234567")}
+                        </div>
+
+                        <div className="border-t border-slate-100 pt-4">
+                            <h3 className="font-bold text-slate-700 mb-2">ログイン情報</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Input
+                                    label="ログイン用メールアドレス"
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                />
+                                <Input
+                                    label="パスワード (6文字以上)"
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                    minLength={6}
+                                />
+                            </div>
+                        </div>
 
                         {error && (
                             <div className="bg-red-50 text-red-600 p-3 rounded text-sm">
@@ -131,6 +231,7 @@ export const RegisterPage: React.FC = () => {
                             {loading ? '登録処理中...' : `${role === 'seller' ? '売り手' : '買い手'}として登録`}
                         </Button>
                     </form>
+
 
                     <div className="mt-6 text-center text-sm text-slate-500">
                         すでにアカウントをお持ちの方は{' '}
