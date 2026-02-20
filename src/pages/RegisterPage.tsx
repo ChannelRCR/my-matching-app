@@ -47,7 +47,11 @@ export const RegisterPage: React.FC = () => {
         } else {
             // Success
             alert('登録が完了しました！');
-            navigate('/');
+            if (role === 'seller') {
+                navigate('/seller/dashboard');
+            } else {
+                navigate('/buyer/dashboard');
+            }
         }
     };
 
