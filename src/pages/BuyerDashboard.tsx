@@ -201,6 +201,16 @@ export const BuyerDashboard: React.FC = () => {
 
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center text-slate-600 font-medium">
+                                    <UserCog className="w-4 h-4 mr-2 text-slate-400" />
+                                    現在のオファー数
+                                </div>
+                                <div className="font-bold text-blue-600">
+                                    {deals ? deals.filter(d => d.invoiceId === inv.id && d.status === 'pending').length : 0}件
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center text-slate-600 font-medium">
                                     <Calendar className="w-4 h-4 mr-2 text-slate-400" />
                                     入金期日
                                 </div>

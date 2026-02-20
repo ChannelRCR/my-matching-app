@@ -95,6 +95,16 @@ export const BuyerInvoiceDetail: React.FC = () => {
                                 <p className="text-xs text-indigo-400 text-right">※1か月後の入金を前提</p>
                             </div>
                         </div>
+
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center md:col-span-2">
+                            <div className="flex items-center gap-2">
+                                <MessageCircle className="w-5 h-5 text-blue-500" />
+                                <span className="font-bold text-slate-700">現在のライバル（オファー数）</span>
+                            </div>
+                            <span className="text-xl font-bold text-blue-600">
+                                {deals ? deals.filter(d => d.invoiceId === invoice.id && d.status === 'pending').length : 0} 件
+                            </span>
+                        </div>
                     </div>
 
                     {/* Meta Data */}

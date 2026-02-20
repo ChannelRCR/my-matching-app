@@ -46,12 +46,16 @@ export const ChatPage: React.FC = () => {
 
                 // Load messages for this deal
                 const dealMessages = allMessages.filter(m => m.dealId === dealId);
-                const chatMessages: ChatMessage[] = dealMessages.map(m => ({
-                    id: m.id,
-                    sender: m.senderId === user.id ? 'me' : 'other', // Correct comparison
-                    text: m.content,
-                    timestamp: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                }));
+                const chatMessages: ChatMessage[] = dealMessages.map(m => {
+                    // Safe comparison ensuring both are strings
+                    const isMe = String(m.senderId) === String(user.id);
+                    return {
+                        id: m.id,
+                        sender: isMe ? 'me' : 'other',
+                        text: m.content,
+                        timestamp: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    };
+                });
 
                 setMessages(chatMessages);
 
