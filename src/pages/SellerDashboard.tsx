@@ -9,7 +9,7 @@ import { RegisterInvoiceModal } from '../components/RegisterInvoiceModal';
 
 export const SellerDashboard: React.FC = () => {
     const navigate = useNavigate();
-    const { invoices } = useData();
+    const { invoices, deals } = useData();
     const { user } = useAuth();
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
@@ -61,7 +61,15 @@ export const SellerDashboard: React.FC = () => {
                                                 (希望: ¥{inv.requestedAmount?.toLocaleString()})
                                             </span>
                                         </div>
-                                        <p className="text-sm text-slate-600 mt-1">{inv.companyCredit}</p>
+                                        <div className="flex gap-4 mt-1">
+                                            <p className="text-sm text-slate-600">{inv.companyCredit}</p>
+                                            {/* Offer Count Display */}
+                                            {inv.status === 'open' && (
+                                                <span className="text-sm font-bold text-blue-600 flex items-center bg-blue-50 px-2 py-0.5 rounded">
+                                                    現在のオファー数: {deals ? deals.filter(d => d.invoiceId === inv.id && d.status === 'pending').length : 0}件
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <div className="flex items-center gap-4">

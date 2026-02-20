@@ -6,6 +6,7 @@ import { Send, User, ChevronLeft } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { MOCK_USERS } from '../data/mockData';
 import { useData } from '../contexts/DataContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useMarket } from '../contexts/MarketContext';
 import { Handshake } from 'lucide-react';
 import type { Deal, Invoice } from '../types';
@@ -23,6 +24,7 @@ export const ChatPage: React.FC = () => {
     const dealId = searchParams.get('dealId');
     const { deals, invoices, messages: allMessages, addMessage, updateDeal } = useData();
     const { completeDeal } = useMarket();
+    const { user } = useAuth(); // Use real auth user
 
     const [deal, setDeal] = useState<Deal | null>(null);
     const [invoice, setInvoice] = useState<Invoice | null>(null);
@@ -31,22 +33,22 @@ export const ChatPage: React.FC = () => {
     const [counterpartName, setCounterpartName] = useState('');
 
     useEffect(() => {
-        if (dealId) {
+        if (dealId && user) {
             const foundDeal = deals.find(d => d.id === dealId);
             if (foundDeal) {
                 setDeal(foundDeal);
                 const foundInvoice = invoices.find(i => i.id === foundDeal.invoiceId);
                 setInvoice(foundInvoice || null);
 
-                // ... role logic ...
-                const myRole = localStorage.getItem('demoRole') || 'seller';
-                const isBuyer = myRole === 'buyer';
+                // Determine if I am buyer or seller based on Deal data
+                // Note: deal.buyerId and deal.sellerId should be compared with user.id
+                const isBuyer = user.id === foundDeal.buyerId;
 
                 // Load messages for this deal
                 const dealMessages = allMessages.filter(m => m.dealId === dealId);
                 const chatMessages: ChatMessage[] = dealMessages.map(m => ({
                     id: m.id,
-                    sender: m.senderId === 'buyer1' ? (isBuyer ? 'me' : 'other') : (isBuyer ? 'other' : 'me'),
+                    sender: m.senderId === user.id ? 'me' : 'other', // Correct comparison
                     text: m.content,
                     timestamp: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 }));
@@ -63,15 +65,15 @@ export const ChatPage: React.FC = () => {
                 }
             }
         }
-    }, [dealId, deals, invoices, allMessages]);
+    }, [dealId, deals, invoices, allMessages, user]);
 
     const handleSend = () => {
-        if (!inputText.trim() || !deal) return;
-        if (deal.status !== 'negotiating') return; // Prevent sending if closed
+        if (!inputText.trim() || !deal || !user) return;
+        if (deal.status !== 'negotiating') return;
 
-        const myRole = localStorage.getItem('demoRole') || 'seller';
-        const myId = myRole === 'buyer' ? 'buyer1' : 'seller1';
-        const receiverId = myRole === 'buyer' ? deal.sellerId : deal.buyerId;
+        const myId = user.id;
+        // Identify receiver: if I am buyer, receiver is seller, else buyer
+        const receiverId = user.id === deal.buyerId ? deal.sellerId : deal.buyerId;
 
         const newMessageContent = inputText;
         const now = new Date();
@@ -93,18 +95,14 @@ export const ChatPage: React.FC = () => {
         if (!deal || !invoice) return;
 
         if (window.confirm('この条件で取引を完了（契約成立）しますか？\n\n※この操作は取り消せません。')) {
-            // 1. Update Deal Status
             updateDeal(deal.id, { status: 'agreed' });
-
-            // 2. Update Market Stats
             completeDeal(invoice.amount, deal.currentAmount);
 
-            // 3. System Message (Optional but good UX)
             const now = new Date();
             addMessage({
                 id: `msg_sys_${now.getTime()}`,
                 dealId: deal.id,
-                senderId: 'system', // Mock system sender
+                senderId: 'system',
                 receiverId: 'all',
                 content: '【システム】取引が成立しました。おめでとうございます！',
                 timestamp: now.toISOString()
@@ -113,6 +111,31 @@ export const ChatPage: React.FC = () => {
             alert('取引が完了しました！');
         }
     };
+
+    const renderMessages = () => (
+        <div className="flex flex-col space-y-4 p-4">
+            {messages.map((msg) => (
+                <div
+                    key={msg.id}
+                    className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}
+                >
+                    <div className={`flex flex-col ${msg.sender === 'me' ? 'items-end' : 'items-start'} max-w-[70%]`}>
+                        <div
+                            className={`rounded-2xl px-4 py-2 shadow-sm whitespace-pre-wrap text-sm md:text-base ${msg.sender === 'me'
+                                ? 'bg-green-500 text-white rounded-tr-none'
+                                : 'bg-white text-slate-800 border border-slate-200 rounded-tl-none'
+                                }`}
+                        >
+                            {msg.text}
+                        </div>
+                        <span className="text-[10px] text-slate-400 mt-1 px-1">
+                            {msg.timestamp}
+                        </span>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
 
     if (!deal || !invoice) {
         return (
@@ -174,38 +197,10 @@ export const ChatPage: React.FC = () => {
                             )}
                         </div>
                     </div>
-                    {deal.status === 'pending' && (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 mt-2 text-sm text-yellow-800 flex items-center gap-2">
-                            <div className="bg-yellow-100 p-1 rounded-full">
-                                <User className="w-3 h-3 text-yellow-600" />
-                            </div>
-                            売り手がオファーを承諾するとチャットが可能になります。現在は待機中です。
-                        </div>
-                    )}
                 </CardHeader>
 
-                <CardContent className="flex-1 overflow-y-auto p-4 bg-slate-50 space-y-4">
-                    {messages.map((msg) => (
-                        <div
-                            key={msg.id}
-                            className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}
-                        >
-                            <div
-                                className={`max-w-[70%] rounded-2xl p-4 shadow-sm whitespace-pre-wrap ${msg.sender === 'me'
-                                    ? 'bg-primary text-white rounded-br-none'
-                                    : 'bg-white text-slate-900 rounded-bl-none border border-slate-100'
-                                    }`}
-                            >
-                                <p>{msg.text}</p>
-                                <div
-                                    className={`text-xs mt-1 text-right ${msg.sender === 'me' ? 'text-blue-100' : 'text-slate-400'
-                                        }`}
-                                >
-                                    {msg.timestamp}
-                                </div>
-                            </div>
-                        </div>
-                    ))}
+                <CardContent className="flex-1 overflow-y-auto p-0 bg-slate-50">
+                    {renderMessages()}
                 </CardContent>
 
                 <CardFooter className="bg-white border-t p-4">
