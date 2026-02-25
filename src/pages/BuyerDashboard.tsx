@@ -205,7 +205,7 @@ export const BuyerDashboard: React.FC = () => {
                                     現在のオファー数
                                 </div>
                                 <div className="font-bold text-blue-600">
-                                    {deals ? deals.filter(d => d.invoiceId === inv.id && d.status === 'pending').length : 0}件
+                                    {deals ? deals.filter(d => d.invoiceId === inv.id && ['pending', 'negotiating'].includes(d.status)).length : 0}件
                                 </div>
                             </div>
 

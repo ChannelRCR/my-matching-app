@@ -102,7 +102,7 @@ export const BuyerInvoiceDetail: React.FC = () => {
                                 <span className="font-bold text-slate-700">現在のライバル（オファー数）</span>
                             </div>
                             <span className="text-xl font-bold text-blue-600">
-                                {deals ? deals.filter(d => d.invoiceId === invoice.id && d.status === 'pending').length : 0} 件
+                                {deals ? deals.filter(d => d.invoiceId === invoice.id && ['pending', 'negotiating'].includes(d.status)).length : 0} 件
                             </span>
                         </div>
                     </div>

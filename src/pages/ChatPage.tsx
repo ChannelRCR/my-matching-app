@@ -47,8 +47,10 @@ export const ChatPage: React.FC = () => {
                 // Load messages for this deal
                 const dealMessages = allMessages.filter(m => m.dealId === dealId);
                 const chatMessages: ChatMessage[] = dealMessages.map(m => {
+                    // Support both camelCase and snake_case for Supabase compatibility
+                    const messageSenderId = m.senderId || (m as any).sender_id;
                     // Safe comparison ensuring both are strings
-                    const isMe = String(m.senderId) === String(user.id);
+                    const isMe = String(messageSenderId) === String(user.id);
                     return {
                         id: m.id,
                         sender: isMe ? 'me' : 'other',
@@ -127,7 +129,7 @@ export const ChatPage: React.FC = () => {
                         <div
                             className={`rounded-2xl px-4 py-2 shadow-sm whitespace-pre-wrap text-sm md:text-base ${msg.sender === 'me'
                                 ? 'bg-green-500 text-white rounded-tr-none'
-                                : 'bg-white text-slate-800 border border-slate-200 rounded-tl-none'
+                                : 'bg-slate-200 text-slate-800 rounded-tl-none'
                                 }`}
                         >
                             {msg.text}

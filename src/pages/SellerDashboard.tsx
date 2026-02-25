@@ -66,7 +66,7 @@ export const SellerDashboard: React.FC = () => {
                                             {/* Offer Count Display */}
                                             {inv.status === 'open' && (
                                                 <span className="text-sm font-bold text-blue-600 flex items-center bg-blue-50 px-2 py-0.5 rounded">
-                                                    現在のオファー数: {deals ? deals.filter(d => d.invoiceId === inv.id && d.status === 'pending').length : 0}件
+                                                    現在のオファー数: {deals ? deals.filter(d => d.invoiceId === inv.id && ['pending', 'negotiating'].includes(d.status)).length : 0}件
                                                 </span>
                                             )}
                                         </div>
