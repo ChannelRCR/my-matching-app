@@ -4,7 +4,6 @@ import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { Send, User, ChevronLeft } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { MOCK_USERS } from '../data/mockData';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useMarket } from '../contexts/MarketContext';
@@ -22,7 +21,7 @@ export const ChatPage: React.FC = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const dealId = searchParams.get('dealId');
-    const { deals, invoices, messages: allMessages, addMessage, updateDeal } = useData();
+    const { deals, invoices, messages: allMessages, users, addMessage, updateDeal } = useData();
     const { completeDeal } = useMarket();
     const { user } = useAuth(); // Use real auth user
 
@@ -63,17 +62,17 @@ export const ChatPage: React.FC = () => {
 
                 // Set counterpart name
                 if (isBuyer) {
-                    const seller = MOCK_USERS.find(u => u.id === foundDeal.sellerId);
+                    const seller = users.find(u => u.id === foundDeal.sellerId);
                     setCounterpartName(seller?.companyName || '売却企業');
                 } else {
-                    const buyer = MOCK_USERS.find(u => u.id === foundDeal.buyerId);
+                    const buyer = users.find(u => u.id === foundDeal.buyerId);
                     setCounterpartName(buyer?.companyName || '投資家');
                 }
             }
         }
-    }, [dealId, deals, invoices, allMessages, user]);
+    }, [dealId, deals, invoices, allMessages, users, user]);
 
-    const handleSend = () => {
+    const handleSend = async () => {
         if (!inputText.trim() || !deal || !user) return;
         if (deal.status !== 'negotiating') return;
 
@@ -84,7 +83,7 @@ export const ChatPage: React.FC = () => {
         const newMessageContent = inputText;
         const now = new Date();
 
-        addMessage({
+        await addMessage({
             id: `msg_${Date.now()}`,
             dealId: deal.id,
             senderId: myId,
@@ -93,23 +92,25 @@ export const ChatPage: React.FC = () => {
             timestamp: now.toISOString()
         });
 
-        updateDeal(deal.id, { lastMessageAt: now.toISOString() });
+        await updateDeal(deal.id, { lastMessageAt: now.toISOString() });
         setInputText('');
     };
 
-    const handleCompleteDeal = () => {
-        if (!deal || !invoice) return;
+    const handleCompleteDeal = async () => {
+        if (!deal || !invoice || !user) return;
 
         if (window.confirm('この条件で取引を完了（契約成立）しますか？\n\n※この操作は取り消せません。')) {
-            updateDeal(deal.id, { status: 'agreed' });
+            await updateDeal(deal.id, { status: 'agreed' });
             completeDeal(invoice.amount, deal.currentAmount);
 
             const now = new Date();
-            addMessage({
+            const receiverId = user.id === deal.buyerId ? deal.sellerId : deal.buyerId;
+
+            await addMessage({
                 id: `msg_sys_${now.getTime()}`,
                 dealId: deal.id,
-                senderId: 'system',
-                receiverId: 'all',
+                senderId: user.id, // using actual user id instead of 'system'
+                receiverId: receiverId, // to specific user instead of 'all'
                 content: '【システム】取引が成立しました。おめでとうございます！',
                 timestamp: now.toISOString()
             });

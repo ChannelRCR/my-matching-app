@@ -51,9 +51,9 @@ export const SellerInvoiceDetail: React.FC = () => {
         return buyer ? (buyer.companyName || buyer.name) : '不明な買い手';
     };
 
-    const handleAcceptDeal = (deal: Deal) => {
+    const handleAcceptDeal = async (deal: Deal) => {
         if (window.confirm(`${getBuyerName(deal.buyerId)} からのオファーを承諾しますか？\n\n・この買い手と交渉フェーズに入ります\n・他のオファーは却下されます\n・マーケットプレイスでの募集は停止されます`)) {
-            acceptDeal(deal);
+            await acceptDeal(deal);
             alert('オファーを承諾しました。交渉を開始してください。');
         }
     };

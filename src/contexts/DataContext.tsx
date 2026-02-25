@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Invoice, Deal, User, Message } from '../types';
-import { MOCK_DEALS, MOCK_MESSAGES } from '../data/mockData';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 
@@ -11,36 +10,29 @@ interface DataContextType {
     users: User[];
     loading: boolean;
     addInvoice: (invoice: Invoice) => Promise<boolean>;
-    addDeal: (deal: Deal) => void;
-    addMessage: (message: Message) => void;
-    updateDeal: (dealId: string, updates: Partial<Deal>) => void;
+    addMessage: (message: Message) => Promise<void>;
+    updateDeal: (dealId: string, updates: Partial<Deal>) => Promise<void>;
     updateUser: (userId: string, updates: Partial<User>) => Promise<void>;
-    createDeal: (invoiceId: string, buyerId: string, offerAmount: number, message: string) => Deal;
-    createChatRoom: (invoiceId: string, buyerId: string) => Deal;
-    acceptDeal: (deal: Deal) => void;
+    createDeal: (invoiceId: string, buyerId: string, offerAmount: number, message: string) => Promise<Deal | null>;
+    createChatRoom: (invoiceId: string, buyerId: string) => Promise<Deal | null>;
+    acceptDeal: (deal: Deal) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    // Integrate AuthContext
     const { user: authUser } = useAuth();
-
-    // State management
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
+    const [deals, setDeals] = useState<Deal[]>([]);
+    const [messages, setMessages] = useState<Message[]>([]);
 
-    // Keep Deals and Messages as mocks for Phase 2
-    const [deals, setDeals] = useState<Deal[]>(MOCK_DEALS);
-    const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
-
-    // Initial Fetch
     useEffect(() => {
         const initialize = async () => {
             setLoading(true);
             try {
-                await Promise.all([fetchUsers(), fetchInvoices()]);
+                await Promise.all([fetchUsers(), fetchInvoices(), fetchDeals(), fetchMessages()]);
             } catch (error) {
                 console.error('Error initializing data:', error);
             } finally {
@@ -48,36 +40,36 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         };
         initialize();
+
+        const dealsSub = supabase.channel('deals_channel')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'deals' }, () => {
+                fetchDeals(); // Simplest way to keep sync without manual merging
+            }).subscribe();
+
+        const msgsSub = supabase.channel('msgs_channel')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
+                fetchMessages();
+            }).subscribe();
+
+        return () => {
+            supabase.removeChannel(dealsSub);
+            supabase.removeChannel(msgsSub);
+        };
     }, []);
 
-    // --- Users Logic ---
     const fetchUsers = async () => {
-        const { data, error } = await supabase.from('users').select('*');
-        if (error) {
-            console.error('Error fetching users:', error);
-            return;
-        }
+        const { data } = await supabase.from('users').select('*');
         if (data) {
-            // Map raw DB data to User type
-            const mappedUsers: User[] = data.map((u: any) => ({
-                id: u.id,
-                name: u.name,
-                companyName: u.company_name,
-                role: u.role,
-                avatarUrl: u.avatar_url,
-                budget: u.budget,
-                appealPoint: u.appeal_point,
-                status: u.status,
-                registeredAt: u.registered_at,
-            }));
-            setUsers(mappedUsers);
+            setUsers(data.map((u: any) => ({
+                id: u.id, name: u.name, companyName: u.company_name, role: u.role,
+                avatarUrl: u.avatar_url, budget: u.budget, appealPoint: u.appeal_point,
+                status: u.status, registeredAt: u.registered_at,
+            })));
         }
     };
 
     const updateUser = async (userId: string, updates: Partial<User>) => {
-        // Optimistic update
         setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...updates } : u));
-
         const dbUpdates: any = {};
         if (updates.name) dbUpdates.name = updates.name;
         if (updates.companyName) dbUpdates.company_name = updates.companyName;
@@ -88,182 +80,196 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (updates.status) dbUpdates.status = updates.status;
 
         const { error } = await supabase.from('users').update(dbUpdates).eq('id', userId);
-        if (error) {
-            console.error('Error updating user:', error);
-            alert('プロフィールの更新に失敗しました。');
-        }
+        if (error) alert('プロフィールの更新に失敗しました。');
     };
 
-    // --- Invoices Logic ---
     const fetchInvoices = async () => {
-        const { data, error } = await supabase.from('invoices').select('*').order('created_at', { ascending: false });
-        if (error) {
-            console.error('Error fetching invoices:', error);
-            return;
-        }
+        const { data } = await supabase.from('invoices').select('*').order('created_at', { ascending: false });
         if (data) {
-            const mappedInvoices: Invoice[] = data.map((i: any) => ({
-                id: i.id,
-                sellerId: i.seller_id,
-                amount: i.amount,
-                sellingAmount: i.selling_amount,
-                dueDate: i.due_date,
-                industry: i.industry,
-                companySize: i.company_size,
-                companyCredit: i.company_credit,
-                status: i.status,
-                requestedAmount: i.requested_amount,
-                evidenceUrl: i.evidence_url,
-                evidenceName: i.evidence_name,
-            }));
-            setInvoices(mappedInvoices);
+            setInvoices(data.map((i: any) => ({
+                id: i.id, sellerId: i.seller_id, amount: i.amount, sellingAmount: i.selling_amount,
+                dueDate: i.due_date, industry: i.industry, companySize: i.company_size,
+                companyCredit: i.company_credit, status: i.status, requestedAmount: i.requested_amount,
+                evidenceUrl: i.evidence_url, evidenceName: i.evidence_name,
+            })));
         }
     };
 
     const addInvoice = async (invoice: Invoice): Promise<boolean> => {
-        // Strict Mode: Check against AuthContext user
-        console.log('Attempting to add invoice. AuthUser:', authUser?.id);
-
         if (!authUser) {
-            console.error('AddInvoice failed: No authenticated user.');
             alert('ユーザー情報が見つかりません。再読み込みしてください。');
             return false;
         }
-
         const dbInvoice = {
-            // Let Supabase generate ID
-            seller_id: authUser.id, // Use strict auth ID
+            seller_id: authUser.id,
             amount: invoice.amount,
             selling_amount: invoice.sellingAmount || invoice.amount,
             due_date: invoice.dueDate,
             industry: invoice.industry,
             company_size: invoice.companySize,
             company_credit: invoice.companyCredit,
-            status: 'open', // Always starts as open
+            status: 'open',
             requested_amount: invoice.requestedAmount,
             evidence_url: invoice.evidenceUrl,
             evidence_name: invoice.evidenceName,
         };
-
-        const { data, error } = await supabase
-            .from('invoices')
-            .insert([dbInvoice])
-            .select();
-
+        const { error } = await supabase.from('invoices').insert([dbInvoice]).select();
         if (error) {
-            console.error('Error adding invoice:', error.message, error.details, error.hint);
             alert(`案件登録に失敗しました: ${error.message}`);
             return false;
         } else {
-            // Success
-            console.log('Invoice added successfully:', data);
-            fetchInvoices(); // Refresh list from DB
+            fetchInvoices();
             return true;
         }
     };
 
-    // --- Deals/Messages (Still Mocked) ---
-    const addDeal = (deal: Deal) => {
-        setDeals(prev => [...prev, deal]);
+    // --- Deals/Messages Real Implementation ---
+    const fetchDeals = async () => {
+        const { data } = await supabase.from('deals').select('*').order('started_at', { ascending: false });
+        if (data) {
+            setDeals(data.map((d: any) => ({
+                id: d.id,
+                invoiceId: d.invoice_id,
+                buyerId: d.buyer_id,
+                sellerId: d.seller_id,
+                status: d.status,
+                initialOfferAmount: d.initial_offer_amount,
+                currentAmount: d.current_amount,
+                startedAt: d.started_at,
+                lastMessageAt: d.last_message_at,
+            })));
+        }
     };
 
-    const addMessage = (message: Message) => {
-        setMessages(prev => [...prev, message]);
+    const fetchMessages = async () => {
+        const { data } = await supabase.from('messages').select('*').order('timestamp', { ascending: true });
+        if (data) {
+            setMessages(data.map((m: any) => ({
+                id: m.id,
+                dealId: m.deal_id,
+                senderId: m.sender_id,
+                receiverId: m.receiver_id,
+                content: m.content,
+                timestamp: m.timestamp,
+            })));
+        }
     };
 
-    const updateDeal = (dealId: string, updates: Partial<Deal>) => {
-        setDeals(prev => prev.map(d => d.id === dealId ? { ...d, ...updates } : d));
+    const addMessage = async (message: Message) => {
+        const dbMsg = {
+            deal_id: message.dealId,
+            sender_id: message.senderId,
+            receiver_id: message.receiverId,
+            content: message.content
+        };
+        const { error } = await supabase.from('messages').insert([dbMsg]);
+        if (error) console.error("Error sending message", error);
+        else fetchMessages();
     };
 
-    const createChatRoom = (invoiceId: string, buyerId: string): Deal => {
-        const deal: Deal = {
-            id: `deal_${Date.now()}`,
-            invoiceId,
-            buyerId,
-            sellerId: invoices.find(i => i.id === invoiceId)?.sellerId || 'seller1',
-            status: 'negotiating', // Directly open for chat without an initial offer
-            initialOfferAmount: 0,
-            currentAmount: 0,
-            startedAt: new Date().toISOString(),
-            lastMessageAt: new Date().toISOString(),
+    const updateDeal = async (dealId: string, updates: Partial<Deal>) => {
+        const dbUpdates: any = {};
+        if (updates.status) dbUpdates.status = updates.status;
+        if (updates.currentAmount !== undefined) dbUpdates.current_amount = updates.currentAmount;
+        if (updates.lastMessageAt) dbUpdates.last_message_at = updates.lastMessageAt;
+
+        await supabase.from('deals').update(dbUpdates).eq('id', dealId);
+        fetchDeals();
+    };
+
+    const createChatRoom = async (invoiceId: string, buyerId: string): Promise<Deal | null> => {
+        const sellerId = invoices.find(i => i.id === invoiceId)?.sellerId;
+        if (!sellerId) return null;
+
+        const dbDeal = {
+            invoice_id: invoiceId,
+            buyer_id: buyerId,
+            seller_id: sellerId,
+            status: 'negotiating',
+            initial_offer_amount: 0,
+            current_amount: 0
         };
 
-        addDeal(deal);
+        const { data, error } = await supabase.from('deals').insert([dbDeal]).select().single();
+        if (error || !data) return null;
 
-        const initialMsg: Message = {
-            id: `msg_${Date.now()}`,
-            dealId: deal.id,
-            senderId: buyerId,
-            receiverId: deal.sellerId,
-            content: "【システム】この案件について質問・交渉が開始されました。",
-            timestamp: new Date().toISOString(),
+        const newDeal: Deal = {
+            id: data.id,
+            invoiceId: data.invoice_id,
+            buyerId: data.buyer_id,
+            sellerId: data.seller_id,
+            status: data.status,
+            initialOfferAmount: data.initial_offer_amount,
+            currentAmount: data.current_amount,
+            startedAt: data.started_at,
+            lastMessageAt: data.last_message_at,
         };
-        addMessage(initialMsg);
 
-        return deal;
+        const dbMsg = {
+            deal_id: data.id,
+            sender_id: buyerId,
+            receiver_id: sellerId,
+            content: "【システム】この案件について質問・交渉が開始されました。"
+        };
+        await supabase.from('messages').insert([dbMsg]);
+
+        fetchDeals(); fetchMessages();
+        return newDeal;
     };
 
-    const createDeal = (invoiceId: string, buyerId: string, offerAmount: number, message: string): Deal => {
-        const deal: Deal = {
-            id: `deal_${Date.now()}`,
-            invoiceId,
-            buyerId,
-            sellerId: invoices.find(i => i.id === invoiceId)?.sellerId || 'seller1',
-            status: 'pending', // Initial status is pending acceptance
-            initialOfferAmount: offerAmount,
-            currentAmount: offerAmount,
-            startedAt: new Date().toISOString(),
-            lastMessageAt: new Date().toISOString(),
+    const createDeal = async (invoiceId: string, buyerId: string, offerAmount: number, message: string): Promise<Deal | null> => {
+        const sellerId = invoices.find(i => i.id === invoiceId)?.sellerId;
+        if (!sellerId) return null;
+
+        const dbDeal = {
+            invoice_id: invoiceId,
+            buyer_id: buyerId,
+            seller_id: sellerId,
+            status: 'pending',
+            initial_offer_amount: offerAmount,
+            current_amount: offerAmount
         };
 
-        // Update local state
-        addDeal(deal);
+        const { data, error } = await supabase.from('deals').insert([dbDeal]).select().single();
+        if (error || !data) return null;
 
-        const initialMsg: Message = {
-            id: `msg_${Date.now()}`,
-            dealId: deal.id,
-            senderId: buyerId,
-            receiverId: deal.sellerId,
-            content: message,
-            timestamp: new Date().toISOString(),
+        const newDeal: Deal = {
+            id: data.id,
+            invoiceId: data.invoice_id,
+            buyerId: data.buyer_id,
+            sellerId: data.seller_id,
+            status: data.status,
+            initialOfferAmount: data.initial_offer_amount,
+            currentAmount: data.current_amount,
+            startedAt: data.started_at,
+            lastMessageAt: data.last_message_at,
         };
-        addMessage(initialMsg);
 
-        // NOTE: We do NOT update invoice status to 'negotiating' yet.
-        // It stays 'open' until the seller accepts an offer.
+        const dbMsg = {
+            deal_id: data.id,
+            sender_id: buyerId,
+            receiver_id: sellerId,
+            content: message
+        };
+        await supabase.from('messages').insert([dbMsg]);
 
-        return deal;
+        fetchDeals(); fetchMessages();
+        return newDeal;
     };
 
-    const acceptDeal = (deal: Deal) => {
-        // 1. Update the accepted deal to 'negotiating'
-        updateDeal(deal.id, { status: 'negotiating' });
+    const acceptDeal = async (deal: Deal) => {
+        await supabase.from('deals').update({ status: 'negotiating' }).eq('id', deal.id);
+        await supabase.from('deals').update({ status: 'rejected' }).eq('invoice_id', deal.invoiceId).neq('id', deal.id);
+        await supabase.from('invoices').update({ status: 'negotiating' }).eq('id', deal.invoiceId);
 
-        // 2. Reject all OTHER deals for this invoice
-        const otherDeals = deals.filter(d => d.invoiceId === deal.invoiceId && d.id !== deal.id);
-        otherDeals.forEach(d => {
-            updateDeal(d.id, { status: 'rejected' });
-        });
-
-        // 3. Update Invoice status to 'negotiating' (locks it from marketplace)
-        setInvoices(prev => prev.map(inv => inv.id === deal.invoiceId ? { ...inv, status: 'negotiating' } : inv));
+        fetchDeals(); fetchInvoices();
     };
 
     return (
         <DataContext.Provider value={{
-            invoices,
-            deals,
-            messages,
-            users,
-            loading,
-            addInvoice,
-            addDeal,
-            addMessage,
-            updateDeal,
-            updateUser,
-            createDeal,
-            createChatRoom,
-            acceptDeal
+            invoices, deals, messages, users, loading,
+            addInvoice, addMessage, updateDeal, updateUser,
+            createDeal, createChatRoom, acceptDeal
         }}>
             {children}
         </DataContext.Provider>
