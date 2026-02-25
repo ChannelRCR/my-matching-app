@@ -158,8 +158,15 @@ export const BuyerDashboard: React.FC = () => {
                         <CardHeader className="bg-slate-50 border-b border-slate-100 pb-4">
                             <div className="flex justify-between items-start">
                                 <div>
-                                    <div className="text-xs font-bold text-primary uppercase tracking-wider mb-1">
-                                        {inv.industry}
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <div className="text-xs font-bold text-primary uppercase tracking-wider">
+                                            {inv.industry}
+                                        </div>
+                                        {inv.sellingAmount && inv.sellingAmount < inv.amount && (
+                                            <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-sm">
+                                                一部売却
+                                            </span>
+                                        )}
                                     </div>
                                     <CardTitle className="text-lg">
                                         企業名非公開
@@ -171,18 +178,32 @@ export const BuyerDashboard: React.FC = () => {
                             </div>
                         </CardHeader>
                         <CardContent className="flex-1 pt-6 space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center text-slate-600 font-medium">
-                                    <CreditCard className="w-4 h-4 mr-2 text-slate-400" />
-                                    請求書額面
+                            <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 space-y-2">
+                                <div className="flex items-center justify-between text-sm">
+                                    <div className="text-slate-500 flex items-center">
+                                        <CreditCard className="w-4 h-4 mr-2" />
+                                        額面（総額）
+                                    </div>
+                                    <div className={`${inv.sellingAmount && inv.sellingAmount < inv.amount ? 'line-through text-slate-400' : 'font-bold text-slate-700'}`}>
+                                        ¥{inv.amount.toLocaleString()}
+                                    </div>
                                 </div>
-                                <div className="text-lg font-bold">¥{inv.amount.toLocaleString()}</div>
+                                {inv.sellingAmount && inv.sellingAmount < inv.amount && (
+                                    <div className="flex items-center justify-between">
+                                        <div className="text-amber-700 font-bold flex items-center text-sm">
+                                            <DollarSign className="w-4 h-4 mr-2" />
+                                            売却対象額
+                                        </div>
+                                        <div className="text-lg font-bold text-amber-600">
+                                            ¥{inv.sellingAmount.toLocaleString()}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center text-slate-600 font-medium">
-                                    <DollarSign className="w-4 h-4 mr-2 text-slate-400" />
-                                    希望買取額
+                            <div className="flex items-center justify-between px-1">
+                                <div className="flex items-center text-slate-600 font-medium text-sm">
+                                    売却希望額
                                 </div>
                                 <div className="text-lg font-bold text-primary">¥{inv.requestedAmount?.toLocaleString()}</div>
                             </div>
@@ -196,7 +217,9 @@ export const BuyerDashboard: React.FC = () => {
                                             : '0.0'}%
                                     </span>
                                 </div>
-                                <p className="text-[10px] text-green-600 text-right mt-1">※1か月後の入金を前提</p>
+                                <p className="text-[10px] text-green-600 text-right mt-1">
+                                    {inv.sellingAmount && inv.sellingAmount < inv.amount ? '※売却対象額に対する年率 / ' : ''}1か月後の入金を前提
+                                </p>
                             </div>
 
                             <div className="flex items-center justify-between">

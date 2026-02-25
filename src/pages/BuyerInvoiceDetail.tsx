@@ -56,10 +56,17 @@ export const BuyerInvoiceDetail: React.FC = () => {
 
             <Card>
                 <CardHeader className="bg-slate-50 border-b flex flex-row items-center justify-between">
-                    <div>
-                        <div className="text-xs font-bold text-primary uppercase tracking-wider mb-1">
+                    <div className="flex items-center gap-2">
+                        <div className="text-xs font-bold text-primary uppercase tracking-wider">
                             {invoice.industry}
                         </div>
+                        {invoice.sellingAmount && invoice.sellingAmount < invoice.amount && (
+                            <span className="text-xs font-bold bg-amber-100 text-amber-700 px-3 py-1 rounded-sm">
+                                一部売却
+                            </span>
+                        )}
+                    </div>
+                    <div>
                         <CardTitle className="text-xl">案件 #{invoice.id}</CardTitle>
                     </div>
                     {invoice.status === 'open' && (
@@ -69,14 +76,38 @@ export const BuyerInvoiceDetail: React.FC = () => {
                     )}
                 </CardHeader>
                 <CardContent className="p-8 space-y-8">
+                    {/* Partial Sale Alert Area (Only shows if partial) */}
+                    {invoice.sellingAmount && invoice.sellingAmount < invoice.amount && (
+                        <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg mb-6">
+                            <h3 className="text-amber-800 font-bold mb-1">この案件は「一部売却」です</h3>
+                            <p className="text-amber-700 text-sm">
+                                請求書総額 <strong>¥{invoice.amount.toLocaleString()}</strong> のうち、
+                                <strong className="text-lg underline underline-offset-2 mx-1">¥{invoice.sellingAmount.toLocaleString()}</strong>分のみが売却対象となります。
+                            </p>
+                        </div>
+                    )}
+
                     {/* Key Figures */}
                     <div className="grid md:grid-cols-2 gap-8">
-                        <div className="bg-slate-50 p-6 rounded-xl border border-slate-100">
-                            <h3 className="flex items-center text-slate-500 font-medium mb-2">
+                        <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 flex flex-col justify-center">
+                            <h3 className="flex items-center text-slate-500 font-medium mb-3">
                                 <CreditCard className="w-4 h-4 mr-2" />
-                                請求書額面
+                                {invoice.sellingAmount && invoice.sellingAmount < invoice.amount ? '額面（総額）' : '請求書額面'}
                             </h3>
-                            <p className="text-3xl font-bold text-slate-900">¥{invoice.amount.toLocaleString()}</p>
+                            <p className={`text-3xl font-bold ${invoice.sellingAmount && invoice.sellingAmount < invoice.amount ? 'text-slate-400 line-through text-2xl' : 'text-slate-900'}`}>
+                                ¥{invoice.amount.toLocaleString()}
+                            </p>
+                            {invoice.sellingAmount && invoice.sellingAmount < invoice.amount && (
+                                <div className="mt-4 pt-4 border-t border-slate-200">
+                                    <h3 className="flex items-center text-amber-700 font-bold text-sm mb-1">
+                                        <DollarSign className="w-4 h-4 mr-1" />
+                                        売却対象額
+                                    </h3>
+                                    <p className="text-3xl font-bold text-amber-600">
+                                        ¥{invoice.sellingAmount.toLocaleString()}
+                                    </p>
+                                </div>
+                            )}
                         </div>
                         <div className="bg-indigo-50 p-6 rounded-xl border border-indigo-100">
                             <h3 className="flex items-center text-indigo-600 font-medium mb-2">
@@ -94,7 +125,9 @@ export const BuyerInvoiceDetail: React.FC = () => {
                                             : '0.0'}%
                                     </span>
                                 </div>
-                                <p className="text-xs text-indigo-400 text-right">※1か月後の入金を前提</p>
+                                <p className="text-xs text-indigo-400 text-right mt-1">
+                                    {invoice.sellingAmount && invoice.sellingAmount < invoice.amount ? '※売却対象額に対する年率 / ' : ''}1か月後の入金を前提
+                                </p>
                             </div>
                         </div>
 
