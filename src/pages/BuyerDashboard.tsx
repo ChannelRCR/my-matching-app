@@ -191,8 +191,8 @@ export const BuyerDashboard: React.FC = () => {
                                 <div className="flex items-center justify-between text-green-800">
                                     <span className="font-bold text-sm">想定利回り (年率)</span>
                                     <span className="font-bold text-lg">
-                                        {inv.requestedAmount && inv.amount ?
-                                            (((inv.amount - inv.requestedAmount) / inv.requestedAmount) * 12 * 100).toFixed(1)
+                                        {inv.requestedAmount && (inv.sellingAmount || inv.amount) ?
+                                            ((((inv.sellingAmount || inv.amount) - inv.requestedAmount) / inv.requestedAmount) * 12 * 100).toFixed(1)
                                             : '0.0'}%
                                     </span>
                                 </div>

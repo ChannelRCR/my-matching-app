@@ -11,7 +11,7 @@ import type { Invoice, Deal } from '../types';
 export const BuyerInvoiceDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { invoices, deals, createDeal } = useData();
+    const { invoices, deals, createDeal, createChatRoom } = useData();
     const { user } = useAuth();
 
     const [invoice, setInvoice] = useState<Invoice | null>(null);
@@ -87,8 +87,8 @@ export const BuyerInvoiceDetail: React.FC = () => {
                                 <div className="flex items-center justify-between mb-1">
                                     <span className="text-sm font-bold text-indigo-900">想定利回り (年率)</span>
                                     <span className="text-xl font-bold text-green-600">
-                                        {invoice.requestedAmount && invoice.amount ?
-                                            (((invoice.amount - invoice.requestedAmount) / invoice.requestedAmount) * 12 * 100).toFixed(1)
+                                        {invoice.requestedAmount && (invoice.sellingAmount || invoice.amount) ?
+                                            ((((invoice.sellingAmount || invoice.amount) - invoice.requestedAmount) / invoice.requestedAmount) * 12 * 100).toFixed(1)
                                             : '0.0'}%
                                     </span>
                                 </div>
@@ -151,7 +151,7 @@ export const BuyerInvoiceDetail: React.FC = () => {
                                 <div>
                                     <h3 className="font-bold text-orange-800 text-lg mb-1">交渉中の案件です</h3>
                                     <p className="text-sm text-orange-600">
-                                        現在の提示額: ¥{existingDeal.currentAmount.toLocaleString()}
+                                        現在の提示額: ¥{existingDeal.currentAmount?.toLocaleString() || 'なし'}
                                     </p>
                                 </div>
                                 <Button onClick={() => navigate(`/chat?dealId=${existingDeal.id}`)}>
@@ -160,17 +160,34 @@ export const BuyerInvoiceDetail: React.FC = () => {
                                 </Button>
                             </div>
                         ) : (
-                            <div className="text-center">
-                                <Button
-                                    size="lg"
-                                    className="w-full md:w-auto px-12 bg-indigo-600 hover:bg-indigo-700"
-                                    onClick={() => setIsOfferModalOpen(true)}
-                                    // Disable if not open
-                                    disabled={invoice.status !== 'open'}
-                                >
-                                    {invoice.status === 'open' ? 'オファーを提示する' : 'この案件は終了しました'}
-                                </Button>
-                                <p className="mt-4 text-xs text-slate-400">
+                            <div className="text-center flex flex-col items-center gap-4">
+                                <div className="flex flex-col md:flex-row gap-4 justify-center items-center w-full">
+                                    <Button
+                                        size="lg"
+                                        variant="outline"
+                                        className="w-full md:w-auto px-8 border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                                        onClick={() => {
+                                            if (user && invoice.status === 'open') {
+                                                const newDeal = createChatRoom(invoice.id, user.id);
+                                                navigate(`/chat?dealId=${newDeal.id}`);
+                                            }
+                                        }}
+                                        disabled={invoice.status !== 'open'}
+                                    >
+                                        <MessageCircle className="mr-2 h-5 w-5" />
+                                        この案件について質問・交渉する（チャット）
+                                    </Button>
+                                    <Button
+                                        size="lg"
+                                        className="w-full md:w-auto px-12 bg-indigo-600 hover:bg-indigo-700"
+                                        onClick={() => setIsOfferModalOpen(true)}
+                                        // Disable if not open
+                                        disabled={invoice.status !== 'open'}
+                                    >
+                                        {invoice.status === 'open' ? '直ちにオファーを提示する' : 'この案件は終了しました'}
+                                    </Button>
+                                </div>
+                                <p className="text-xs text-slate-400">
                                     ※ オファー提示と同時にチャットルームが開設されます
                                 </p>
                             </div>

@@ -16,6 +16,7 @@ interface DataContextType {
     updateDeal: (dealId: string, updates: Partial<Deal>) => void;
     updateUser: (userId: string, updates: Partial<User>) => Promise<void>;
     createDeal: (invoiceId: string, buyerId: string, offerAmount: number, message: string) => Deal;
+    createChatRoom: (invoiceId: string, buyerId: string) => Deal;
     acceptDeal: (deal: Deal) => void;
 }
 
@@ -105,6 +106,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 id: i.id,
                 sellerId: i.seller_id,
                 amount: i.amount,
+                sellingAmount: i.selling_amount,
                 dueDate: i.due_date,
                 industry: i.industry,
                 companySize: i.company_size,
@@ -132,6 +134,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Let Supabase generate ID
             seller_id: authUser.id, // Use strict auth ID
             amount: invoice.amount,
+            selling_amount: invoice.sellingAmount || invoice.amount,
             due_date: invoice.dueDate,
             industry: invoice.industry,
             company_size: invoice.companySize,
@@ -170,6 +173,34 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const updateDeal = (dealId: string, updates: Partial<Deal>) => {
         setDeals(prev => prev.map(d => d.id === dealId ? { ...d, ...updates } : d));
+    };
+
+    const createChatRoom = (invoiceId: string, buyerId: string): Deal => {
+        const deal: Deal = {
+            id: `deal_${Date.now()}`,
+            invoiceId,
+            buyerId,
+            sellerId: invoices.find(i => i.id === invoiceId)?.sellerId || 'seller1',
+            status: 'negotiating', // Directly open for chat without an initial offer
+            initialOfferAmount: 0,
+            currentAmount: 0,
+            startedAt: new Date().toISOString(),
+            lastMessageAt: new Date().toISOString(),
+        };
+
+        addDeal(deal);
+
+        const initialMsg: Message = {
+            id: `msg_${Date.now()}`,
+            dealId: deal.id,
+            senderId: buyerId,
+            receiverId: deal.sellerId,
+            content: "【システム】この案件について質問・交渉が開始されました。",
+            timestamp: new Date().toISOString(),
+        };
+        addMessage(initialMsg);
+
+        return deal;
     };
 
     const createDeal = (invoiceId: string, buyerId: string, offerAmount: number, message: string): Deal => {
@@ -231,6 +262,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             updateDeal,
             updateUser,
             createDeal,
+            createChatRoom,
             acceptDeal
         }}>
             {children}

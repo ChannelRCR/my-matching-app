@@ -170,14 +170,20 @@ export const ChatPage: React.FC = () => {
                             </div>
                             <div>
                                 <div className="text-lg">{counterpartName}</div>
-                                <div className="text-sm font-normal text-slate-500">
-                                    案件ID: {invoice.id} / 額面: ¥{invoice.amount.toLocaleString()}
+                                <div className="text-sm font-normal text-slate-500 flex flex-wrap gap-2 items-center mt-1">
+                                    <span className="bg-slate-100 px-2 py-0.5 rounded text-xs text-slate-600 border border-slate-200">ID: {invoice.id}</span>
+                                    <span>額面: ¥{invoice.amount.toLocaleString()}</span>
+                                    {invoice.sellingAmount && invoice.sellingAmount < invoice.amount && (
+                                        <span className="text-blue-600 font-medium">
+                                            (売却対象: ¥{invoice.sellingAmount.toLocaleString()})
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         </CardTitle>
                         <div className="flex flex-col items-end gap-2">
-                            <div className="bg-slate-100 px-3 py-1 rounded text-sm text-slate-600">
-                                希望: ¥{invoice.requestedAmount?.toLocaleString()}
+                            <div className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded font-bold text-sm border border-indigo-100 shadow-sm">
+                                希望買取額: ¥{invoice.requestedAmount?.toLocaleString() || '未設定'}
                             </div>
                             {deal.status === 'negotiating' ? (
                                 <Button

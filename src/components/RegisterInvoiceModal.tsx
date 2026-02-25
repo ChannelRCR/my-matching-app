@@ -14,8 +14,10 @@ interface RegisterInvoiceModalProps {
 export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOpen, onClose }) => {
     const { addInvoice } = useData();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [saleMode, setSaleMode] = useState<'full' | 'partial'>('full');
     const [formData, setFormData] = useState({
         amount: '',
+        sellingAmount: '',
         dueDate: '',
         industry: '',
         companySize: 'SMB', // Default
@@ -58,11 +60,19 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
             return;
         }
 
+        const actualSellingAmount = saleMode === 'full' ? Number(formData.amount) : Number(formData.sellingAmount);
+
+        if (saleMode === 'partial' && actualSellingAmount > Number(formData.amount)) {
+            alert('売却対象金額は額面金額以下に設定してください');
+            return;
+        }
+
         const newInvoice: Invoice = {
             id: `inv_${Date.now()}`,
             // sellerId will be added by addInvoice in DataContext
             sellerId: '',
             amount: Number(formData.amount),
+            sellingAmount: actualSellingAmount,
             dueDate: formData.dueDate,
             industry: formData.industry,
             companySize: formData.companySize as any,
@@ -77,8 +87,10 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
 
         if (success) {
             // Reset and close
+            setSaleMode('full');
             setFormData({
                 amount: '',
+                sellingAmount: '',
                 dueDate: '',
                 industry: '',
                 companySize: 'SMB',
@@ -112,6 +124,49 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
                                 placeholder="例: 1000000"
                                 required
                             />
+
+                            <div className="space-y-2 md:col-span-2">
+                                <label className="text-sm font-medium text-slate-700 block">売却対象</label>
+                                <div className="flex items-center gap-6 mb-2">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="saleMode"
+                                            value="full"
+                                            checked={saleMode === 'full'}
+                                            onChange={() => setSaleMode('full')}
+                                            className="text-primary focus:ring-primary"
+                                        />
+                                        <span className="text-sm">全額売却</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="saleMode"
+                                            value="partial"
+                                            checked={saleMode === 'partial'}
+                                            onChange={() => setSaleMode('partial')}
+                                            className="text-primary focus:ring-primary"
+                                        />
+                                        <span className="text-sm">一部売却</span>
+                                    </label>
+                                </div>
+                                {saleMode === 'partial' && (
+                                    <div className="w-1/2">
+                                        <Input
+                                            label="売却対象金額 (円) *"
+                                            name="sellingAmount"
+                                            type="number"
+                                            value={formData.sellingAmount}
+                                            onChange={handleInputChange}
+                                            placeholder="例: 500000"
+                                            required={saleMode === 'partial'}
+                                        />
+                                        <p className="text-xs text-slate-500 mt-1">※額面より小さい金額を設定してください</p>
+                                    </div>
+                                )}
+                            </div>
+
                             <Input
                                 label="入金期日 *"
                                 name="dueDate"
