@@ -68,7 +68,7 @@ export interface Deal {
     invoiceId: string;
     buyerId: string;
     sellerId: string;
-    status: 'pending' | 'negotiating' | 'agreed' | 'rejected';
+    status: 'open' | 'pending' | 'negotiating' | 'agreed' | 'rejected';
     initialOfferAmount: number;
     currentAmount: number;
     startedAt: string;

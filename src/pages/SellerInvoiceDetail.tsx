@@ -175,7 +175,7 @@ export const SellerInvoiceDetail: React.FC = () => {
                                         </div>
 
                                         <div className="flex flex-col gap-2 w-full sm:w-auto min-w-[140px]">
-                                            {deal.status === 'pending' && invoice.status === 'open' ? (
+                                            {(deal.status === 'pending' || deal.status === 'open') && invoice.status === 'open' ? (
                                                 <Button
                                                     onClick={() => handleAcceptDeal(deal)}
                                                     className="w-full bg-green-600 hover:bg-green-700"
@@ -198,7 +198,7 @@ export const SellerInvoiceDetail: React.FC = () => {
                                             )}
 
                                             <Button
-                                                variant={deal.status === 'pending' ? 'outline' : 'primary'}
+                                                variant={(deal.status === 'pending' || deal.status === 'open') ? 'outline' : 'primary'}
                                                 onClick={() => navigate(`/chat?dealId=${deal.id}`)}
                                                 className="w-full"
                                             >

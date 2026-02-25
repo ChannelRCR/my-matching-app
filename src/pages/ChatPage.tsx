@@ -199,7 +199,7 @@ export const ChatPage: React.FC = () => {
                                 <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold border border-green-200">
                                     取引成立済み
                                 </span>
-                            ) : deal.status === 'pending' ? (
+                            ) : (deal.status === 'pending' || deal.status === 'open') ? (
                                 <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-bold border border-yellow-200">
                                     オファー承諾待ち
                                 </span>
@@ -229,7 +229,7 @@ export const ChatPage: React.FC = () => {
                             onChange={(e) => setInputText(e.target.value)}
                             placeholder={
                                 deal.status === 'negotiating' ? "メッセージを入力..." :
-                                    deal.status === 'pending' ? "売り手の承諾をお待ちください" :
+                                    (deal.status === 'pending' || deal.status === 'open') ? "売り手の承諾をお待ちください" :
                                         "取引終了のため送信できません"
                             }
                             className="flex-1"

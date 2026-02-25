@@ -108,11 +108,11 @@ export const BuyerDashboard: React.FC = () => {
                                     <CardHeader className="pb-2">
                                         <CardTitle className="text-base flex justify-between">
                                             <span>{inv?.industry || '案件'} #{inv?.id || deal.invoiceId}</span>
-                                            <span className={`text-xs px-2 py-1 rounded-full font-bold ${deal.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                            <span className={`text-xs px-2 py-1 rounded-full font-bold ${(deal.status === 'pending' || deal.status === 'open') ? 'bg-yellow-100 text-yellow-800' :
                                                 deal.status === 'negotiating' ? 'bg-orange-100 text-orange-800' :
                                                     deal.status === 'agreed' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-500'
                                                 }`}>
-                                                {deal.status === 'pending' ? '承諾待ち' :
+                                                {(deal.status === 'pending' || deal.status === 'open') ? '承諾待ち' :
                                                     deal.status === 'negotiating' ? '交渉中' :
                                                         deal.status === 'agreed' ? '成約済' : '却下'}
                                             </span>
@@ -228,7 +228,7 @@ export const BuyerDashboard: React.FC = () => {
                                     現在のオファー数
                                 </div>
                                 <div className="font-bold text-blue-600">
-                                    {deals ? deals.filter(d => d.invoiceId === inv.id && ['pending', 'negotiating'].includes(d.status)).length : 0}件
+                                    {deals ? deals.filter(d => d.invoiceId === inv.id && ['open', 'pending', 'negotiating'].includes(d.status)).length : 0}件
                                 </div>
                             </div>
 

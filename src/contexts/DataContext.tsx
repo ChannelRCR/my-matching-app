@@ -225,7 +225,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             invoice_id: invoiceId,
             buyer_id: buyerId,
             seller_id: sellerId,
-            status: 'pending',
+            status: 'open',
             initial_offer_amount: offerAmount,
             current_amount: offerAmount
         };
