@@ -35,10 +35,12 @@ export const BuyerInvoiceDetail: React.FC = () => {
         if (!invoice || !user) return;
 
         // Use the existing createDeal function from context
-        const newDeal = createDeal(invoice.id, user.id, amount, message);
+        const newDeal = await createDeal(invoice.id, user.id, amount, message);
         setIsOfferModalOpen(false);
         // Navigate directly to chat
-        navigate(`/chat?dealId=${newDeal.id}`);
+        if (newDeal) {
+            navigate(`/chat?dealId=${newDeal.id}`);
+        }
     };
 
     if (!invoice) {
@@ -166,10 +168,12 @@ export const BuyerInvoiceDetail: React.FC = () => {
                                         size="lg"
                                         variant="outline"
                                         className="w-full md:w-auto px-8 border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-                                        onClick={() => {
+                                        onClick={async () => {
                                             if (user && invoice.status === 'open') {
-                                                const newDeal = createChatRoom(invoice.id, user.id);
-                                                navigate(`/chat?dealId=${newDeal.id}`);
+                                                const newDeal = await createChatRoom(invoice.id, user.id);
+                                                if (newDeal) {
+                                                    navigate(`/chat?dealId=${newDeal.id}`);
+                                                }
                                             }
                                         }}
                                         disabled={invoice.status !== 'open'}
