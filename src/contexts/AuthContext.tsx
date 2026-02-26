@@ -83,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
                 if (sellerData) {
                     profileData = { ...profileData, ...sellerData };
-                } else if (sellerError && sellerError.code !== 'PGRST116') {
+                } else if (sellerError && sellerError.code !== 'PGRST116' && sellerError.code !== '406') {
                     console.warn('Error fetching seller profile:', sellerError);
                 }
             } else if (userData.role === 'buyer') {
@@ -95,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
                 if (buyerData) {
                     profileData = { ...profileData, ...buyerData };
-                } else if (buyerError && buyerError.code !== 'PGRST116') {
+                } else if (buyerError && buyerError.code !== 'PGRST116' && buyerError.code !== '406') {
                     console.warn('Error fetching buyer profile:', buyerError);
                 }
             }

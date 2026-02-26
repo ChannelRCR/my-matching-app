@@ -38,7 +38,14 @@ export const BuyerDashboard: React.FC = () => {
 
     const isBuyer = profile?.role === 'buyer';
 
-
+    // 【デバッグ用】取得した案件データをコンソールに出力
+    useEffect(() => {
+        console.log("=== BuyerDashboard 案件データ検証 ===");
+        console.log("1. DataContextから取得した全Invoice:", invoices);
+        console.log("2. ログインユーザー情報:", user);
+        console.log("3. ステータスが 'open' のInvoice数:", invoices.filter(inv => inv.status === 'open').length);
+        console.log("4. RLS等での欠落確認: もし1の数が0なら、フロントエンドより前にDB側(RLS等)で弾かれています。");
+    }, [invoices, user]);
 
     const handleProfileUpdate = (e: React.FormEvent) => {
         e.preventDefault();

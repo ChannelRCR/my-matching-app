@@ -189,11 +189,8 @@ export const RegisterPage: React.FC = () => {
                             <h3 className="font-bold text-slate-700">詳細プロフィール情報</h3>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {renderInputWithPrivacy("商号（屋号）", "tradeName", "例: ○○商店")}
                                 {renderInputWithPrivacy("代表者名", "representativeName", "例: 山田 太郎")}
-                                {renderInputWithPrivacy("担当者名", "contactPerson", "例: 鈴木 一郎")}
                                 {renderInputWithPrivacy("連絡先電話番号", "phoneNumber", "例: 03-1234-5678", "tel")}
-                                {renderInputWithPrivacy("連絡先メールアドレス", "emailAddress", "例: contact@example.com", "email")}
                             </div>
 
                             {renderInputWithPrivacy("住所", "address", "例: 東京都千代田区...")}
@@ -204,7 +201,7 @@ export const RegisterPage: React.FC = () => {
                             <h3 className="font-bold text-slate-700 mb-2">ログイン情報</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Input
-                                    label="ログイン用メールアドレス"
+                                    label="メールアドレス (このメールアドレスがログインIDとなります)"
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}

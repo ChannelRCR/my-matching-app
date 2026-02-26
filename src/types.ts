@@ -35,6 +35,8 @@ export interface Invoice {
     amount: number;
     sellingAmount?: number; // 売却対象金額（一部売却の場合はamountより小さい。全額の場合はamountと同じ）
     dueDate: string; // YYYY-MM-DD
+    debtorName?: string;
+    debtorAddress?: string;
     industry: string;
     companySize?: 'Listed' | 'Large' | 'SMB' | 'Individual'; // Updated enum
     companyCredit: string; // Credit info of the debtor company

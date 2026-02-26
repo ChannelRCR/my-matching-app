@@ -125,6 +125,7 @@ export const ChatPage: React.FC = () => {
                 <div
                     key={msg.id}
                     className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}
+                    translate="no"
                 >
                     <div className={`flex flex-col ${msg.sender === 'me' ? 'items-end' : 'items-start'} max-w-[70%]`}>
                         <div
@@ -234,6 +235,9 @@ export const ChatPage: React.FC = () => {
                             }
                             className="flex-1"
                             disabled={deal.status !== 'negotiating'}
+                            autoComplete="off"
+                            autoCorrect="off"
+                            spellCheck={false}
                         />
                         <Button type="submit" size="md" disabled={deal.status !== 'negotiating'}>
                             <Send className="h-4 w-4 mr-2" />

@@ -19,6 +19,8 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
         amount: '',
         sellingAmount: '',
         dueDate: '',
+        debtorName: '',
+        debtorAddress: '',
         industry: '',
         companySize: 'SMB', // Default
         companyCredit: '',
@@ -31,6 +33,13 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        const rawValue = value.replace(/[^0-9]/g, '');
+        const formatted = rawValue ? Number(rawValue).toLocaleString() : '';
+        setFormData(prev => ({ ...prev, [name]: formatted }));
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -55,14 +64,18 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
         e.preventDefault();
 
         // Validation check
-        if (!formData.amount || !formData.dueDate || !formData.industry) {
+        if (!formData.amount || !formData.dueDate || !formData.debtorName || !formData.industry) {
             alert('必須項目を入力してください');
             return;
         }
 
-        const actualSellingAmount = saleMode === 'full' ? Number(formData.amount) : Number(formData.sellingAmount);
+        const amountNum = Number(formData.amount.replace(/,/g, ''));
+        const sellingAmountNum = Number(formData.sellingAmount.replace(/,/g, ''));
+        const requestedAmountNum = Number(formData.requestedAmount.replace(/,/g, ''));
 
-        if (saleMode === 'partial' && actualSellingAmount > Number(formData.amount)) {
+        const actualSellingAmount = saleMode === 'full' ? amountNum : sellingAmountNum;
+
+        if (saleMode === 'partial' && actualSellingAmount > amountNum) {
             alert('売却対象金額は額面金額以下に設定してください');
             return;
         }
@@ -71,14 +84,16 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
             id: `inv_${Date.now()}`,
             // sellerId will be added by addInvoice in DataContext
             sellerId: '',
-            amount: Number(formData.amount),
+            amount: amountNum,
             sellingAmount: actualSellingAmount,
             dueDate: formData.dueDate,
+            debtorName: formData.debtorName,
+            debtorAddress: formData.debtorAddress,
             industry: formData.industry,
             companySize: formData.companySize as any,
             companyCredit: formData.companyCredit,
             status: 'open',
-            requestedAmount: Number(formData.requestedAmount), // Manual input
+            requestedAmount: requestedAmountNum, // Manual input
             evidenceUrl: evidenceFile?.url,
             evidenceName: evidenceFile?.file.name,
         };
@@ -92,6 +107,8 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
                 amount: '',
                 sellingAmount: '',
                 dueDate: '',
+                debtorName: '',
+                debtorAddress: '',
                 industry: '',
                 companySize: 'SMB',
                 companyCredit: '',
@@ -118,10 +135,10 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
                             <Input
                                 label="請求書額面 (円) *"
                                 name="amount"
-                                type="number"
+                                type="text"
                                 value={formData.amount}
-                                onChange={handleInputChange}
-                                placeholder="例: 1000000"
+                                onChange={handleAmountChange}
+                                placeholder="例: 1,000,000"
                                 required
                             />
 
@@ -156,10 +173,10 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
                                         <Input
                                             label="売却対象金額 (円) *"
                                             name="sellingAmount"
-                                            type="number"
+                                            type="text"
                                             value={formData.sellingAmount}
-                                            onChange={handleInputChange}
-                                            placeholder="例: 500000"
+                                            onChange={handleAmountChange}
+                                            placeholder="例: 500,000"
                                             required={saleMode === 'partial'}
                                         />
                                         <p className="text-xs text-slate-500 mt-1">※額面より小さい金額を設定してください</p>
@@ -175,6 +192,27 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
                                 onChange={handleInputChange}
                                 required
                             />
+
+                            <div className="space-y-4 md:col-span-2 p-4 bg-slate-50 border border-slate-200 rounded-lg mt-2 mb-2">
+                                <h4 className="font-bold text-slate-700 text-sm mb-2">取引先（売掛先）情報</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <Input
+                                        label="取引先企業名 *"
+                                        name="debtorName"
+                                        value={formData.debtorName}
+                                        onChange={handleInputChange}
+                                        placeholder="例: 株式会社○○..."
+                                        required
+                                    />
+                                    <Input
+                                        label="取引先所在地"
+                                        name="debtorAddress"
+                                        value={formData.debtorAddress}
+                                        onChange={handleInputChange}
+                                        placeholder="例: 東京都千代田区..."
+                                    />
+                                </div>
+                            </div>
 
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-slate-700">取引先企業の業種 *</label>
@@ -210,10 +248,10 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
                                 </label>
                                 <Input
                                     name="requestedAmount"
-                                    type="number"
+                                    type="text"
                                     value={formData.requestedAmount}
-                                    onChange={handleInputChange}
-                                    placeholder="例: 900000"
+                                    onChange={handleAmountChange}
+                                    placeholder="例: 900,000"
                                     required
                                 />
                             </div>
