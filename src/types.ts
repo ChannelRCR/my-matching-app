@@ -70,9 +70,12 @@ export interface Deal {
     invoiceId: string;
     buyerId: string;
     sellerId: string;
-    status: 'open' | 'pending' | 'negotiating' | 'agreed' | 'rejected';
+    status: 'open' | 'pending' | 'negotiating' | 'agreed' | 'rejected' | 'concluded';
     initialOfferAmount: number;
     currentAmount: number;
     startedAt: string;
     lastMessageAt: string;
+    sellerAgreedAt?: string;
+    buyerAgreedAt?: string;
+    contractDate?: string;
 }

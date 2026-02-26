@@ -16,6 +16,7 @@ interface DataContextType {
     createDeal: (invoiceId: string, buyerId: string, offerAmount: number, message: string) => Promise<Deal | null>;
     createChatRoom: (invoiceId: string, buyerId: string) => Promise<Deal | null>;
     acceptDeal: (deal: Deal) => Promise<void>;
+    agreeToDeal: (dealId: string, isBuyer: boolean) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -139,6 +140,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 currentAmount: d.current_amount,
                 startedAt: d.started_at,
                 lastMessageAt: d.last_message_at,
+                sellerAgreedAt: d.seller_agreed_at,
+                buyerAgreedAt: d.buyer_agreed_at,
+                contractDate: d.contract_date,
             })));
         }
     };
@@ -174,6 +178,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (updates.status) dbUpdates.status = updates.status;
         if (updates.currentAmount !== undefined) dbUpdates.current_amount = updates.currentAmount;
         if (updates.lastMessageAt) dbUpdates.last_message_at = updates.lastMessageAt;
+        if (updates.sellerAgreedAt !== undefined) dbUpdates.seller_agreed_at = updates.sellerAgreedAt;
+        if (updates.buyerAgreedAt !== undefined) dbUpdates.buyer_agreed_at = updates.buyerAgreedAt;
+        if (updates.contractDate !== undefined) dbUpdates.contract_date = updates.contractDate;
 
         await supabase.from('deals').update(dbUpdates).eq('id', dealId);
         fetchDeals();
@@ -267,11 +274,44 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         fetchDeals(); fetchInvoices();
     };
 
+    const agreeToDeal = async (dealId: string, isBuyer: boolean) => {
+        const deal = deals.find(d => d.id === dealId);
+        if (!deal || !authUser) return;
+
+        const now = new Date().toISOString();
+        const updates: Partial<Deal> = {};
+
+        if (isBuyer) {
+            updates.buyerAgreedAt = now;
+        } else {
+            updates.sellerAgreedAt = now;
+        }
+
+        // Check if the other party has already agreed
+        const willBeConcluded = (isBuyer && deal.sellerAgreedAt) || (!isBuyer && deal.buyerAgreedAt);
+
+        if (willBeConcluded) {
+            updates.status = 'concluded';
+            updates.contractDate = now;
+
+            // Add a system message for contract conclusion
+            const dbMsg = {
+                deal_id: deal.id,
+                sender_id: authUser.id, // Or use a system UUID if you have one
+                receiver_id: isBuyer ? deal.sellerId : deal.buyerId,
+                content: "【システム】双方が合意し、契約が成立しました🎉"
+            };
+            await supabase.from('messages').insert([dbMsg]);
+        }
+
+        await updateDeal(dealId, updates);
+    };
+
     return (
         <DataContext.Provider value={{
             invoices, deals, messages, users, loading,
             addInvoice, addMessage, updateDeal, updateUser,
-            createDeal, createChatRoom, acceptDeal
+            createDeal, createChatRoom, acceptDeal, agreeToDeal
         }}>
             {children}
         </DataContext.Provider>

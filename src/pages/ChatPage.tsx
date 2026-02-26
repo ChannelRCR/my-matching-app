@@ -7,7 +7,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useMarket } from '../contexts/MarketContext';
-import { Handshake } from 'lucide-react';
+import { Handshake, FileText } from 'lucide-react';
 import type { Deal, Invoice } from '../types';
 
 interface ChatMessage {
@@ -21,7 +21,7 @@ export const ChatPage: React.FC = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const dealId = searchParams.get('dealId');
-    const { deals, invoices, messages: allMessages, users, addMessage, updateDeal } = useData();
+    const { deals, invoices, messages: allMessages, users, addMessage, updateDeal, agreeToDeal } = useData();
     const { completeDeal } = useMarket();
     const { user } = useAuth(); // Use real auth user
 
@@ -30,6 +30,7 @@ export const ChatPage: React.FC = () => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [inputText, setInputText] = useState('');
     const [counterpartName, setCounterpartName] = useState('');
+    const [isTermsAgreed, setIsTermsAgreed] = useState(false);
 
     useEffect(() => {
         if (dealId && user) {
@@ -96,27 +97,28 @@ export const ChatPage: React.FC = () => {
         setInputText('');
     };
 
-    const handleCompleteDeal = async () => {
+    const handleAgree = async () => {
         if (!deal || !invoice || !user) return;
 
-        if (window.confirm('この条件で取引を完了（契約成立）しますか？\n\n※この操作は取り消せません。')) {
-            await updateDeal(deal.id, { status: 'agreed' });
-            completeDeal(invoice.amount, deal.currentAmount);
+        const isBuyer = user.id === deal.buyerId;
+        const willBeConcluded = (isBuyer && deal.sellerAgreedAt) || (!isBuyer && deal.buyerAgreedAt);
 
-            const now = new Date();
-            const receiverId = user.id === deal.buyerId ? deal.sellerId : deal.buyerId;
+        const confirmMsg = willBeConcluded
+            ? '相手も合意済みのため、この操作で契約が成立します。よろしいですか？'
+            : '契約内容に合意しますか？相手の合意をもって契約成立となります。';
 
-            await addMessage({
-                id: `msg_sys_${now.getTime()}`,
-                dealId: deal.id,
-                senderId: user.id, // using actual user id instead of 'system'
-                receiverId: receiverId, // to specific user instead of 'all'
-                content: '【システム】取引が成立しました。おめでとうございます！',
-                timestamp: now.toISOString()
-            });
-
-            alert('取引が完了しました！');
+        if (window.confirm(confirmMsg)) {
+            await agreeToDeal(deal.id, isBuyer);
+            if (willBeConcluded) {
+                // Update market stats only if the deal becomes concluded here
+                completeDeal(invoice.amount, deal.currentAmount);
+            }
         }
+    };
+
+    const handlePrintContract = () => {
+        if (!deal) return;
+        navigate(`/contract/${deal.id}`);
     };
 
     const renderMessages = () => (
@@ -187,28 +189,78 @@ export const ChatPage: React.FC = () => {
                             <div className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded font-bold text-sm border border-indigo-100 shadow-sm">
                                 希望買取額: ¥{invoice.requestedAmount?.toLocaleString() || '未設定'}
                             </div>
-                            {deal.status === 'negotiating' ? (
-                                <Button
-                                    size="sm"
-                                    className="bg-green-600 hover:bg-green-700 text-white"
-                                    onClick={handleCompleteDeal}
-                                >
-                                    <Handshake className="w-4 h-4 mr-1" />
-                                    取引を完了する
-                                </Button>
-                            ) : deal.status === 'agreed' ? (
-                                <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold border border-green-200">
-                                    取引成立済み
-                                </span>
-                            ) : (deal.status === 'pending' || deal.status === 'open') ? (
-                                <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-bold border border-yellow-200">
-                                    オファー承諾待ち
-                                </span>
-                            ) : (
-                                <span className="bg-slate-100 text-slate-800 px-3 py-1 rounded-full text-xs font-bold border border-slate-200">
-                                    却下済み
-                                </span>
-                            )}
+                            {(() => {
+                                if (deal.status === 'concluded') {
+                                    return (
+                                        <div className="flex flex-col items-end gap-2">
+                                            <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold border border-green-200">
+                                                契約成立🎉
+                                            </span>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                                                onClick={handlePrintContract}
+                                            >
+                                                <FileText className="w-4 h-4 mr-1" />
+                                                契約書（PDF）を出力
+                                            </Button>
+                                        </div>
+                                    );
+                                } else if (deal.status === 'agreed') {
+                                    return (
+                                        <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold border border-green-200">
+                                            取引成立済み
+                                        </span>
+                                    );
+                                } else if (deal.status === 'negotiating') {
+                                    const isBuyer = user?.id === deal.buyerId;
+                                    const hasIAgreed = isBuyer ? !!deal.buyerAgreedAt : !!deal.sellerAgreedAt;
+
+                                    if (hasIAgreed) {
+                                        return (
+                                            <Button size="sm" variant="secondary" disabled className="bg-slate-200 text-slate-500">
+                                                相手の合意待ちです
+                                            </Button>
+                                        );
+                                    } else {
+                                        return (
+                                            <div className="flex flex-col items-end gap-2">
+                                                <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isTermsAgreed}
+                                                        onChange={(e) => setIsTermsAgreed(e.target.checked)}
+                                                        className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                                                    />
+                                                    <span><a href="#" className="text-blue-600 hover:underline" onClick={(e) => { e.preventDefault(); /* 実際のURLに置き換える */ }}>利用規約・約款</a> を確認し、同意します</span>
+                                                </label>
+                                                <Button
+                                                    size="sm"
+                                                    className={`text-white w-full ${isTermsAgreed ? 'bg-green-600 hover:bg-green-700' : 'bg-slate-300 cursor-not-allowed'}`}
+                                                    onClick={handleAgree}
+                                                    disabled={!isTermsAgreed}
+                                                >
+                                                    <Handshake className="w-4 h-4 mr-1" />
+                                                    契約内容に合意する
+                                                </Button>
+                                            </div>
+                                        );
+                                    }
+                                } else if (deal.status === 'pending' || deal.status === 'open') {
+                                    return (
+                                        <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-bold border border-yellow-200">
+                                            オファー承諾待ち
+                                        </span>
+                                    );
+                                } else {
+                                    return (
+                                        <span className="bg-slate-100 text-slate-800 px-3 py-1 rounded-full text-xs font-bold border border-slate-200">
+                                            却下済み
+                                        </span>
+                                    );
+                                }
+                            })()}
                         </div>
                     </div>
                 </CardHeader>
@@ -230,8 +282,9 @@ export const ChatPage: React.FC = () => {
                             onChange={(e) => setInputText(e.target.value)}
                             placeholder={
                                 deal.status === 'negotiating' ? "メッセージを入力..." :
-                                    (deal.status === 'pending' || deal.status === 'open') ? "売り手の承諾をお待ちください" :
-                                        "取引終了のため送信できません"
+                                    deal.status === 'concluded' ? "契約が成立しました" :
+                                        (deal.status === 'pending' || deal.status === 'open') ? "売り手の承諾をお待ちください" :
+                                            "取引終了のため送信できません"
                             }
                             className="flex-1"
                             disabled={deal.status !== 'negotiating'}

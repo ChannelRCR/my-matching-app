@@ -11,6 +11,7 @@ import { BuyerInvoiceDetail } from './pages/BuyerInvoiceDetail';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { BuyerList } from './pages/BuyerList';
 import { ChatPage } from './pages/ChatPage';
+import { ContractPrintPage } from './pages/ContractPrintPage';
 
 import { DataProvider } from './contexts/DataContext';
 import { MarketProvider } from './contexts/MarketContext';
@@ -54,6 +55,7 @@ function App() {
                 {/* Protected Routes: Shared/Admin */}
                 <Route element={<ProtectedRoute />}>
                   <Route path="/chat" element={<ChatPage />} />
+                  <Route path="/contract/:dealId" element={<ContractPrintPage />} />
                 </Route>
 
                 <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
