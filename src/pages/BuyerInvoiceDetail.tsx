@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import { ArrowLeft, MessageCircle, FileText, Calendar, CreditCard, DollarSign } from 'lucide-react';
 import { OfferModal } from '../components/OfferModal';
 import type { Invoice, Deal } from '../types';
+import { calculateAnnualYield } from '../utils/calculations';
+import { translateCompanySize } from '../utils/translations';
 
 export const BuyerInvoiceDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -121,12 +123,12 @@ export const BuyerInvoiceDetail: React.FC = () => {
                                     <span className="text-sm font-bold text-indigo-900">想定利回り (年率)</span>
                                     <span className="text-xl font-bold text-green-600">
                                         {invoice.requestedAmount && (invoice.sellingAmount || invoice.amount) ?
-                                            ((((invoice.sellingAmount || invoice.amount) - invoice.requestedAmount) / invoice.requestedAmount) * 12 * 100).toFixed(1)
+                                            calculateAnnualYield(invoice.sellingAmount || invoice.amount, invoice.requestedAmount, invoice.dueDate).toFixed(1)
                                             : '0.0'}%
                                     </span>
                                 </div>
                                 <p className="text-xs text-indigo-400 text-right mt-1">
-                                    {invoice.sellingAmount && invoice.sellingAmount < invoice.amount ? '※売却対象額に対する年率 / ' : ''}1か月後の入金を前提
+                                    {invoice.sellingAmount && invoice.sellingAmount < invoice.amount ? '※売却対象額に対する年率 / ' : ''}期日までの日割り計算
                                 </p>
                             </div>
                         </div>
@@ -151,7 +153,7 @@ export const BuyerInvoiceDetail: React.FC = () => {
                             </div>
                             <div className="flex justify-between border-b border-slate-100 pb-2">
                                 <span className="text-slate-500">企業規模</span>
-                                <span className="font-medium">{invoice.companySize || '不明'}</span>
+                                <span className="font-medium">{translateCompanySize(invoice.companySize)}</span>
                             </div>
                         </div>
                         <div className="space-y-2">

@@ -6,11 +6,12 @@ import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { ArrowLeft, MessageCircle, FileText, CheckCircle2 } from 'lucide-react';
 import type { Invoice, Deal } from '../types';
+import { hasUnreadMessages } from '../utils/chat';
 
 export const SellerInvoiceDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { invoices, deals, users, acceptDeal } = useData();
+    const { invoices, deals, users, acceptDeal, messages } = useData();
     const { user } = useAuth();
 
     const [invoice, setInvoice] = useState<Invoice | null>(null);
@@ -167,9 +168,9 @@ export const SellerInvoiceDetail: React.FC = () => {
                                                     ¥{deal.currentAmount.toLocaleString()}
                                                 </span>
                                             </div>
-                                            {deal.status === 'agreed' && (
+                                            {(deal.status === 'agreed' || deal.status === 'concluded') && (
                                                 <span className="inline-flex items-center gap-1 text-green-600 font-bold text-sm mt-1">
-                                                    <CheckCircle2 size={14} /> 成約済み
+                                                    <CheckCircle2 size={14} /> 🎉 成約済み
                                                 </span>
                                             )}
                                         </div>
@@ -187,9 +188,9 @@ export const SellerInvoiceDetail: React.FC = () => {
                                                 <div className="bg-orange-100 text-orange-800 px-4 py-2 rounded-lg text-center font-bold text-sm border border-orange-200">
                                                     交渉中
                                                 </div>
-                                            ) : deal.status === 'agreed' ? (
+                                            ) : (deal.status === 'agreed' || deal.status === 'concluded') ? (
                                                 <div className="bg-green-100 text-green-800 px-4 py-2 rounded-lg text-center font-bold text-sm border border-green-200">
-                                                    成約済み
+                                                    🎉 成約済み
                                                 </div>
                                             ) : (
                                                 <div className="bg-slate-100 text-slate-500 px-4 py-2 rounded-lg text-center text-sm border border-slate-200">
@@ -200,8 +201,14 @@ export const SellerInvoiceDetail: React.FC = () => {
                                             <Button
                                                 variant={(deal.status === 'pending' || deal.status === 'open') ? 'outline' : 'primary'}
                                                 onClick={() => navigate(`/chat?dealId=${deal.id}`)}
-                                                className="w-full"
+                                                className="w-full relative"
                                             >
+                                                {hasUnreadMessages(deal.id, messages, user?.id) && (
+                                                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                                                    </span>
+                                                )}
                                                 <MessageCircle className="mr-2 h-4 w-4" />
                                                 チャットを確認
                                             </Button>

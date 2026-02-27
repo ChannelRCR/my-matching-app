@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useMarket } from '../contexts/MarketContext';
 import { Handshake, FileText } from 'lucide-react';
 import type { Deal, Invoice } from '../types';
+import { markDealAsRead } from '../utils/chat';
 
 interface ChatMessage {
     id: string;
@@ -61,6 +62,11 @@ export const ChatPage: React.FC = () => {
                 });
 
                 setMessages(chatMessages);
+
+                // Mark deal as read
+                if (user) {
+                    markDealAsRead(dealId, user.id);
+                }
 
                 // Set counterpart name
                 if (isBuyer) {

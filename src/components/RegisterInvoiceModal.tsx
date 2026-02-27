@@ -3,8 +3,11 @@ import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import type { Invoice } from '../types';
-import { useData } from '../contexts/DataContext';
 import { X, Upload, FileText, Trash2 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
+import { useData } from '../contexts/DataContext';
+import { translateCompanySize } from '../utils/translations';
 
 interface RegisterInvoiceModalProps {
     isOpen: boolean;
@@ -13,6 +16,7 @@ interface RegisterInvoiceModalProps {
 
 export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOpen, onClose }) => {
     const { addInvoice } = useData();
+    const { user } = useAuth();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [saleMode, setSaleMode] = useState<'full' | 'partial'>('full');
     const [formData, setFormData] = useState({
@@ -27,6 +31,7 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
         requestedAmount: '', // Manual input
     });
     const [evidenceFile, setEvidenceFile] = useState<{ file: File, url: string } | null>(null);
+    const [isConfirming, setIsConfirming] = useState(false);
 
     if (!isOpen) return null;
 
@@ -37,7 +42,9 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
 
     const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        const rawValue = value.replace(/[^0-9]/g, '');
+        // Convert full-width numbers to half-width numbers
+        const halfWidthValue = value.replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0));
+        const rawValue = halfWidthValue.replace(/[^0-9]/g, '');
         const formatted = rawValue ? Number(rawValue).toLocaleString() : '';
         setFormData(prev => ({ ...prev, [name]: formatted }));
     };
@@ -80,6 +87,40 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
             return;
         }
 
+        if (!isConfirming) {
+            setIsConfirming(true);
+            return;
+        }
+
+        // Upload evidence to Supabase Storage if present
+        let finalEvidenceUrl = undefined;
+        let finalEvidenceName = undefined;
+
+        if (evidenceFile && user) {
+            // Upload to Supabase bucket 'evidence'
+            const fileExt = evidenceFile.file.name.split('.').pop();
+            const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+            const filePath = `${user.id}/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('evidence')
+                .upload(filePath, evidenceFile.file);
+
+            if (uploadError) {
+                console.error("Upload Error:", uploadError);
+                alert('自動アップロードに失敗しました。時間をおいて再実行してください。');
+                setIsConfirming(false);
+                return;
+            }
+
+            const { data: publicUrlData } = supabase.storage
+                .from('evidence')
+                .getPublicUrl(filePath);
+
+            finalEvidenceUrl = publicUrlData.publicUrl;
+            finalEvidenceName = evidenceFile.file.name;
+        }
+
         const newInvoice: Invoice = {
             id: `inv_${Date.now()}`,
             // sellerId will be added by addInvoice in DataContext
@@ -94,8 +135,8 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
             companyCredit: formData.companyCredit,
             status: 'open',
             requestedAmount: requestedAmountNum, // Manual input
-            evidenceUrl: evidenceFile?.url,
-            evidenceName: evidenceFile?.file.name,
+            evidenceUrl: finalEvidenceUrl,
+            evidenceName: finalEvidenceName,
         };
 
         const success = await addInvoice(newInvoice);
@@ -115,6 +156,7 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
                 requestedAmount: '',
             });
             setEvidenceFile(null);
+            setIsConfirming(false);
             onClose();
             alert('案件を登録しました！');
         }
@@ -311,10 +353,40 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
                             />
                         </div>
 
-                        <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
-                            <Button type="button" variant="ghost" onClick={onClose}>キャンセル</Button>
-                            <Button type="submit">出品する</Button>
-                        </div>
+                        {isConfirming ? (
+                            <div className="space-y-4 p-4 bg-blue-50 border border-blue-100 rounded-lg">
+                                <h4 className="font-bold text-blue-800 text-center mb-4">以下の内容で登録しますか？</h4>
+                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                    <div className="text-slate-500 font-medium">請求書額面:</div>
+                                    <div className="font-bold">{formData.amount} 円</div>
+
+                                    <div className="text-slate-500 font-medium">売却対象金額:</div>
+                                    <div className="font-bold">{saleMode === 'full' ? formData.amount : formData.sellingAmount} 円 ({saleMode === 'full' ? '全額' : '一部'})</div>
+
+                                    <div className="text-slate-500 font-medium">入金期日:</div>
+                                    <div className="font-bold">{formData.dueDate}</div>
+
+                                    <div className="text-slate-500 font-medium">取引先企業名:</div>
+                                    <div className="font-bold">{formData.debtorName}</div>
+
+                                    <div className="text-slate-500 font-medium">業種 / 企業規模:</div>
+                                    <div className="font-bold">{formData.industry} / {translateCompanySize(formData.companySize)}</div>
+
+                                    <div className="text-slate-500 font-medium mt-2">売却希望額:</div>
+                                    <div className="font-bold text-red-600 mt-2">{formData.requestedAmount} 円</div>
+                                </div>
+
+                                <div className="flex justify-end gap-2 pt-4">
+                                    <Button type="button" variant="ghost" onClick={() => setIsConfirming(false)}>内容を修正する</Button>
+                                    <Button type="button" className="bg-primary hover:bg-primary/90" onClick={handleSubmit}>この内容で登録する</Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
+                                <Button type="button" variant="ghost" onClick={onClose}>キャンセル</Button>
+                                <Button type="submit">出品内容を確認する</Button>
+                            </div>
+                        )}
                     </form>
                 </CardContent>
             </Card>

@@ -6,10 +6,12 @@ import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Calendar, CreditCard, DollarSign, UserCog } from 'lucide-react';
+import { calculateAnnualYield } from '../utils/calculations';
+import { hasUnreadMessages } from '../utils/chat';
 
 export const BuyerDashboard: React.FC = () => {
     const navigate = useNavigate();
-    const { invoices, deals, updateUser } = useData();
+    const { invoices, deals, messages, updateUser } = useData();
     const { user } = useAuth();
 
     // Filter deals for current buyer
@@ -115,14 +117,22 @@ export const BuyerDashboard: React.FC = () => {
                                     <CardHeader className="pb-2">
                                         <CardTitle className="text-base flex justify-between">
                                             <span>{inv?.industry || '案件'} #{inv?.id || deal.invoiceId}</span>
-                                            <span className={`text-xs px-2 py-1 rounded-full font-bold ${(deal.status === 'pending' || deal.status === 'open') ? 'bg-yellow-100 text-yellow-800' :
-                                                deal.status === 'negotiating' ? 'bg-orange-100 text-orange-800' :
-                                                    deal.status === 'agreed' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-500'
-                                                }`}>
-                                                {(deal.status === 'pending' || deal.status === 'open') ? '承諾待ち' :
-                                                    deal.status === 'negotiating' ? '交渉中' :
-                                                        deal.status === 'agreed' ? '成約済' : '却下'}
-                                            </span>
+                                            <div className="flex gap-2 items-center">
+                                                {hasUnreadMessages(deal.id, messages, user?.id) && (
+                                                    <span className="flex h-3 w-3 relative">
+                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                                                    </span>
+                                                )}
+                                                <span className={`text-xs px-2 py-1 rounded-full font-bold ${(deal.status === 'pending' || deal.status === 'open') ? 'bg-yellow-100 text-yellow-800' :
+                                                    deal.status === 'negotiating' ? 'bg-orange-100 text-orange-800' :
+                                                        (deal.status === 'agreed' || deal.status === 'concluded') ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-500'
+                                                    }`}>
+                                                    {(deal.status === 'pending' || deal.status === 'open') ? '承諾待ち' :
+                                                        deal.status === 'negotiating' ? '交渉中' :
+                                                            (deal.status === 'agreed' || deal.status === 'concluded') ? '🎉 成約済' : '却下'}
+                                                </span>
+                                            </div>
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent>
@@ -220,12 +230,12 @@ export const BuyerDashboard: React.FC = () => {
                                     <span className="font-bold text-sm">想定利回り (年率)</span>
                                     <span className="font-bold text-lg">
                                         {inv.requestedAmount && (inv.sellingAmount || inv.amount) ?
-                                            ((((inv.sellingAmount || inv.amount) - inv.requestedAmount) / inv.requestedAmount) * 12 * 100).toFixed(1)
+                                            calculateAnnualYield(inv.sellingAmount || inv.amount, inv.requestedAmount, inv.dueDate).toFixed(1)
                                             : '0.0'}%
                                     </span>
                                 </div>
                                 <p className="text-[10px] text-green-600 text-right mt-1">
-                                    {inv.sellingAmount && inv.sellingAmount < inv.amount ? '※売却対象額に対する年率 / ' : ''}1か月後の入金を前提
+                                    {inv.sellingAmount && inv.sellingAmount < inv.amount ? '※売却対象額に対する年率 / ' : ''}期日までの日割り計算
                                 </p>
                             </div>
 

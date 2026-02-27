@@ -6,10 +6,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { PlusCircle, FileText, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { RegisterInvoiceModal } from '../components/RegisterInvoiceModal';
+import { hasUnreadMessages } from '../utils/chat';
 
 export const SellerDashboard: React.FC = () => {
     const navigate = useNavigate();
-    const { invoices, deals } = useData();
+    const { invoices, deals, messages } = useData();
     const { user } = useAuth();
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
@@ -55,13 +56,19 @@ export const SellerDashboard: React.FC = () => {
                                             {inv.companySize && <span className="bg-slate-100 text-slate-600 text-xs px-2 py-1 rounded">{inv.companySize}</span>}
                                             <span className="text-sm text-slate-500">期日: {inv.dueDate}</span>
                                         </div>
-                                        <div className="text-2xl font-bold text-slate-900">
+                                        <div className="text-2xl font-bold text-slate-900 flex items-center">
                                             ¥{inv.amount.toLocaleString()}
+                                            {deals.some(d => d.invoiceId === inv.id && hasUnreadMessages(d.id, messages, user?.id)) && (
+                                                <span className="flex h-3 w-3 relative ml-2">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                                                </span>
+                                            )}
                                             <span className="text-sm font-normal text-slate-500 ml-2">
                                                 (希望: ¥{inv.requestedAmount?.toLocaleString()})
                                             </span>
                                         </div>
-                                        <div className="flex gap-4 mt-1">
+                                        <div className="flex gap-4 mt-2">
                                             <p className="text-sm text-slate-600">{inv.companyCredit}</p>
                                             {/* Offer Count Display */}
                                             {inv.status === 'open' && (
@@ -79,7 +86,7 @@ export const SellerDashboard: React.FC = () => {
                                                 inv.status === 'negotiating' ? 'text-orange-500' : 'text-slate-500'
                                                 }`}>
                                                 {inv.status === 'open' ? '募集中' :
-                                                    inv.status === 'negotiating' ? '交渉中' : '売却済'}
+                                                    inv.status === 'negotiating' ? '交渉中' : '🎉 売却済'}
                                             </div>
                                         </div>
                                         {inv.status === 'open' && (

@@ -48,6 +48,7 @@ export const RegisterPage: React.FC = () => {
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isConfirming, setIsConfirming] = useState(false);
 
     const handleChange = (field: string, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -65,6 +66,12 @@ export const RegisterPage: React.FC = () => {
 
         if (password.length < 6) {
             setError('パスワードは6文字以上で入力してください');
+            setLoading(false);
+            return;
+        }
+
+        if (!isConfirming) {
+            setIsConfirming(true);
             setLoading(false);
             return;
         }
@@ -224,9 +231,46 @@ export const RegisterPage: React.FC = () => {
                             </div>
                         )}
 
-                        <Button type="submit" className={`w-full ${role === 'buyer' ? 'bg-[var(--color-gold)] hover:bg-amber-600 border-none' : ''}`} disabled={loading}>
-                            {loading ? '登録処理中...' : `${role === 'seller' ? '売り手' : '買い手'}として登録`}
-                        </Button>
+                        {isConfirming ? (
+                            <div className="space-y-4 p-6 bg-blue-50 border border-blue-100 rounded-lg">
+                                <h4 className="font-bold text-blue-800 text-center mb-4">以下の内容で登録しますか？</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                                    <div className="text-slate-500 font-medium">登録種別:</div>
+                                    <div className="font-bold">{role === 'seller' ? '売り手 (資金調達)' : '買い手 (投資)'}</div>
+
+                                    <div className="text-slate-500 font-medium">氏名:</div>
+                                    <div className="font-bold">{name}</div>
+
+                                    <div className="text-slate-500 font-medium">会社名 / 屋号:</div>
+                                    <div className="font-bold">{companyName}</div>
+
+                                    <div className="text-slate-500 font-medium mt-2">代表者名:</div>
+                                    <div className="font-bold mt-2">{formData.representativeName || '-'} <span className="text-xs text-slate-400 font-normal">({privacySettings.representativeName ? '公開' : '非公開'})</span></div>
+
+                                    <div className="text-slate-500 font-medium">連絡先電話番号:</div>
+                                    <div className="font-bold">{formData.phoneNumber || '-'} <span className="text-xs text-slate-400 font-normal">({privacySettings.phoneNumber ? '公開' : '非公開'})</span></div>
+
+                                    <div className="text-slate-500 font-medium mt-2">住所:</div>
+                                    <div className="font-bold mt-2">{formData.address || '-'} <span className="text-xs text-slate-400 font-normal">({privacySettings.address ? '公開' : '非公開'})</span></div>
+
+                                    <div className="text-slate-500 font-medium">入金口座:</div>
+                                    <div className="font-bold">{formData.bankAccountInfo || '-'} <span className="text-xs text-slate-400 font-normal">({privacySettings.bankAccountInfo ? '公開' : '非公開'})</span></div>
+
+                                    <div className="text-slate-500 font-medium mt-2">ログインID (Email):</div>
+                                    <div className="font-bold mt-2">{email}</div>
+                                </div>
+                                <div className="flex justify-end gap-2 pt-4 border-t border-blue-200 mt-4">
+                                    <Button type="button" variant="ghost" onClick={() => setIsConfirming(false)} disabled={loading}>内容を修正する</Button>
+                                    <Button type="button" className={`bg-primary hover:bg-primary/90 ${role === 'buyer' ? 'bg-[var(--color-gold)] hover:bg-amber-600' : ''}`} onClick={handleSubmit} disabled={loading}>
+                                        {loading ? '登録処理中...' : 'この内容で登録する'}
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <Button type="submit" className={`w-full ${role === 'buyer' ? 'bg-[var(--color-gold)] hover:bg-amber-600 border-none' : ''}`}>
+                                入力内容を確認する
+                            </Button>
+                        )}
                     </form>
 
 
