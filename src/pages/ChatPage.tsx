@@ -31,6 +31,7 @@ export const ChatPage: React.FC = () => {
     const [inputText, setInputText] = useState('');
     const [counterpartName, setCounterpartName] = useState('');
     const [isTermsAgreed, setIsTermsAgreed] = useState(false);
+    const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
     useEffect(() => {
         if (dealId && user) {
@@ -116,9 +117,25 @@ export const ChatPage: React.FC = () => {
         }
     };
 
-    const handlePrintContract = () => {
-        if (!deal) return;
-        navigate(`/contract/${deal.id}`);
+    const handlePrintContract = async () => {
+        if (!deal || !invoice) return;
+        const buyer = users.find(u => u.id === deal.buyerId);
+        const seller = users.find(u => u.id === deal.sellerId);
+        if (!buyer || !seller) {
+            alert("ユーザー情報が見つかりません。");
+            return;
+        }
+
+        setIsGeneratingPdf(true);
+        try {
+            const { generateContractPDF } = await import('../utils/pdfGenerator');
+            await generateContractPDF(deal, invoice, seller, buyer);
+        } catch (e) {
+            console.error(e);
+            alert("PDF生成に失敗しました。");
+        } finally {
+            setIsGeneratingPdf(false);
+        }
     };
 
     const renderMessages = () => (
@@ -201,9 +218,10 @@ export const ChatPage: React.FC = () => {
                                                 variant="outline"
                                                 className="border-blue-600 text-blue-600 hover:bg-blue-50"
                                                 onClick={handlePrintContract}
+                                                disabled={isGeneratingPdf}
                                             >
                                                 <FileText className="w-4 h-4 mr-1" />
-                                                契約書（PDF）を出力
+                                                {isGeneratingPdf ? "PDF生成中..." : "📝 契約書（PDF）をダウンロード"}
                                             </Button>
                                         </div>
                                     );
@@ -233,7 +251,7 @@ export const ChatPage: React.FC = () => {
                                                         onChange={(e) => setIsTermsAgreed(e.target.checked)}
                                                         className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
                                                     />
-                                                    <span><a href="#" className="text-blue-600 hover:underline" onClick={(e) => { e.preventDefault(); /* 実際のURLに置き換える */ }}>利用規約・約款</a> を確認し、同意します</span>
+                                                    <span>利用規約および債権譲渡約款に同意する</span>
                                                 </label>
                                                 <Button
                                                     size="sm"
@@ -242,7 +260,7 @@ export const ChatPage: React.FC = () => {
                                                     disabled={!isTermsAgreed}
                                                 >
                                                     <Handshake className="w-4 h-4 mr-1" />
-                                                    契約内容に合意する
+                                                    この条件で契約に合意する
                                                 </Button>
                                             </div>
                                         );
