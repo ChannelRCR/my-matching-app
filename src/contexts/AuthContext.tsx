@@ -181,7 +181,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (userDbError) {
             console.error('Error creating public user record:', userDbError);
-            return { error: { message: 'Account created but profile failed.', details: userDbError } };
+            return { error: { message: `ユーザー情報の作成に失敗しました: ${userDbError.message || '不明なエラー'}`, details: userDbError } };
         }
 
         // 3. Insert into Role-Specific Table
@@ -221,7 +221,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (profileError) {
             console.error('Error creating specific profile:', profileError);
-            return { error: { message: 'User created but profile details failed.', details: profileError } };
+            return { error: { message: `プロフィール詳細の保存に失敗しました: ${profileError.message || '不明なエラー'}`, details: profileError } };
         }
 
         return { error: null };

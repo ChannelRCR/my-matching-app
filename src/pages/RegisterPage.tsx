@@ -64,10 +64,31 @@ export const RegisterPage: React.FC = () => {
         setLoading(true);
         setError(null);
 
+        // Pre-validation
+        if (!email || !password || !name || !companyName) {
+            setError('必須項目（氏名、社名、メールアドレス、パスワード）が入力されていません。');
+            setLoading(false);
+            return;
+        }
+
         if (password.length < 6) {
             setError('パスワードは6文字以上で入力してください');
             setLoading(false);
             return;
+        }
+
+        if (role === 'seller') {
+            if (!formData.phoneNumber || !formData.address || !formData.bankAccountInfo) {
+                setError('売り手（資金調達）として登録する場合、電話番号、住所、入金口座情報は必須項目です。');
+                setLoading(false);
+                return;
+            }
+        } else {
+            if (!formData.phoneNumber) {
+                setError('連絡先電話番号は必須項目です。');
+                setLoading(false);
+                return;
+            }
         }
 
         if (!isConfirming) {

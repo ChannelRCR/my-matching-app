@@ -108,7 +108,7 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
 
             if (uploadError) {
                 console.error("Upload Error:", uploadError);
-                alert('自動アップロードに失敗しました。時間をおいて再実行してください。');
+                alert(`アップロードに失敗しました: ${uploadError.message || '不明なエラー'}`);
                 setIsConfirming(false);
                 return;
             }
@@ -174,15 +174,18 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Input
-                                label="請求書額面 (円) *"
-                                name="amount"
-                                type="text"
-                                value={formData.amount}
-                                onChange={handleAmountChange}
-                                placeholder="例: 1,000,000"
-                                required
-                            />
+                            <div>
+                                <Input
+                                    label="請求書額面 (円) *"
+                                    name="amount"
+                                    type="text"
+                                    value={formData.amount}
+                                    onChange={handleAmountChange}
+                                    placeholder="例: 1,000,000"
+                                    required
+                                />
+                                <p className="text-xs text-red-500 mt-1 font-bold">※ 金額は半角数字で入力してください。</p>
+                            </div>
 
                             <div className="space-y-2 md:col-span-2">
                                 <label className="text-sm font-medium text-slate-700 block">売却対象</label>
@@ -222,6 +225,7 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
                                             required={saleMode === 'partial'}
                                         />
                                         <p className="text-xs text-slate-500 mt-1">※額面より小さい金額を設定してください</p>
+                                        <p className="text-xs text-red-500 mt-1 font-bold">※ 金額は半角数字で入力してください。</p>
                                     </div>
                                 )}
                             </div>
@@ -296,6 +300,7 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
                                     placeholder="例: 900,000"
                                     required
                                 />
+                                <p className="text-xs text-red-500 mt-1 font-bold">※ 金額は半角数字で入力してください。</p>
                             </div>
                         </div>
 
