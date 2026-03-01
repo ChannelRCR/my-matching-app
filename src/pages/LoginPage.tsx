@@ -11,6 +11,7 @@ export const LoginPage: React.FC = () => {
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -51,19 +52,32 @@ export const LoginPage: React.FC = () => {
                         />
                         <Input
                             label="パスワード"
-                            type="password"
+                            type={showPassword ? "text" : "password"}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
                         />
 
+                        <div className="flex items-center gap-2 mt-2">
+                            <input
+                                type="checkbox"
+                                id="showPassword"
+                                checked={showPassword}
+                                onChange={(e) => setShowPassword(e.target.checked)}
+                                className="rounded border-slate-300 text-primary focus:ring-primary"
+                            />
+                            <label htmlFor="showPassword" className="text-sm text-slate-600 cursor-pointer">
+                                ☑ パスワードを表示する
+                            </label>
+                        </div>
+
                         {error && (
-                            <div className="bg-red-50 text-red-600 p-3 rounded text-sm">
+                            <div className="bg-red-50 text-red-600 p-3 rounded text-sm mt-4">
                                 {error}
                             </div>
                         )}
 
-                        <Button type="submit" className="w-full" disabled={loading}>
+                        <Button type="submit" className="w-full mt-4" disabled={loading}>
                             {loading ? 'ログイン中...' : 'ログイン'}
                         </Button>
                     </form>
