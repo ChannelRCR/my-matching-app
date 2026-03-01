@@ -103,7 +103,7 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
             const filePath = `${user.id}/${fileName}`;
 
             const { error: uploadError } = await supabase.storage
-                .from('evidence')
+                .from('evidences')
                 .upload(filePath, evidenceFile.file);
 
             if (uploadError) {
@@ -114,7 +114,7 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
             }
 
             const { data: publicUrlData } = supabase.storage
-                .from('evidence')
+                .from('evidences')
                 .getPublicUrl(filePath);
 
             finalEvidenceUrl = publicUrlData.publicUrl;
@@ -373,6 +373,9 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
 
                                     <div className="text-slate-500 font-medium">取引先企業名:</div>
                                     <div className="font-bold">{formData.debtorName}</div>
+
+                                    <div className="text-slate-500 font-medium">取引先所在地:</div>
+                                    <div className="font-bold">{formData.debtorAddress || '（未入力）'}</div>
 
                                     <div className="text-slate-500 font-medium">業種 / 企業規模:</div>
                                     <div className="font-bold">{formData.industry} / {translateCompanySize(formData.companySize)}</div>
