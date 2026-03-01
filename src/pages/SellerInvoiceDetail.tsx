@@ -4,9 +4,10 @@ import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import { ArrowLeft, MessageCircle, FileText, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, MessageCircle, FileText, CheckCircle2, CreditCard, DollarSign } from 'lucide-react';
 import type { Invoice, Deal } from '../types';
 import { hasUnreadMessages } from '../utils/chat';
+import { translateCompanySize } from '../utils/translations';
 
 export const SellerInvoiceDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -70,41 +71,61 @@ export const SellerInvoiceDetail: React.FC = () => {
                 {/* Invoice Details Column */}
                 <div className="md:col-span-1 space-y-6">
                     <Card>
-                        <CardHeader className="bg-slate-50 border-b">
+                        <CardHeader className="bg-slate-50 border-b flex flex-row items-center justify-between pb-3">
                             <CardTitle className="text-lg">案件詳細</CardTitle>
+                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${invoice.status === 'open' ? 'bg-green-100 text-green-700' :
+                                invoice.status === 'negotiating' ? 'bg-orange-100 text-orange-700' :
+                                    'bg-slate-100 text-slate-700'
+                                }`}>
+                                {invoice.status === 'open' ? '募集中' :
+                                    invoice.status === 'negotiating' ? '交渉中' : '完了'}
+                            </span>
                         </CardHeader>
-                        <CardContent className="p-6 space-y-4">
-                            <div>
-                                <h3 className="text-sm font-medium text-slate-500 mb-1">売掛金元本</h3>
-                                <p className="text-2xl font-bold">¥{invoice.amount.toLocaleString()}</p>
-                            </div>
-                            <div>
-                                <h3 className="text-sm font-medium text-slate-500 mb-1">希望額</h3>
-                                <p className="text-lg font-bold text-primary">¥{invoice.requestedAmount?.toLocaleString()}</p>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm">
-                                <span className={`px-2 py-1 rounded text-xs font-bold ${invoice.status === 'open' ? 'bg-green-100 text-green-700' :
-                                    invoice.status === 'negotiating' ? 'bg-orange-100 text-orange-700' :
-                                        'bg-slate-100 text-slate-700'
-                                    }`}>
-                                    {invoice.status === 'open' ? '募集中' :
-                                        invoice.status === 'negotiating' ? '交渉中' : '完了'}
-                                </span>
-                                <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs">
-                                    {invoice.industry}
+                        <CardContent className="p-5 space-y-5">
+                            <div className="flex flex-wrap gap-1.5">
+                                <span className="bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded font-medium border border-slate-200">{invoice.industry}</span>
+                                <span className="bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded font-medium border border-slate-200">{translateCompanySize(invoice.companySize)}</span>
+                                <span className={`text-xs px-2 py-1 rounded font-bold ${invoice.sellingAmount && invoice.sellingAmount < invoice.amount ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                                    {invoice.sellingAmount && invoice.sellingAmount < invoice.amount ? '一部売却' : '全部売却'}
                                 </span>
                             </div>
 
-                            <hr className="my-4" />
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-4">
+                                <div>
+                                    <h3 className="flex items-center text-slate-500 font-medium mb-1 text-sm">
+                                        <CreditCard className="w-4 h-4 mr-1.5" />
+                                        全体債権額
+                                    </h3>
+                                    <p className={`text-xl font-bold ${invoice.sellingAmount && invoice.sellingAmount < invoice.amount ? 'text-slate-400 line-through text-lg' : 'text-slate-900'}`}>
+                                        ¥{invoice.amount.toLocaleString()}
+                                    </p>
+                                </div>
+                                {invoice.sellingAmount && invoice.sellingAmount < invoice.amount && (
+                                    <div className="pt-3 border-t border-slate-200">
+                                        <h3 className="flex items-center text-amber-700 font-bold text-sm mb-1">
+                                            <DollarSign className="w-4 h-4 mr-1" />
+                                            取引対象債権額
+                                        </h3>
+                                        <p className="text-xl font-bold text-amber-600">
+                                            ¥{invoice.sellingAmount.toLocaleString()}
+                                        </p>
+                                    </div>
+                                )}
+                                <div className="pt-3 border-t border-slate-200">
+                                    <h3 className="flex items-center text-primary font-bold text-sm mb-1">
+                                        <DollarSign className="w-4 h-4 mr-1" />
+                                        希望売却額
+                                    </h3>
+                                    <p className="text-xl font-bold text-primary">
+                                        ¥{invoice.requestedAmount?.toLocaleString() || '未設定'}
+                                    </p>
+                                </div>
+                            </div>
 
                             <div className="space-y-3 text-sm">
-                                <div className="flex justify-between">
+                                <div className="flex justify-between border-b border-slate-100 pb-2">
                                     <span className="text-slate-500">入金期日</span>
-                                    <span className="font-medium">{invoice.dueDate}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-slate-500">企業規模</span>
-                                    <span className="font-medium">{invoice.companySize || '-'}</span>
+                                    <span className="font-bold">{invoice.dueDate}</span>
                                 </div>
                                 <div>
                                     <span className="text-slate-500 block mb-1">信用情報</span>

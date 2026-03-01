@@ -86,7 +86,7 @@ export const ChatPage: React.FC = () => {
 
     const handleSend = async () => {
         if (!inputText.trim() || !deal || !user) return;
-        if (deal.status !== 'negotiating') return;
+        if (!['open', 'pending', 'negotiating'].includes(deal.status)) return;
 
         const myId = user.id;
         // Identify receiver: if I am buyer, receiver is seller, else buyer
@@ -273,7 +273,7 @@ export const ChatPage: React.FC = () => {
                                         (deal.currentBuyerPrice ? `¥${deal.currentBuyerPrice.toLocaleString()}` : '未提示') :
                                         (deal.currentSellerPrice ? `¥${deal.currentSellerPrice.toLocaleString()}` : '未提示')}
                                 </div>
-                                {deal.status === 'negotiating' && !isPriceMatched && (
+                                {['open', 'pending', 'negotiating'].includes(deal.status) && !isPriceMatched && (
                                     <form onSubmit={(e) => { e.preventDefault(); handleProposePrice(); }} className="flex flex-col gap-2">
                                         <div className="flex gap-2">
                                             <Input
@@ -293,7 +293,7 @@ export const ChatPage: React.FC = () => {
                             </div>
 
                             {/* Agreement Logic */}
-                            {deal.status === 'negotiating' ? (
+                            {['open', 'pending', 'negotiating'].includes(deal.status) ? (
                                 <div className="mt-6 border-t border-slate-200 pt-4">
                                     {isPriceMatched ? (
                                         <>
@@ -388,18 +388,17 @@ export const ChatPage: React.FC = () => {
                                     value={inputText}
                                     onChange={(e) => setInputText(e.target.value)}
                                     placeholder={
-                                        deal.status === 'negotiating' ? "メッセージを入力..." :
+                                        ['open', 'pending', 'negotiating'].includes(deal.status) ? "メッセージを入力..." :
                                             deal.status === 'concluded' ? "契約が完成しました。" :
-                                                (deal.status === 'pending' || deal.status === 'open') ? "売り手の承諾をお待ちください" :
-                                                    "取引が終了しました"
+                                                "取引が終了しました"
                                     }
                                     className="flex-1 bg-white h-10"
-                                    disabled={deal.status !== 'negotiating'}
+                                    disabled={!['open', 'pending', 'negotiating'].includes(deal.status)}
                                     autoComplete="off"
                                     autoCorrect="off"
                                     spellCheck={false}
                                 />
-                                <Button type="submit" size="md" disabled={deal.status !== 'negotiating'} className="h-10 px-5 shrink-0 bg-primary hover:bg-primary/90 text-white shadow-sm">
+                                <Button type="submit" size="md" disabled={!['open', 'pending', 'negotiating'].includes(deal.status)} className="h-10 px-5 shrink-0 bg-primary hover:bg-primary/90 text-white shadow-sm">
                                     <Send className="h-4 w-4 mr-2" />
                                     送信
                                 </Button>

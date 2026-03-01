@@ -58,15 +58,12 @@ export const BuyerInvoiceDetail: React.FC = () => {
 
             <Card>
                 <CardHeader className="bg-slate-50 border-b flex flex-row items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <div className="text-xs font-bold text-primary uppercase tracking-wider">
-                            {invoice.industry}
-                        </div>
-                        {invoice.sellingAmount && invoice.sellingAmount < invoice.amount && (
-                            <span className="text-xs font-bold bg-amber-100 text-amber-700 px-3 py-1 rounded-sm">
-                                一部売却
-                            </span>
-                        )}
+                    <div className="flex flex-wrap gap-2">
+                        <span className="bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded font-medium border border-slate-200">{invoice.industry}</span>
+                        <span className="bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded font-medium border border-slate-200">{translateCompanySize(invoice.companySize)}</span>
+                        <span className={`text-xs px-2 py-1 rounded font-bold ${invoice.sellingAmount && invoice.sellingAmount < invoice.amount ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                            {invoice.sellingAmount && invoice.sellingAmount < invoice.amount ? '一部売却' : '全部売却'}
+                        </span>
                     </div>
                     <div>
                         <CardTitle className="text-xl">案件 #{invoice.id}</CardTitle>
@@ -91,19 +88,21 @@ export const BuyerInvoiceDetail: React.FC = () => {
 
                     {/* Key Figures */}
                     <div className="grid md:grid-cols-2 gap-8">
-                        <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 flex flex-col justify-center">
-                            <h3 className="flex items-center text-slate-500 font-medium mb-3">
-                                <CreditCard className="w-4 h-4 mr-2" />
-                                {invoice.sellingAmount && invoice.sellingAmount < invoice.amount ? '額面（総額）' : '請求書額面'}
-                            </h3>
-                            <p className={`text-3xl font-bold ${invoice.sellingAmount && invoice.sellingAmount < invoice.amount ? 'text-slate-400 line-through text-2xl' : 'text-slate-900'}`}>
-                                ¥{invoice.amount.toLocaleString()}
-                            </p>
+                        <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 flex flex-col justify-center space-y-4">
+                            <div>
+                                <h3 className="flex items-center text-slate-500 font-medium mb-1">
+                                    <CreditCard className="w-4 h-4 mr-2" />
+                                    全体債権額
+                                </h3>
+                                <p className={`text-3xl font-bold ${invoice.sellingAmount && invoice.sellingAmount < invoice.amount ? 'text-slate-400 line-through text-2xl' : 'text-slate-900'}`}>
+                                    ¥{invoice.amount.toLocaleString()}
+                                </p>
+                            </div>
                             {invoice.sellingAmount && invoice.sellingAmount < invoice.amount && (
-                                <div className="mt-4 pt-4 border-t border-slate-200">
+                                <div className="pt-4 border-t border-slate-200">
                                     <h3 className="flex items-center text-amber-700 font-bold text-sm mb-1">
                                         <DollarSign className="w-4 h-4 mr-1" />
-                                        売却対象額
+                                        取引対象債権額
                                     </h3>
                                     <p className="text-3xl font-bold text-amber-600">
                                         ¥{invoice.sellingAmount.toLocaleString()}
@@ -111,12 +110,14 @@ export const BuyerInvoiceDetail: React.FC = () => {
                                 </div>
                             )}
                         </div>
-                        <div className="bg-indigo-50 p-6 rounded-xl border border-indigo-100">
-                            <h3 className="flex items-center text-indigo-600 font-medium mb-2">
-                                <DollarSign className="w-4 h-4 mr-2" />
-                                売り手希望額
-                            </h3>
-                            <p className="text-3xl font-bold text-indigo-700">¥{invoice.requestedAmount?.toLocaleString()}</p>
+                        <div className="bg-indigo-50 p-6 rounded-xl border border-indigo-100 flex flex-col justify-center">
+                            <div>
+                                <h3 className="flex items-center text-indigo-600 font-medium mb-2">
+                                    <DollarSign className="w-4 h-4 mr-2" />
+                                    希望売却額
+                                </h3>
+                                <p className="text-3xl font-bold text-indigo-700">¥{invoice.requestedAmount?.toLocaleString() || '未設定'}</p>
+                            </div>
 
                             <div className="mt-4 pt-4 border-t border-indigo-200">
                                 <div className="flex items-center justify-between mb-1">
