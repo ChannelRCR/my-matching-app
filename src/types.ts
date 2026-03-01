@@ -39,7 +39,7 @@ export interface Invoice {
     industry: string;
     companySize?: 'Listed' | 'Large' | 'SMB' | 'Individual'; // Updated enum
     companyCredit: string; // Credit info of the debtor company
-    status: 'open' | 'negotiating' | 'sold';
+    status: 'open' | 'negotiating' | 'pending' | 'sold';
     requestedAmount?: number;
     evidenceUrl?: string;
     evidenceName?: string;

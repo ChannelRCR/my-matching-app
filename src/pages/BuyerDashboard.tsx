@@ -170,7 +170,7 @@ export const BuyerDashboard: React.FC = () => {
             </h1>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {invoices.filter(inv => inv.status === 'open').map((inv) => (
+                {invoices.filter(inv => inv.status === 'open' || inv.status === 'pending').map((inv) => (
                     <Card key={inv.id} className="flex flex-col h-full hover:shadow-lg transition-shadow border-slate-200 cursor-pointer" onClick={() => navigate(`/market/invoices/${inv.id}`)}>
                         <CardHeader className="bg-slate-50 border-b border-slate-100 pb-4">
                             <div className="flex justify-between items-start">
@@ -273,7 +273,7 @@ export const BuyerDashboard: React.FC = () => {
                 ))}
             </div>
             {
-                invoices.filter(inv => inv.status === 'open').length === 0 && (
+                invoices.filter(inv => inv.status === 'open' || inv.status === 'pending').length === 0 && (
                     <p className="text-center text-slate-500 py-12">現在募集中案件はありません。</p>
                 )
             }
