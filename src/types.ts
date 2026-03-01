@@ -43,6 +43,7 @@ export interface Invoice {
     requestedAmount?: number;
     evidenceUrl?: string;
     evidenceName?: string;
+    createdAt?: string; // mapped from created_at
 }
 
 export interface Offer {
@@ -71,7 +72,9 @@ export interface Deal {
     sellerId: string;
     status: 'open' | 'pending' | 'negotiating' | 'agreed' | 'rejected' | 'concluded';
     initialOfferAmount: number;
-    currentAmount: number;
+    currentAmount: number; // legacy/general current amount, maybe obsolete but keep for BC
+    currentSellerPrice?: number;
+    currentBuyerPrice?: number;
     startedAt: string;
     lastMessageAt: string;
     sellerAgreedAt?: string;

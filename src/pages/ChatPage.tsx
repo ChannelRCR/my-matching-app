@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
-import { Send, User, ChevronLeft } from 'lucide-react';
+import { Send, User, ChevronLeft, DollarSign } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -30,9 +30,13 @@ export const ChatPage: React.FC = () => {
     const [invoice, setInvoice] = useState<Invoice | null>(null);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [inputText, setInputText] = useState('');
+    const [proposedPrice, setProposedPrice] = useState('');
     const [counterpartName, setCounterpartName] = useState('');
     const [isTermsAgreed, setIsTermsAgreed] = useState(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+    const isBuyer = user && deal ? user.id === deal.buyerId : false;
+    const isPriceMatched = deal ? (deal.currentBuyerPrice || 0) > 0 && deal.currentBuyerPrice === deal.currentSellerPrice : false;
 
     useEffect(() => {
         if (dealId && user) {
@@ -102,6 +106,34 @@ export const ChatPage: React.FC = () => {
 
         await updateDeal(deal.id, { lastMessageAt: now.toISOString() });
         setInputText('');
+    };
+
+    const handleProposePrice = async () => {
+        if (!deal || !user || !proposedPrice) return;
+        const numPrice = Number(proposedPrice);
+        if (isNaN(numPrice) || numPrice <= 0) {
+            alert("有効な金額を入力してください");
+            return;
+        }
+
+        if (isBuyer) {
+            await updateDeal(deal.id, { currentBuyerPrice: numPrice });
+        } else {
+            await updateDeal(deal.id, { currentSellerPrice: numPrice });
+        }
+        setProposedPrice('');
+
+        // Let's add an admin-like system message to chat as well
+        const now = new Date();
+        const receiverId = isBuyer ? deal.sellerId : deal.buyerId;
+        await addMessage({
+            id: `sys_${Date.now()}`,
+            dealId: deal.id,
+            senderId: user.id, // technically it's me sending the system prop
+            receiverId: receiverId,
+            content: `【システム通知】\n新しい提示金額: ¥${numPrice.toLocaleString()}`,
+            timestamp: now.toISOString()
+        });
     };
 
     const handleAgree = async () => {
@@ -212,116 +244,169 @@ export const ChatPage: React.FC = () => {
                             <div className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded font-bold text-sm border border-indigo-100 shadow-sm">
                                 希望買取額: ¥{invoice.requestedAmount?.toLocaleString() || '未設定'}
                             </div>
-                            {(() => {
-                                if (deal.status === 'concluded') {
-                                    return (
-                                        <div className="flex flex-col items-end gap-2">
-                                            <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold border border-green-200">
+                        </div>
+                    </div>
+                </CardHeader>
+
+                <div className="flex-1 flex flex-col md:flex-row overflow-hidden bg-slate-100 p-2 gap-2">
+                    {/* Negotiation Panel (Left Panel) */}
+                    <Card className="md:w-1/3 flex flex-col shadow-sm border-slate-200 shrink-0 md:h-full overflow-y-auto">
+                        <CardHeader className="border-b bg-white py-3 px-4 sticky top-0 z-10">
+                            <CardTitle className="text-base flex items-center gap-2">
+                                <DollarSign className="w-5 h-5 text-green-600" />
+                                条件交渉
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-4 space-y-4">
+                            <div className="bg-slate-50 p-3 rounded-md border border-slate-200">
+                                <div className="text-xs font-bold text-slate-500 mb-1">相手の提示額</div>
+                                <div className="text-xl font-bold text-slate-800">
+                                    {isBuyer ?
+                                        (deal.currentSellerPrice ? `¥${deal.currentSellerPrice.toLocaleString()}` : '未提示') :
+                                        (deal.currentBuyerPrice ? `¥${deal.currentBuyerPrice.toLocaleString()}` : '未提示')}
+                                </div>
+                            </div>
+                            <div className="bg-blue-50 p-3 rounded-md border border-blue-200 shadow-sm">
+                                <div className="text-xs font-bold text-blue-800/70 mb-1">あなたの提示額</div>
+                                <div className="text-xl font-bold text-blue-900 mb-3">
+                                    {isBuyer ?
+                                        (deal.currentBuyerPrice ? `¥${deal.currentBuyerPrice.toLocaleString()}` : '未提示') :
+                                        (deal.currentSellerPrice ? `¥${deal.currentSellerPrice.toLocaleString()}` : '未提示')}
+                                </div>
+                                {deal.status === 'negotiating' && !isPriceMatched && (
+                                    <form onSubmit={(e) => { e.preventDefault(); handleProposePrice(); }} className="flex flex-col gap-2">
+                                        <div className="flex gap-2">
+                                            <Input
+                                                type="number"
+                                                value={proposedPrice}
+                                                onChange={(e) => setProposedPrice(e.target.value)}
+                                                placeholder="金額を入力"
+                                                className="flex-1 bg-white h-9"
+                                                min="1"
+                                            />
+                                            <Button type="submit" size="sm" variant="secondary" className="bg-blue-600 text-white hover:bg-blue-700 h-9 shrink-0">
+                                                提示する
+                                            </Button>
+                                        </div>
+                                    </form>
+                                )}
+                            </div>
+
+                            {/* Agreement Logic */}
+                            {deal.status === 'negotiating' ? (
+                                <div className="mt-6 border-t border-slate-200 pt-4">
+                                    {isPriceMatched ? (
+                                        <>
+                                            <div className="bg-green-100 text-green-800 p-3 rounded-md mb-4 font-bold text-center border border-green-200 shadow-sm">
+                                                🎉 金額が合致しました！
+                                            </div>
+
+                                            {/* Check if you've already agreed */}
+                                            {((isBuyer && deal.buyerAgreedAt) || (!isBuyer && deal.sellerAgreedAt)) ? (
+                                                <Button size="sm" variant="secondary" disabled className="bg-slate-200 text-slate-500 w-full cursor-not-allowed">
+                                                    相手の最終合意を待っています
+                                                </Button>
+                                            ) : (
+                                                <div className="flex flex-col gap-3">
+                                                    <label className="flex items-start gap-2 text-sm text-slate-700 cursor-pointer p-2 rounded hover:bg-slate-50 border border-transparent hover:border-slate-200 bg-white shadow-sm">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isTermsAgreed}
+                                                            onChange={(e) => setIsTermsAgreed(e.target.checked)}
+                                                            className="mt-1 w-4 h-4 text-green-600 rounded border-slate-300 focus:ring-green-500 shrink-0"
+                                                        />
+                                                        <span className="leading-snug">利用規約および債権譲渡約款に同意する</span>
+                                                    </label>
+                                                    <Button
+                                                        size="sm"
+                                                        className={`w-full font-bold shadow-md transition-transform ${isTermsAgreed ? 'bg-green-600 hover:bg-green-700 hover:scale-[1.02] text-white' : 'bg-slate-300 text-slate-500 cursor-not-allowed'}`}
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            handleAgree();
+                                                        }}
+                                                        disabled={!isTermsAgreed}
+                                                    >
+                                                        <Handshake className="w-5 h-5 mr-2" />
+                                                        この条件で契約に合意する
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className="text-center text-sm text-slate-500 bg-slate-50 p-3 rounded border border-slate-100">
+                                            金額が合致するまで合意できません
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="mt-6 border-t border-slate-200 pt-4 flex flex-col items-center gap-3">
+                                    {deal.status === 'agreed' ? (
+                                        <span className="bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-bold border border-green-200">
+                                            取引成立済み
+                                        </span>
+                                    ) : deal.status === 'concluded' ? (
+                                        <div className="flex flex-col items-center gap-3 w-full">
+                                            <span className="bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-bold border border-green-200">
                                                 契約成立🎉
                                             </span>
                                             <Button
                                                 size="sm"
                                                 variant="outline"
-                                                className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                                                className="border-green-600 text-green-700 hover:bg-green-50 w-full shadow-sm"
                                                 onClick={handlePrintContract}
                                                 disabled={isGeneratingPdf}
                                             >
-                                                <FileText className="w-4 h-4 mr-1" />
-                                                {isGeneratingPdf ? "PDF生成中..." : "📝 契約書（PDF）をダウンロード"}
+                                                <FileText className="w-4 h-4 mr-2" />
+                                                {isGeneratingPdf ? "PDF生成中..." : "契約書（PDF）を保存"}
                                             </Button>
                                         </div>
-                                    );
-                                } else if (deal.status === 'agreed') {
-                                    return (
-                                        <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold border border-green-200">
-                                            取引成立済み
+                                    ) : (
+                                        <span className="bg-slate-100 text-slate-600 px-4 py-2 rounded-full text-sm font-bold border border-slate-200">
+                                            {deal.status === 'open' || deal.status === 'pending' ? 'オファー承諾待ち' : '取引終了'}
                                         </span>
-                                    );
-                                } else if (deal.status === 'negotiating') {
-                                    const isBuyer = user?.id === deal.buyerId;
-                                    const hasIAgreed = isBuyer ? !!deal.buyerAgreedAt : !!deal.sellerAgreedAt;
+                                    )}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
 
-                                    if (hasIAgreed) {
-                                        return (
-                                            <Button size="sm" variant="secondary" disabled className="bg-slate-200 text-slate-500">
-                                                相手の合意待ちです
-                                            </Button>
-                                        );
-                                    } else {
-                                        return (
-                                            <div className="flex flex-col items-end gap-2">
-                                                <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer hover:bg-slate-50 p-1 rounded">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={isTermsAgreed}
-                                                        onChange={(e) => setIsTermsAgreed(e.target.checked)}
-                                                        className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
-                                                    />
-                                                    <span>利用規約および債権譲渡約款に同意する</span>
-                                                </label>
-                                                <Button
-                                                    size="sm"
-                                                    className={`text-white w-full ${isTermsAgreed ? 'bg-green-600 hover:bg-green-700' : 'bg-slate-300 cursor-not-allowed'}`}
-                                                    onClick={handleAgree}
-                                                    disabled={!isTermsAgreed}
-                                                >
-                                                    <Handshake className="w-4 h-4 mr-1" />
-                                                    この条件で契約に合意する
-                                                </Button>
-                                            </div>
-                                        );
+                    {/* Chat Panel (Right Panel) */}
+                    <Card className="flex-1 flex flex-col shadow-sm border-slate-200 md:h-full overflow-hidden">
+                        <CardContent className="flex-1 overflow-y-auto p-0 bg-white">
+                            {renderMessages()}
+                        </CardContent>
+
+                        <CardFooter className="bg-slate-50 border-t p-3 border-slate-200">
+                            <form
+                                className="flex w-full gap-2"
+                                onSubmit={(e) => {
+                                    e.preventDefault();
+                                    handleSend();
+                                }}
+                            >
+                                <Input
+                                    value={inputText}
+                                    onChange={(e) => setInputText(e.target.value)}
+                                    placeholder={
+                                        deal.status === 'negotiating' ? "メッセージを入力..." :
+                                            deal.status === 'concluded' ? "契約が完成しました。" :
+                                                (deal.status === 'pending' || deal.status === 'open') ? "売り手の承諾をお待ちください" :
+                                                    "取引が終了しました"
                                     }
-                                } else if (deal.status === 'pending' || deal.status === 'open') {
-                                    return (
-                                        <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-bold border border-yellow-200">
-                                            オファー承諾待ち
-                                        </span>
-                                    );
-                                } else {
-                                    return (
-                                        <span className="bg-slate-100 text-slate-800 px-3 py-1 rounded-full text-xs font-bold border border-slate-200">
-                                            却下済み
-                                        </span>
-                                    );
-                                }
-                            })()}
-                        </div>
-                    </div>
-                </CardHeader>
-
-                <CardContent className="flex-1 overflow-y-auto p-0 bg-slate-50">
-                    {renderMessages()}
-                </CardContent>
-
-                <CardFooter className="bg-white border-t p-4">
-                    <form
-                        className="flex w-full gap-2"
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            handleSend();
-                        }}
-                    >
-                        <Input
-                            value={inputText}
-                            onChange={(e) => setInputText(e.target.value)}
-                            placeholder={
-                                deal.status === 'negotiating' ? "メッセージを入力..." :
-                                    deal.status === 'concluded' ? "契約が成立しました" :
-                                        (deal.status === 'pending' || deal.status === 'open') ? "売り手の承諾をお待ちください" :
-                                            "取引終了のため送信できません"
-                            }
-                            className="flex-1"
-                            disabled={deal.status !== 'negotiating'}
-                            autoComplete="off"
-                            autoCorrect="off"
-                            spellCheck={false}
-                        />
-                        <Button type="submit" size="md" disabled={deal.status !== 'negotiating'}>
-                            <Send className="h-4 w-4 mr-2" />
-                            送信
-                        </Button>
-                    </form>
-                </CardFooter>
+                                    className="flex-1 bg-white h-10"
+                                    disabled={deal.status !== 'negotiating'}
+                                    autoComplete="off"
+                                    autoCorrect="off"
+                                    spellCheck={false}
+                                />
+                                <Button type="submit" size="md" disabled={deal.status !== 'negotiating'} className="h-10 px-5 shrink-0 bg-primary hover:bg-primary/90 text-white shadow-sm">
+                                    <Send className="h-4 w-4 mr-2" />
+                                    送信
+                                </Button>
+                            </form>
+                        </CardFooter>
+                    </Card>
+                </div>
             </Card>
         </div>
     );

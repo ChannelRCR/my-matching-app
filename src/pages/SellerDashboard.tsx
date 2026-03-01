@@ -3,21 +3,25 @@ import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
-import { PlusCircle, FileText, CheckCircle2 } from 'lucide-react';
+import { PlusCircle, FileText, CreditCard, DollarSign, UserCog, Calendar, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { RegisterInvoiceModal } from '../components/RegisterInvoiceModal';
 import { hasUnreadMessages } from '../utils/chat';
+import { translateCompanySize } from '../utils/translations';
 
 export const SellerDashboard: React.FC = () => {
     const navigate = useNavigate();
     const { invoices, deals, messages } = useData();
     const { user } = useAuth();
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<'my' | 'market'>('my');
 
     // Filter for current seller (strict check)
-    // If user is null (loading), we might show empty or loading, but ProtectedRoute handles that.
-    // Fallback to empty array if user not found to be safe.
     const myInvoices = user ? invoices.filter(inv => inv.sellerId === user.id) : [];
+    // Filter for market invoices (not mine, open or pending)
+    const marketInvoices = user ? invoices.filter(inv => inv.sellerId !== user.id && (inv.status === 'open' || inv.status === 'pending')) : [];
+
+    const displayInvoices = activeTab === 'my' ? myInvoices : marketInvoices;
 
     return (
         <div className="space-y-6">
@@ -37,68 +41,126 @@ export const SellerDashboard: React.FC = () => {
                 onClose={() => setIsRegisterModalOpen(false)}
             />
 
+            {/* Tabs */}
+            <div className="flex border-b border-slate-200">
+                <button
+                    className={`pb-3 px-4 text-sm font-medium transition-colors ${activeTab === 'my' ? 'border-b-2 border-primary text-primary' : 'text-slate-500 hover:text-slate-700'}`}
+                    onClick={() => setActiveTab('my')}
+                >
+                    自分の登録案件
+                </button>
+                <button
+                    className={`pb-3 px-4 text-sm font-medium transition-colors ${activeTab === 'market' ? 'border-b-2 border-primary text-primary' : 'text-slate-500 hover:text-slate-700'}`}
+                    onClick={() => setActiveTab('market')}
+                >
+                    プラットフォーム全体の案件
+                </button>
+            </div>
+
             {/* Invoice List */}
-            <div className="grid gap-4">
-                {myInvoices.length === 0 ? (
-                    <p className="text-center text-slate-500 py-8">登録された案件はありません。</p>
+            <div className={`grid gap-6 ${activeTab === 'market' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'}`}>
+                {displayInvoices.length === 0 ? (
+                    <p className="text-center text-slate-500 py-8 col-span-full">表示する案件がありません。</p>
                 ) : (
-                    myInvoices.map((inv) => (
-                        <Card
-                            key={inv.id}
-                            className="hover:shadow-md transition-shadow cursor-pointer"
-                            onClick={() => navigate(`/seller/invoices/${inv.id}`)}
-                        >
-                            <CardContent className="p-6">
-                                <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-                                    <div>
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <span className="bg-slate-100 text-slate-600 text-xs px-2 py-1 rounded">{inv.industry}</span>
-                                            {inv.companySize && <span className="bg-slate-100 text-slate-600 text-xs px-2 py-1 rounded">{inv.companySize}</span>}
-                                            <span className="text-sm text-slate-500">期日: {inv.dueDate}</span>
-                                        </div>
-                                        <div className="text-2xl font-bold text-slate-900 flex items-center">
-                                            ¥{inv.amount.toLocaleString()}
-                                            {deals.some(d => d.invoiceId === inv.id && hasUnreadMessages(d.id, messages, user?.id)) && (
-                                                <span className="flex h-3 w-3 relative ml-2">
-                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                                                </span>
-                                            )}
-                                            <span className="text-sm font-normal text-slate-500 ml-2">
-                                                (希望: ¥{inv.requestedAmount?.toLocaleString()})
+                    displayInvoices.map((inv) => {
+                        const invDeals = deals.filter(d => d.invoiceId === inv.id && ['open', 'pending', 'negotiating'].includes(d.status));
+                        const maxOffer = invDeals.length > 0 ? Math.max(...invDeals.map(d => d.currentBuyerPrice || d.initialOfferAmount || 0)) : 0;
+                        const isPartial = inv.sellingAmount && inv.sellingAmount < inv.amount;
+                        const formattedDate = inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '不明';
+
+                        // Dynamic Status Logic
+                        let dynamicStatus = inv.status === 'open' || inv.status === 'pending' ? '募集中' : inv.status === 'negotiating' ? '交渉中' : '🎉 売却済';
+                        let statusColor = inv.status === 'open' || inv.status === 'pending' ? 'text-green-600 bg-green-50' : inv.status === 'negotiating' ? 'text-orange-600 bg-orange-50' : 'text-slate-600 bg-slate-100';
+
+                        // Determine if there are specific negotiation states for MY invoices
+                        if (activeTab === 'my' && inv.status === 'negotiating') {
+                            // Find active negotiations where buyer price > 0
+                            const activeNegotiation = invDeals.find(d => d.status === 'negotiating' && (d.currentBuyerPrice || 0) > 0);
+                            if (activeNegotiation) {
+                                if (activeNegotiation.currentBuyerPrice === activeNegotiation.currentSellerPrice) {
+                                    dynamicStatus = '金額合致 (最終確認待ち)';
+                                    statusColor = 'text-blue-600 bg-blue-50';
+                                } else if ((activeNegotiation.currentBuyerPrice || 0) > 0 && (activeNegotiation.currentSellerPrice || 0) === 0) {
+                                    dynamicStatus = 'オファー受信 (回答待ち)';
+                                    statusColor = 'text-purple-600 bg-purple-50';
+                                } else if ((activeNegotiation.currentSellerPrice || 0) > 0) {
+                                    dynamicStatus = '売主提示済 (買主検討中)';
+                                    statusColor = 'text-indigo-600 bg-indigo-50';
+                                }
+                            }
+                        }
+
+                        return (
+                            <Card
+                                key={inv.id}
+                                className="flex flex-col h-full hover:shadow-lg transition-shadow border-slate-200 cursor-pointer"
+                                onClick={() => navigate(activeTab === 'my' ? `/seller/invoices/${inv.id}` : `/market/invoices/${inv.id}`)}
+                            >
+                                <CardContent className="p-5 flex-1 flex flex-col">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div className="flex flex-wrap gap-1.5 mb-2">
+                                            <span className="bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded font-medium border border-slate-200">{inv.industry}</span>
+                                            <span className="bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded font-medium border border-slate-200">{translateCompanySize(inv.companySize)}</span>
+                                            <span className={`text-xs px-2 py-1 rounded font-bold ${isPartial ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                {isPartial ? '一部売却' : '全部売却'}
                                             </span>
                                         </div>
-                                        <div className="flex gap-4 mt-2">
-                                            <p className="text-sm text-slate-600">{inv.companyCredit}</p>
-                                            {/* Offer Count Display */}
-                                            {inv.status === 'open' && (
-                                                <span className="text-sm font-bold text-blue-600 flex items-center bg-blue-50 px-2 py-0.5 rounded">
-                                                    現在のオファー数: {deals ? deals.filter(d => d.invoiceId === inv.id && ['open', 'pending', 'negotiating'].includes(d.status)).length : 0}件
-                                                </span>
-                                            )}
+                                        <div className={`text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap ${statusColor}`}>
+                                            {dynamicStatus}
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-4">
-                                        <div className="text-right">
-                                            <div className="text-xs text-slate-500">ステータス</div>
-                                            <div className={`font-bold ${inv.status === 'open' ? 'text-green-600' :
-                                                inv.status === 'negotiating' ? 'text-orange-500' : 'text-slate-500'
-                                                }`}>
-                                                {inv.status === 'open' ? '募集中' :
-                                                    inv.status === 'negotiating' ? '交渉中' : '🎉 売却済'}
-                                            </div>
+                                    <div className="text-sm font-bold text-slate-800 mb-1 flex items-center justify-between">
+                                        <span>企業名非公開 <span className="text-xs text-slate-400 font-normal ml-1">ID: {inv.id}</span></span>
+                                        <span className="text-xs text-slate-500 font-normal flex items-center gap-1"><Calendar className="w-3 h-3" />登録: {formattedDate}</span>
+                                    </div>
+
+                                    <div className="mt-4 space-y-3 bg-slate-50 p-3 rounded-lg border border-slate-100 flex-1">
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-slate-500 flex items-center"><CreditCard className="w-4 h-4 mr-1" />全体債権額</span>
+                                            <span className={isPartial ? 'line-through text-slate-400' : 'font-bold text-slate-700'}>¥{inv.amount.toLocaleString()}</span>
                                         </div>
-                                        {inv.status === 'open' && (
-                                            <div className="bg-green-100 p-2 rounded-full text-green-600">
-                                                <CheckCircle2 size={20} />
+                                        {isPartial && (
+                                            <div className="flex justify-between items-center text-sm border-t border-slate-200 pt-2">
+                                                <span className="text-amber-700 font-bold flex items-center"><DollarSign className="w-4 h-4 mr-1" />取引対象債権額</span>
+                                                <span className="font-bold text-amber-600 text-base">¥{inv.sellingAmount?.toLocaleString()}</span>
                                             </div>
                                         )}
+                                        <div className="flex justify-between items-center text-sm border-t border-slate-200 pt-2">
+                                            <span className="text-primary font-bold">希望売却額</span>
+                                            <span className="font-bold text-primary text-lg">¥{inv.requestedAmount?.toLocaleString() || '未設定'}</span>
+                                        </div>
                                     </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))
+
+                                    <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+                                        <div className="bg-blue-50 p-2 rounded border border-blue-100">
+                                            <div className="text-slate-500 text-xs mb-1 flex items-center"><UserCog className="w-3 h-3 mr-1" />オファー数</div>
+                                            <div className="font-bold text-blue-700">{invDeals.length}件</div>
+                                        </div>
+                                        <div className="bg-green-50 p-2 rounded border border-green-100">
+                                            <div className="text-slate-500 text-xs mb-1 flex items-center"><TrendingUp className="w-3 h-3 mr-1" />最高買取希望額</div>
+                                            <div className="font-bold text-green-700">¥{maxOffer > 0 ? maxOffer.toLocaleString() : '---'}</div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-4 pt-3 border-t border-slate-100 text-sm text-slate-600">
+                                        <span className="font-bold text-slate-700 mr-1">信用情報:</span>
+                                        {inv.companyCredit.length > 15 ? inv.companyCredit.substring(0, 15) + '...' : inv.companyCredit}
+                                    </div>
+
+                                    {deals.some(d => d.invoiceId === inv.id && hasUnreadMessages(d.id, messages, user?.id)) && (
+                                        <div className="mt-3 flex items-center justify-center gap-2 text-red-500 text-sm font-bold bg-red-50 p-2 rounded">
+                                            <span className="flex h-2 w-2 relative">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                                            </span>
+                                            新着メッセージあり
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        );
+                    })
                 )}
             </div>
         </div>

@@ -92,6 +92,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 dueDate: i.due_date, debtorName: i.debtor_name, debtorAddress: i.debtor_address, industry: i.industry, companySize: i.company_size,
                 companyCredit: i.company_credit, status: i.status, requestedAmount: i.requested_amount,
                 evidenceUrl: i.evidence_url, evidenceName: i.evidence_name,
+                createdAt: i.created_at,
             })));
         }
     };
@@ -138,6 +139,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 status: d.status,
                 initialOfferAmount: d.initial_offer_amount,
                 currentAmount: d.current_amount,
+                currentSellerPrice: d.current_seller_price,
+                currentBuyerPrice: d.current_buyer_price,
                 startedAt: d.started_at,
                 lastMessageAt: d.last_message_at,
                 sellerAgreedAt: d.seller_agreed_at,
@@ -177,6 +180,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const dbUpdates: any = {};
         if (updates.status) dbUpdates.status = updates.status;
         if (updates.currentAmount !== undefined) dbUpdates.current_amount = updates.currentAmount;
+        if (updates.currentSellerPrice !== undefined) dbUpdates.current_seller_price = updates.currentSellerPrice;
+        if (updates.currentBuyerPrice !== undefined) dbUpdates.current_buyer_price = updates.currentBuyerPrice;
         if (updates.lastMessageAt) dbUpdates.last_message_at = updates.lastMessageAt;
         if (updates.sellerAgreedAt !== undefined) dbUpdates.seller_agreed_at = updates.sellerAgreedAt;
         if (updates.buyerAgreedAt !== undefined) dbUpdates.buyer_agreed_at = updates.buyerAgreedAt;
@@ -196,7 +201,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             seller_id: sellerId,
             status: 'negotiating',
             initial_offer_amount: 0,
-            current_amount: 0
+            current_amount: 0,
+            current_seller_price: 0,
+            current_buyer_price: 0
         };
 
         const { data, error } = await supabase.from('deals').insert([dbDeal]).select().single();
@@ -210,6 +217,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             status: data.status,
             initialOfferAmount: data.initial_offer_amount,
             currentAmount: data.current_amount,
+            currentSellerPrice: data.current_seller_price,
+            currentBuyerPrice: data.current_buyer_price,
             startedAt: data.started_at,
             lastMessageAt: data.last_message_at,
         };
@@ -236,7 +245,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             seller_id: sellerId,
             status: 'open',
             initial_offer_amount: offerAmount,
-            current_amount: offerAmount
+            current_amount: offerAmount,
+            current_seller_price: 0,
+            current_buyer_price: offerAmount
         };
 
         const { data, error } = await supabase.from('deals').insert([dbDeal]).select().single();
@@ -250,6 +261,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             status: data.status,
             initialOfferAmount: data.initial_offer_amount,
             currentAmount: data.current_amount,
+            currentSellerPrice: data.current_seller_price,
+            currentBuyerPrice: data.current_buyer_price,
             startedAt: data.started_at,
             lastMessageAt: data.last_message_at,
         };
