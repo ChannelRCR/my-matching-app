@@ -11,16 +11,15 @@ export interface User {
     status?: 'active' | 'suspended';
     registeredAt?: string;
     // New Profile Fields
-    tradeName?: string;
-    representative?: string;
+    representativeName?: string;
     contactPerson?: string;
     address?: string;
     bankAccountInfo?: string;
     phone?: string;
     email?: string; // For display/contact, separate from auth email
     privacySettings?: {
-        tradeName: boolean;
-        representative: boolean;
+        companyName: boolean;
+        representativeName: boolean;
         contactPerson: boolean;
         address: boolean;
         bankAccountInfo: boolean;

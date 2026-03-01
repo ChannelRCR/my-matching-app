@@ -28,8 +28,7 @@ export const RegisterPage: React.FC = () => {
 
     // Detailed profile fields
     const [formData, setFormData] = useState({
-        tradeName: '',
-        representative: '',
+        representativeName: '',
         contactPerson: '',
         address: '',
         bankAccountInfo: '',
@@ -38,8 +37,8 @@ export const RegisterPage: React.FC = () => {
     });
 
     const [privacySettings, setPrivacySettings] = useState({
-        tradeName: true,
-        representative: true,
+        companyName: true,
+        representativeName: true,
         contactPerson: true,
         address: true,
         bankAccountInfo: true,
@@ -219,7 +218,7 @@ export const RegisterPage: React.FC = () => {
                             <h3 className="font-bold text-slate-700">詳細プロフィール情報</h3>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {renderInputWithPrivacy("代表者名", "representative", "例: 山田 太郎")}
+                                {renderInputWithPrivacy("代表者名", "representativeName", "例: 山田 太郎")}
                                 {renderInputWithPrivacy("連絡先電話番号", "phone", "例: 03-1234-5678", "tel")}
                             </div>
 
@@ -282,7 +281,7 @@ export const RegisterPage: React.FC = () => {
                                     <div className="font-bold">{companyName}</div>
 
                                     <div className="text-slate-500 font-medium mt-2">代表者名:</div>
-                                    <div className="font-bold mt-2">{formData.representative || '-'} <span className="text-xs text-slate-400 font-normal">({privacySettings.representative ? '公開' : '非公開'})</span></div>
+                                    <div className="font-bold mt-2">{formData.representativeName || '-'} <span className="text-xs text-slate-400 font-normal">({privacySettings.representativeName ? '公開' : '非公開'})</span></div>
 
                                     <div className="text-slate-500 font-medium">連絡先電話番号:</div>
                                     <div className="font-bold">{formData.phone || '-'} <span className="text-xs text-slate-400 font-normal">({privacySettings.phone ? '公開' : '非公開'})</span></div>

@@ -12,8 +12,7 @@ interface AuthContextType {
     signUp: (email: string, pass: string, role: UserRole, extraData: {
         name: string;
         companyName: string;
-        tradeName: string;
-        representative: string;
+        representativeName: string;
         contactPerson: string;
         address: string;
         bankAccountInfo: string;
@@ -111,8 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 status: userData.status,
                 registeredAt: userData.registered_at,
                 // Merged fields from sellers/buyers
-                tradeName: profileData.trade_name,
-                representative: profileData.representative,
+                representativeName: profileData.representative_name,
                 contactPerson: profileData.contact_person,
                 address: profileData.address,
                 bankAccountInfo: profileData.bank_account_info,
@@ -138,8 +136,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const signUp = async (email: string, pass: string, role: UserRole, extraData: {
         name: string;
         companyName: string;
-        tradeName: string;
-        representative: string;
+        representativeName: string;
         contactPerson: string;
         address: string;
         bankAccountInfo: string;
@@ -190,8 +187,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (role === 'seller') {
             const sellerProfile = {
                 id: userId,
-                trade_name: extraData.tradeName,
-                representative: extraData.representative,
+                company_name: extraData.companyName,
+                representative_name: extraData.representativeName,
                 contact_person: extraData.contactPerson,
                 address: extraData.address,
                 bank_account_info: extraData.bankAccountInfo,
@@ -204,8 +201,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else if (role === 'buyer') {
             const buyerProfile = {
                 id: userId,
-                trade_name: extraData.tradeName,
-                representative: extraData.representative,
+                company_name: extraData.companyName,
+                representative_name: extraData.representativeName,
                 contact_person: extraData.contactPerson,
                 address: extraData.address,
                 phone: extraData.phone,
