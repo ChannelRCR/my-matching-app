@@ -12,20 +12,20 @@ export interface User {
     registeredAt?: string;
     // New Profile Fields
     tradeName?: string;
-    representativeName?: string;
+    representative?: string;
     contactPerson?: string;
     address?: string;
     bankAccountInfo?: string;
-    phoneNumber?: string;
-    emailAddress?: string; // For display/contact, separate from auth email
+    phone?: string;
+    email?: string; // For display/contact, separate from auth email
     privacySettings?: {
         tradeName: boolean;
-        representativeName: boolean;
+        representative: boolean;
         contactPerson: boolean;
         address: boolean;
         bankAccountInfo: boolean;
-        phoneNumber: boolean;
-        emailAddress: boolean;
+        phone: boolean;
+        email: boolean;
     };
 }
 

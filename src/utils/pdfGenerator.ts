@@ -41,13 +41,13 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
 
     // Parties
     doc.text(`譲渡人（甲）: ${seller.companyName || seller.name}`, 20, 50);
-    if (seller.representativeName) {
-        doc.text(`代表者: ${seller.representativeName}`, 20, 58);
+    if (seller.representative) {
+        doc.text(`代表者: ${seller.representative}`, 20, 58);
     }
 
     doc.text(`譲受人（乙）: ${buyer.tradeName || buyer.companyName || buyer.name}`, 20, 70);
-    if (buyer.representativeName) {
-        doc.text(`代表者: ${buyer.representativeName}`, 20, 78);
+    if (buyer.representative) {
+        doc.text(`代表者: ${buyer.representative}`, 20, 78);
     }
 
     doc.text('甲と乙は、以下の内容にて債権譲渡契約を締結する。', 20, 95);

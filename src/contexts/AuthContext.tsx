@@ -13,12 +13,12 @@ interface AuthContextType {
         name: string;
         companyName: string;
         tradeName: string;
-        representativeName: string;
+        representative: string;
         contactPerson: string;
         address: string;
         bankAccountInfo: string;
-        phoneNumber: string;
-        emailAddress: string;
+        phone: string;
+        email: string;
         privacySettings: Record<string, boolean>;
     }) => Promise<{ error: any }>;
     signOut: () => Promise<void>;
@@ -112,12 +112,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 registeredAt: userData.registered_at,
                 // Merged fields from sellers/buyers
                 tradeName: profileData.trade_name,
-                representativeName: profileData.representative_name,
+                representative: profileData.representative,
                 contactPerson: profileData.contact_person,
                 address: profileData.address,
                 bankAccountInfo: profileData.bank_account_info,
-                phoneNumber: profileData.phone_number,
-                emailAddress: profileData.email_address,
+                phone: profileData.phone,
+                email: profileData.email,
                 privacySettings: profileData.privacy_settings,
             });
         } catch (err) {
@@ -139,12 +139,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         name: string;
         companyName: string;
         tradeName: string;
-        representativeName: string;
+        representative: string;
         contactPerson: string;
         address: string;
         bankAccountInfo: string;
-        phoneNumber: string;
-        emailAddress: string;
+        phone: string;
+        email: string; // The profile email, usually the same as auth email
         privacySettings: Record<string, boolean>;
     }) => {
         // 1. Sign up to Auth
@@ -191,12 +191,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const sellerProfile = {
                 id: userId,
                 trade_name: extraData.tradeName,
-                representative_name: extraData.representativeName,
+                representative: extraData.representative,
                 contact_person: extraData.contactPerson,
                 address: extraData.address,
                 bank_account_info: extraData.bankAccountInfo,
-                phone_number: extraData.phoneNumber,
-                email_address: extraData.emailAddress,
+                phone: extraData.phone,
+                email: extraData.email,
                 privacy_settings: extraData.privacySettings,
             };
             const { error } = await supabase.from('sellers').insert([sellerProfile]);
@@ -205,11 +205,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const buyerProfile = {
                 id: userId,
                 trade_name: extraData.tradeName,
-                representative_name: extraData.representativeName,
+                representative: extraData.representative,
                 contact_person: extraData.contactPerson,
                 address: extraData.address,
-                phone_number: extraData.phoneNumber,
-                email_address: extraData.emailAddress,
+                phone: extraData.phone,
+                email: extraData.email,
                 privacy_settings: extraData.privacySettings,
                 // Buyers don't have bank_account_info in the form usually, but if they did...
                 // Assuming buyers form doesn't strictly require bank info yet or we add it if needed.

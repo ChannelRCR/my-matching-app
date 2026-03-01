@@ -29,22 +29,22 @@ export const RegisterPage: React.FC = () => {
     // Detailed profile fields
     const [formData, setFormData] = useState({
         tradeName: '',
-        representativeName: '',
+        representative: '',
         contactPerson: '',
         address: '',
         bankAccountInfo: '',
-        phoneNumber: '',
-        emailAddress: '',
+        phone: '',
+        email: '',
     });
 
     const [privacySettings, setPrivacySettings] = useState({
         tradeName: true,
-        representativeName: true,
+        representative: true,
         contactPerson: true,
         address: true,
         bankAccountInfo: true,
-        phoneNumber: true,
-        emailAddress: true,
+        phone: true,
+        email: true,
     });
 
     const [loading, setLoading] = useState(false);
@@ -79,13 +79,13 @@ export const RegisterPage: React.FC = () => {
         }
 
         if (role === 'seller') {
-            if (!formData.phoneNumber || !formData.address || !formData.bankAccountInfo) {
+            if (!formData.phone || !formData.address || !formData.bankAccountInfo) {
                 setError('売り手（資金調達）として登録する場合、電話番号、住所、入金口座情報は必須項目です。');
                 setLoading(false);
                 return;
             }
         } else {
-            if (!formData.phoneNumber) {
+            if (!formData.phone) {
                 setError('連絡先電話番号は必須項目です。');
                 setLoading(false);
                 return;
@@ -219,8 +219,8 @@ export const RegisterPage: React.FC = () => {
                             <h3 className="font-bold text-slate-700">詳細プロフィール情報</h3>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {renderInputWithPrivacy("代表者名", "representativeName", "例: 山田 太郎")}
-                                {renderInputWithPrivacy("連絡先電話番号", "phoneNumber", "例: 03-1234-5678", "tel")}
+                                {renderInputWithPrivacy("代表者名", "representative", "例: 山田 太郎")}
+                                {renderInputWithPrivacy("連絡先電話番号", "phone", "例: 03-1234-5678", "tel")}
                             </div>
 
                             {renderInputWithPrivacy("住所", "address", "例: 東京都千代田区...")}
@@ -282,10 +282,10 @@ export const RegisterPage: React.FC = () => {
                                     <div className="font-bold">{companyName}</div>
 
                                     <div className="text-slate-500 font-medium mt-2">代表者名:</div>
-                                    <div className="font-bold mt-2">{formData.representativeName || '-'} <span className="text-xs text-slate-400 font-normal">({privacySettings.representativeName ? '公開' : '非公開'})</span></div>
+                                    <div className="font-bold mt-2">{formData.representative || '-'} <span className="text-xs text-slate-400 font-normal">({privacySettings.representative ? '公開' : '非公開'})</span></div>
 
                                     <div className="text-slate-500 font-medium">連絡先電話番号:</div>
-                                    <div className="font-bold">{formData.phoneNumber || '-'} <span className="text-xs text-slate-400 font-normal">({privacySettings.phoneNumber ? '公開' : '非公開'})</span></div>
+                                    <div className="font-bold">{formData.phone || '-'} <span className="text-xs text-slate-400 font-normal">({privacySettings.phone ? '公開' : '非公開'})</span></div>
 
                                     <div className="text-slate-500 font-medium mt-2">住所:</div>
                                     <div className="font-bold mt-2">{formData.address || '-'} <span className="text-xs text-slate-400 font-normal">({privacySettings.address ? '公開' : '非公開'})</span></div>
