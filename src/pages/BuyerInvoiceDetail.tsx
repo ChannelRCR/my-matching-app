@@ -5,7 +5,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { ArrowLeft, MessageCircle, FileText, Calendar, CreditCard, DollarSign } from 'lucide-react';
-import { OfferModal } from '../components/OfferModal';
 import type { Invoice, Deal } from '../types';
 import { calculateAnnualYield } from '../utils/calculations';
 import { translateCompanySize } from '../utils/translations';
@@ -13,12 +12,11 @@ import { translateCompanySize } from '../utils/translations';
 export const BuyerInvoiceDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { invoices, deals, createDeal, createChatRoom } = useData();
+    const { invoices, deals, createChatRoom } = useData();
     const { user } = useAuth();
 
     const [invoice, setInvoice] = useState<Invoice | null>(null);
     const [existingDeal, setExistingDeal] = useState<Deal | null>(null);
-    const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
 
     useEffect(() => {
         if (id && invoices.length > 0) {
@@ -33,17 +31,6 @@ export const BuyerInvoiceDetail: React.FC = () => {
         }
     }, [id, invoices, deals, user]);
 
-    const handleOfferSubmit = async (amount: number, message: string) => {
-        if (!invoice || !user) return;
-
-        // Use the existing createDeal function from context
-        const newDeal = await createDeal(invoice.id, user.id, amount, message);
-        setIsOfferModalOpen(false);
-        // Navigate directly to chat
-        if (newDeal) {
-            navigate(`/chat?dealId=${newDeal.id}`);
-        }
-    };
 
     if (!invoice) {
         return <div className="p-8 text-center">読み込み中...</div>;
@@ -202,8 +189,7 @@ export const BuyerInvoiceDetail: React.FC = () => {
                                 <div className="flex flex-col md:flex-row gap-4 justify-center items-center w-full">
                                     <Button
                                         size="lg"
-                                        variant="outline"
-                                        className="w-full md:w-auto px-8 border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                                        className="w-full md:w-auto px-12 bg-indigo-600 hover:bg-indigo-700"
                                         onClick={async () => {
                                             if (user && invoice.status === 'open') {
                                                 const newDeal = await createChatRoom(invoice.id, user.id);
@@ -215,33 +201,15 @@ export const BuyerInvoiceDetail: React.FC = () => {
                                         disabled={invoice.status !== 'open'}
                                     >
                                         <MessageCircle className="mr-2 h-5 w-5" />
-                                        この案件について質問・交渉する（チャット）
-                                    </Button>
-                                    <Button
-                                        size="lg"
-                                        className="w-full md:w-auto px-12 bg-indigo-600 hover:bg-indigo-700"
-                                        onClick={() => setIsOfferModalOpen(true)}
-                                        // Disable if not open
-                                        disabled={invoice.status !== 'open'}
-                                    >
-                                        {invoice.status === 'open' ? '直ちにオファーを提示する' : 'この案件は終了しました'}
+                                        {invoice.status === 'open' ? '交渉を開始する（チャット画面へ遷移）' : 'この案件は終了しました'}
                                     </Button>
                                 </div>
-                                <p className="text-xs text-slate-400">
-                                    ※ オファー提示と同時にチャットルームが開設されます
-                                </p>
                             </div>
                         )}
                     </div>
                 </CardContent>
             </Card>
 
-            <OfferModal
-                isOpen={isOfferModalOpen}
-                onClose={() => setIsOfferModalOpen(false)}
-                invoice={invoice}
-                onOffer={handleOfferSubmit}
-            />
         </div>
     );
 };
