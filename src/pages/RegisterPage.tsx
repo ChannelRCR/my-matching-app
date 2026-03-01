@@ -20,6 +20,7 @@ export const RegisterPage: React.FC = () => {
     // Auth fields
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
 
     // Basic profile fields
     const [name, setName] = useState('');
@@ -101,6 +102,7 @@ export const RegisterPage: React.FC = () => {
             name,
             companyName,
             ...formData,
+            contactPerson: formData.contactPerson || name, // フォールバック: 空の場合は担当者氏名を使用
             privacySettings
         });
 
@@ -235,14 +237,28 @@ export const RegisterPage: React.FC = () => {
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
                                 />
-                                <Input
-                                    label="パスワード (6文字以上)"
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                    minLength={6}
-                                />
+                                <div className="space-y-2">
+                                    <Input
+                                        label="パスワード (6文字以上)"
+                                        type={showPassword ? "text" : "password"}
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                        minLength={6}
+                                    />
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="checkbox"
+                                            id="showPassword"
+                                            checked={showPassword}
+                                            onChange={(e) => setShowPassword(e.target.checked)}
+                                            className="rounded border-slate-300 text-primary focus:ring-primary"
+                                        />
+                                        <label htmlFor="showPassword" className="text-sm text-slate-600 cursor-pointer">
+                                            ☑ パスワードを表示する
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
