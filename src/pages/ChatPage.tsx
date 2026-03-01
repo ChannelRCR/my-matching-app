@@ -212,7 +212,7 @@ export const ChatPage: React.FC = () => {
     }
 
     return (
-        <div className="max-w-4xl mx-auto h-[calc(100dvh-5rem)] md:h-[calc(100vh-8rem)] flex flex-col">
+        <div className="max-w-4xl mx-auto min-h-[calc(100dvh-5rem)] md:h-[calc(100vh-8rem)] flex flex-col">
             <div className="mb-1 md:mb-2">
                 <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="text-slate-500 p-0 md:px-4 md:py-2">
                     <ChevronLeft className="w-4 h-4 mr-1" />
@@ -220,7 +220,7 @@ export const ChatPage: React.FC = () => {
                 </Button>
             </div>
 
-            <Card className="flex-1 flex flex-col shadow-md overflow-hidden relative">
+            <Card className="flex-1 flex flex-col shadow-md md:overflow-hidden relative">
                 <CardHeader className="border-b bg-white z-10 py-3">
                     <div className="flex justify-between items-start">
                         <CardTitle className="flex items-center gap-3">
@@ -248,9 +248,9 @@ export const ChatPage: React.FC = () => {
                     </div>
                 </CardHeader>
 
-                <div className="flex-1 flex flex-col md:flex-row overflow-hidden bg-slate-100 p-2 gap-2">
+                <div className="flex-1 flex flex-col md:flex-row md:overflow-hidden bg-slate-100 p-2 gap-2">
                     {/* Negotiation Panel (Left Panel) */}
-                    <Card className="md:w-1/3 flex flex-col shadow-sm border-slate-200 shrink-0 md:h-full overflow-y-auto">
+                    <Card className="md:w-1/3 flex flex-col shadow-sm border-slate-200 shrink-0 md:h-full md:overflow-y-auto">
                         <CardHeader className="border-b bg-white py-3 px-4 sticky top-0 z-10">
                             <CardTitle className="text-base flex items-center gap-2">
                                 <DollarSign className="w-5 h-5 text-green-600" />
@@ -371,12 +371,12 @@ export const ChatPage: React.FC = () => {
                     </Card>
 
                     {/* Chat Panel (Right Panel) */}
-                    <Card className="flex-1 flex flex-col shadow-sm border-slate-200 md:h-full overflow-hidden">
-                        <CardContent className="flex-1 overflow-y-auto p-0 bg-white">
+                    <Card className="flex-1 flex flex-col shadow-sm border-slate-200 md:h-full md:overflow-hidden">
+                        <CardContent className="flex-1 md:overflow-y-auto p-0 bg-white min-h-[300px] md:min-h-0">
                             {renderMessages()}
                         </CardContent>
 
-                        <CardFooter className="bg-slate-50 border-t p-3 border-slate-200">
+                        <CardFooter className="bg-slate-50 border-t p-3 border-slate-200 sticky bottom-0 z-10">
                             <form
                                 className="flex w-full gap-2"
                                 onSubmit={(e) => {
