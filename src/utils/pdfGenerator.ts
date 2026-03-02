@@ -3,23 +3,25 @@ import html2canvas from 'html2canvas';
 import type { Deal, Invoice, User } from '../types';
 
 export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: User, buyer: User): Promise<void> => {
-    // 1. Create a hidden container for the HTML template
-    const container = document.createElement('div');
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    container.style.top = '-9999px';
-    container.style.width = '210mm'; // A4 width
-    // Use Noto Sans JP or standard system Japanese fonts to ensure correct rendering
-    container.style.fontFamily = '"Noto Sans JP", "Hiragino Sans", "Meiryo", sans-serif';
-    container.style.backgroundColor = 'white';
-    container.style.color = '#000';
-    container.style.padding = '20mm';
-    container.style.boxSizing = 'border-box';
+    // 1. Create a wrapper div to contain the HTML template
+    const wrapper = document.createElement('div');
+    // Hide it properly without breaking html2canvas by placing it off-screen
+    wrapper.style.position = 'fixed';
+    wrapper.style.top = '200vh';
+    wrapper.style.left = '0';
+    wrapper.style.width = '210mm'; // A4 standard width
+    wrapper.style.backgroundColor = '#ffffff';
+    wrapper.style.color = '#000000';
+    wrapper.style.padding = '20mm';
+    wrapper.style.boxSizing = 'border-box';
+    // Use system-level Japanese fonts to ensure correct and beautiful rendering
+    wrapper.style.fontFamily = '"Noto Sans JP", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif';
+    wrapper.style.zIndex = '-9999';
 
     const contractDate = deal.contractDate ? new Date(deal.contractDate) : new Date();
     const formattedDate = `${contractDate.getFullYear()}年${contractDate.getMonth() + 1}月${contractDate.getDate()}日`;
 
-    container.innerHTML = `
+    wrapper.innerHTML = `
         <div style="text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 30px;">債権譲渡契約書（重要事項説明）</div>
         
         <div style="text-align: right; font-size: 14px; margin-bottom: 40px;">契約締結日: ${formattedDate}</div>
@@ -60,22 +62,21 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
         </div>
     `;
 
-    document.body.appendChild(container);
+    document.body.appendChild(wrapper);
 
     try {
+        // Yield to browser to ensure DOM is fully painted and fonts are applied
+        await new Promise(resolve => setTimeout(resolve, 300));
+
         // 2. Render HTML to canvas
-        const canvas = await html2canvas(container, {
-            scale: 2, // High resolution
+        const canvas = await html2canvas(wrapper, {
+            scale: 2, // Double resolution for crisp text
             useCORS: true,
             logging: false,
-            // Ensure fonts are loaded before capturing
-            onclone: (clonedDoc) => {
-                const clonedEl = clonedDoc.body.lastElementChild as HTMLElement;
-                if (clonedEl) clonedEl.style.display = 'block';
-            }
+            backgroundColor: '#ffffff'
         });
 
-        // 3. Embed canvas image to jsPDF
+        // 3. Convert canvas to image and embed in jsPDF
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF({
             orientation: 'p',
@@ -83,17 +84,18 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
             format: 'a4'
         });
 
-        // A4 dimensions
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
         pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
         pdf.save(`債権譲渡契約書_${deal.id}.pdf`);
     } catch (error) {
-        console.error("html2canvas generation failed:", error);
-        throw new Error("PDF画像の生成に失敗しました。");
+        console.error("PDF canvas generation failed:", error);
+        throw new Error("PDFの生成に失敗しました。詳細: " + String(error));
     } finally {
-        // Cleanup wrapper
-        document.body.removeChild(container);
+        // 4. Cleanup temporary DOM element
+        if (wrapper.parentNode) {
+            wrapper.parentNode.removeChild(wrapper);
+        }
     }
 };
