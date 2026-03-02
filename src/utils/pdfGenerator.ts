@@ -5,8 +5,8 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
     // A4 Portrait
     const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
 
-    // NotoSansJP Regular TTF (Google Fonts OFL CDN)
-    const fontUrl = 'https://raw.githubusercontent.com/google/fonts/main/ofl/notosansjp/NotoSansJP-Regular.ttf';
+    // Load local bundled font served from public directory
+    const fontUrl = '/fonts/NotoSansJP-Regular.ttf';
 
     try {
         const response = await fetch(fontUrl);
