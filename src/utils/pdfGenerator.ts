@@ -1,11 +1,11 @@
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { toPng } from 'html-to-image';
 import type { Deal, Invoice, User } from '../types';
 
 export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: User, buyer: User): Promise<void> => {
     // 1. Create a wrapper div to contain the HTML template
     const wrapper = document.createElement('div');
-    // Hide it properly without breaking html2canvas by placing it off-screen
+    // Hide it properly without breaking capture by placing it off-screen
     wrapper.style.position = 'fixed';
     wrapper.style.top = '200vh';
     wrapper.style.left = '0';
@@ -68,16 +68,13 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
         // Yield to browser to ensure DOM is fully painted and fonts are applied
         await new Promise(resolve => setTimeout(resolve, 300));
 
-        // 2. Render HTML to canvas
-        const canvas = await html2canvas(wrapper, {
-            scale: 2, // Double resolution for crisp text
-            useCORS: true,
-            logging: false,
+        // 2. Render HTML to image data using html-to-image
+        const imgData = await toPng(wrapper, {
+            pixelRatio: 2, // Double resolution for crisp text
             backgroundColor: '#ffffff'
         });
 
-        // 3. Convert canvas to image and embed in jsPDF
-        const imgData = canvas.toDataURL('image/png');
+        // 3. Embed image in jsPDF
         const pdf = new jsPDF({
             orientation: 'p',
             unit: 'mm',
@@ -85,7 +82,8 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
         });
 
         const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        // Calculate proportional height based on the DOM element's dimensions
+        const pdfHeight = (wrapper.offsetHeight * pdfWidth) / wrapper.offsetWidth;
 
         pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
         pdf.save(`債権譲渡契約書_${deal.id}.pdf`);
