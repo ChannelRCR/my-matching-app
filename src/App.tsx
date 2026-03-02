@@ -12,6 +12,7 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { BuyerList } from './pages/BuyerList';
 import { ChatPage } from './pages/ChatPage';
 import { ContractPrintPage } from './pages/ContractPrintPage';
+import { ProfilePage } from './pages/ProfilePage';
 
 import { DataProvider } from './contexts/DataContext';
 import { MarketProvider } from './contexts/MarketContext';
@@ -36,6 +37,7 @@ function App() {
                 {/* Protected Routes: General */}
                 <Route element={<ProtectedRoute />}>
                   <Route path="/dashboard" element={<DashboardRedirector />} />
+                  <Route path="/profile" element={<ProfilePage />} />
                 </Route>
 
                 {/* Protected Routes: Seller */}

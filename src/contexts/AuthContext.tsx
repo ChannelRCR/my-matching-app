@@ -20,6 +20,7 @@ interface AuthContextType {
         email: string;
         privacySettings: Record<string, boolean>;
     }) => Promise<{ error: any }>;
+    updateProfile: (data: Partial<PublicUser>) => Promise<{ error: any }>;
     signOut: () => Promise<void>;
 }
 
@@ -224,6 +225,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: null };
     };
 
+    const updateProfile = async (data: Partial<PublicUser>) => {
+        if (!user || !profile) return { error: new Error('User not logged in') };
+
+        try {
+            // Update users table for basic fields
+            const commonData: any = {};
+            if (data.name !== undefined) commonData.name = data.name;
+            if (data.companyName !== undefined) commonData.company_name = data.companyName;
+
+            if (Object.keys(commonData).length > 0) {
+                const { error: userError } = await supabase.from('users').update(commonData).eq('id', user.id);
+                if (userError) throw userError;
+            }
+
+            // Update role-specific table
+            const specificData: any = {};
+            if (data.companyName !== undefined) specificData.company_name = data.companyName;
+            if (data.representativeName !== undefined) specificData.representative_name = data.representativeName;
+            if (data.contactPerson !== undefined) specificData.contact_person = data.contactPerson;
+            if (data.address !== undefined) specificData.address = data.address;
+            if (data.phone !== undefined) specificData.phone = data.phone;
+            if (data.email !== undefined) specificData.email = data.email;
+            if (data.privacySettings !== undefined) specificData.privacy_settings = data.privacySettings;
+
+            if (profile.role === 'seller') {
+                if (data.bankAccountInfo !== undefined) specificData.bank_account_info = data.bankAccountInfo;
+                if (Object.keys(specificData).length > 0) {
+                    const { error } = await supabase.from('sellers').update(specificData).eq('id', user.id);
+                    if (error) throw error;
+                }
+            } else if (profile.role === 'buyer') {
+                if (Object.keys(specificData).length > 0) {
+                    const { error } = await supabase.from('buyers').update(specificData).eq('id', user.id);
+                    if (error) throw error;
+                }
+            }
+
+            // Refresh local profile state
+            await fetchProfile(user.id);
+            return { error: null };
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            return { error };
+        }
+    };
+
     const signOut = async () => {
         await supabase.auth.signOut();
         setProfile(null);
@@ -231,7 +278,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ session, user, profile, loading, signIn, signUp, signOut }}>
+        <AuthContext.Provider value={{ session, user, profile, loading, signIn, signUp, updateProfile, signOut }}>
             {children}
         </AuthContext.Provider>
     );
