@@ -8,29 +8,34 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
     // Load local bundled font served from public directory
     const fontUrl = '/fonts/NotoSansJP-Regular.ttf';
 
-    try {
-        const response = await fetch(fontUrl);
-        if (!response.ok) {
-            throw new Error(`Failed to fetch font: ${response.status} ${response.statusText}`);
-        }
-        const buffer = await response.arrayBuffer();
-
-        const bytes = new Uint8Array(buffer);
-        let binary = '';
-        const len = bytes.byteLength;
-        // Chunk processing to avoid Maximum call stack size exceeded
-        for (let i = 0; i < len; i++) {
-            binary += String.fromCharCode(bytes[i]);
-        }
-        const base64Font = window.btoa(binary);
-
-        doc.addFileToVFS('NotoSansJP.ttf', base64Font);
-        doc.addFont('NotoSansJP.ttf', 'NotoSansJP', 'normal');
-        doc.setFont('NotoSansJP');
-    } catch (error) {
-        console.error('Failed to load font. Generating without localized font, which may cause mojibake.', error);
-        // We will try to proceed without the custom font (will show garbled chars for Japanese, but better than complete crash)
+    const response = await fetch(fontUrl);
+    if (!response.ok) {
+        throw new Error(`フォントの読み込みに失敗しました (${response.status} ${response.statusText})`);
     }
+
+    const blob = await response.blob();
+    const base64Font = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            if (typeof reader.result === 'string') {
+                // reader.result has the format "data:font/ttf;base64,...base64data..."
+                const parts = reader.result.split(',');
+                if (parts.length === 2) {
+                    resolve(parts[1]);
+                } else {
+                    reject(new Error("フォントデータのパースに失敗しました"));
+                }
+            } else {
+                reject(new Error("FileReader result is not a string"));
+            }
+        };
+        reader.onerror = () => reject(new Error("フォントファイルの読み込みエラー"));
+        reader.readAsDataURL(blob);
+    });
+
+    doc.addFileToVFS('NotoSansJP.ttf', base64Font);
+    doc.addFont('NotoSansJP.ttf', 'NotoSansJP', 'normal');
+    doc.setFont('NotoSansJP');
 
     doc.setFontSize(18);
     doc.text('債権譲渡契約書（重要事項説明）', 105, 20, { align: 'center' });

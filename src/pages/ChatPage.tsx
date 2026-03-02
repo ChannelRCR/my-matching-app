@@ -169,8 +169,8 @@ export const ChatPage: React.FC = () => {
             const { generateContractPDF } = await import('../utils/pdfGenerator');
             await generateContractPDF(deal, invoice, seller, buyer);
         } catch (e) {
-            console.error(e);
-            alert("PDF生成に失敗しました。");
+            console.error("PDF Error:", e);
+            alert(`PDF生成に失敗しました。\n詳細: ${e instanceof Error ? e.message : String(e)}`);
         } finally {
             setIsGeneratingPdf(false);
         }
