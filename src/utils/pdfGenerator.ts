@@ -5,14 +5,17 @@ import type { Deal, Invoice, User } from '../types';
 export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: User, buyer: User): Promise<void> => {
     // 1. Create a wrapper div to contain the HTML template
     const wrapper = document.createElement('div');
-    // Hide it properly without breaking capture by placing it off-screen
-    wrapper.style.position = 'fixed';
-    wrapper.style.top = '200vh';
-    wrapper.style.left = '0';
-    wrapper.style.width = '210mm'; // A4 standard width
-    wrapper.style.backgroundColor = '#ffffff';
+    // Hide it by moving it far off-screen, but keeping it visible to the rendering engine
+    wrapper.style.position = 'absolute';
+    wrapper.style.top = '-9999px';
+    wrapper.style.left = '-9999px';
+    // Explicitly define a fixed pixel width that corresponds to high-res A4 approx proportions
+    wrapper.style.width = '800px';
+    wrapper.style.minHeight = '1131px'; // A4 proportional height for 800px width
+    wrapper.style.backgroundColor = '#ffffff'; // CRITICAL: Explicit solid white background
     wrapper.style.color = '#000000';
-    wrapper.style.padding = '20mm';
+    // Use padding in pixels for predictable rendering
+    wrapper.style.padding = '80px';
     wrapper.style.boxSizing = 'border-box';
     // Use system-level Japanese fonts to ensure correct and beautiful rendering
     wrapper.style.fontFamily = '"Noto Sans JP", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif';
