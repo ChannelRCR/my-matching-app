@@ -228,36 +228,44 @@ export const ChatPage: React.FC = () => {
 
         let value = profile[field.key as keyof typeof profile];
         const isEmpty = value === undefined || value === null || value === '';
+        const valueStr = isEmpty ? '未設定' : String(value);
 
-        const isPublic = profile.privacySettings?.[field.key as keyof typeof profile.privacySettings] !== false;
+        // Rule evaluation based on user instruction
+        const isPublic = profile.privacySettings?.[field.key as keyof typeof profile.privacySettings] !== false; // Default to true if undefined
         const isRevealed = revealedFields[field.key] === true;
 
-        let displayValue = isEmpty ? '未設定' : String(value);
-        let showRevealButton = false;
-        let isHiddenFromOpponent = false;
+        let displayValue = valueStr;
+        let isMasked = false;
+        let actionElement: React.ReactNode = null;
 
-        if (isMine) {
-            if (!isPublic && !isRevealed) {
-                isHiddenFromOpponent = true;
-                showRevealButton = !isEmpty; // Only can reveal if it's set
+        if (!isMine) {
+            // Logic for Opponent's Profile
+            if (isPublic) {
+                // Rule 1: Public -> Show
+                displayValue = valueStr;
+            } else if (!isPublic && isRevealed) {
+                // Rule 2: Private but Revealed -> Show
+                displayValue = valueStr;
+            } else {
+                // Rule 3: Private and Not Revealed -> Mask
+                displayValue = '非公開（***）';
+                isMasked = true;
             }
         } else {
-            if (!isPublic && !isRevealed) {
-                displayValue = '非公開（***）';
-                isHiddenFromOpponent = true;
-            } else if (isEmpty) {
-                displayValue = '未設定';
-            }
-        }
-
-        return (
-            <div key={field.key} className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
-                <span className="text-slate-500 shrink-0 mr-2">{field.label}</span>
-                <div className="flex-1 flex justify-end items-center gap-2 text-right">
-                    <span className={`truncate ${isHiddenFromOpponent || isEmpty ? 'text-slate-400 italic' : 'text-slate-800'}`}>
-                        {displayValue}
-                    </span>
-                    {showRevealButton && ['open', 'pending', 'negotiating'].includes(deal?.status || '') && (
+            // Logic for My Profile
+            if (isPublic) {
+                // Rule 1: Public -> Show, No Action
+                displayValue = valueStr;
+            } else if (!isPublic && isRevealed) {
+                // Rule 2: Private and Revealed -> Show, Add "Revealed" indicator
+                displayValue = valueStr;
+                actionElement = <span className="text-[10px] text-green-600 font-bold bg-green-50 px-1.5 py-0.5 rounded border border-green-200">開示済み ✓</span>;
+            } else {
+                // Rule 3: Private and Not Revealed -> Show, Add "Reveal" button
+                displayValue = valueStr;
+                // Only show reveal button if there is actual data to reveal
+                if (!isEmpty && ['open', 'pending', 'negotiating'].includes(deal?.status || '')) {
+                    actionElement = (
                         <Button
                             size="sm"
                             variant="outline"
@@ -266,7 +274,19 @@ export const ChatPage: React.FC = () => {
                         >
                             開示する
                         </Button>
-                    )}
+                    );
+                }
+            }
+        }
+
+        return (
+            <div key={field.key} className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
+                <span className="text-slate-500 shrink-0 mr-2">{field.label}</span>
+                <div className="flex-1 flex justify-end items-center gap-2 text-right">
+                    <span className={`truncate ${isMasked || isEmpty ? 'text-slate-400 italic' : 'text-slate-800'}`}>
+                        {displayValue}
+                    </span>
+                    {actionElement}
                 </div>
             </div>
         );
