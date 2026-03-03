@@ -8,7 +8,7 @@ import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useMarket } from '../contexts/MarketContext';
 import { Handshake, FileText } from 'lucide-react';
-import type { Deal, Invoice } from '../types';
+import type { Deal, Invoice, User as UserType } from '../types';
 import { markDealAsRead } from '../utils/chat';
 
 interface ChatMessage {
@@ -37,6 +37,12 @@ export const ChatPage: React.FC = () => {
 
     const isBuyer = user && deal ? user.id === deal.buyerId : false;
     const isPriceMatched = deal ? (deal.currentBuyerPrice || 0) > 0 && deal.currentBuyerPrice === deal.currentSellerPrice : false;
+
+    const myProfile = isBuyer ? users.find(u => u.id === deal?.buyerId) : users.find(u => u.id === deal?.sellerId);
+    const opponentProfile = isBuyer ? users.find(u => u.id === deal?.sellerId) : users.find(u => u.id === deal?.buyerId);
+
+    const myRevealedFields = isBuyer ? (deal?.buyerRevealedFields || {}) : (deal?.sellerRevealedFields || {});
+    const opponentRevealedFields = isBuyer ? (deal?.sellerRevealedFields || {}) : (deal?.buyerRevealedFields || {});
 
     useEffect(() => {
         if (dealId && user) {
@@ -136,6 +142,32 @@ export const ChatPage: React.FC = () => {
         });
     };
 
+    const handleRevealField = async (fieldKey: string, fieldLabel: string) => {
+        if (!deal || !user) return;
+
+        const updates: Partial<Deal> = {};
+        if (isBuyer) {
+            updates.buyerRevealedFields = { ...(deal.buyerRevealedFields || {}), [fieldKey]: true };
+        } else {
+            updates.sellerRevealedFields = { ...(deal.sellerRevealedFields || {}), [fieldKey]: true };
+        }
+
+        await updateDeal(deal.id, updates);
+
+        const now = new Date();
+        const receiverId = isBuyer ? deal.sellerId : deal.buyerId;
+        const myName = isBuyer ? '買い手' : '売り手';
+
+        await addMessage({
+            id: `sys_reveal_${Date.now()}`,
+            dealId: deal.id,
+            senderId: user.id,
+            receiverId: receiverId,
+            content: `【システム通知】\n${myName}がプロフィール項目「${fieldLabel}」を開示しました。`,
+            timestamp: now.toISOString()
+        });
+    };
+
     const handleAgree = async () => {
         if (!deal || !invoice || !user) return;
 
@@ -174,6 +206,68 @@ export const ChatPage: React.FC = () => {
         } finally {
             setIsGeneratingPdf(false);
         }
+    };
+
+    const PROFILE_FIELDS = [
+        { key: 'companyName', label: '会社名' },
+        { key: 'representativeName', label: '代表者名' },
+        { key: 'contactPerson', label: '担当者名' },
+        { key: 'address', label: '所在地' },
+        { key: 'phone', label: '電話番号' },
+        { key: 'email', label: 'メールアドレス' },
+        { key: 'bankAccountInfo', label: '口座情報' },
+    ];
+
+    const renderProfileField = (
+        profile: UserType | undefined,
+        field: { key: string, label: string },
+        isMine: boolean,
+        revealedFields: Record<string, boolean>
+    ) => {
+        if (!profile) return null;
+
+        const value = profile[field.key as keyof typeof profile];
+        if (!value) return null;
+
+        const isPublic = profile.privacySettings?.[field.key as keyof typeof profile.privacySettings] !== false;
+        const isRevealed = revealedFields[field.key] === true;
+
+        let displayValue = String(value);
+        let showRevealButton = false;
+        let isHiddenFromOpponent = false;
+
+        if (isMine) {
+            if (!isPublic && !isRevealed) {
+                isHiddenFromOpponent = true;
+                showRevealButton = true;
+            }
+        } else {
+            if (!isPublic && !isRevealed) {
+                displayValue = '非公開（***）';
+                isHiddenFromOpponent = true;
+            }
+        }
+
+        return (
+            <div key={field.key} className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
+                <span className="text-slate-500 shrink-0 mr-2">{field.label}</span>
+                <div className="flex-1 flex justify-end items-center gap-2 text-right">
+                    <span className={`truncate ${isHiddenFromOpponent ? 'text-slate-400 italic' : 'text-slate-800'}`}>
+                        {displayValue}
+                    </span>
+                    {showRevealButton && ['open', 'pending', 'negotiating'].includes(deal?.status || '') && (
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 text-[10px] px-2 border-blue-200 text-blue-600 hover:bg-blue-50"
+                            onClick={() => handleRevealField(field.key, field.label)}
+                        >
+                            開示する
+                        </Button>
+                    )}
+                </div>
+            </div>
+        );
     };
 
     const renderMessages = () => (
@@ -290,6 +384,22 @@ export const ChatPage: React.FC = () => {
                                         </div>
                                     </form>
                                 )}
+                            </div>
+
+                            {/* --- Profile Panels --- */}
+                            <div className="space-y-4 pt-2">
+                                <div className="bg-white p-3 rounded-md border border-slate-200 shadow-sm max-h-[250px] overflow-y-auto">
+                                    <div className="text-sm font-bold text-slate-700 mb-2 border-b pb-1 sticky top-0 bg-white z-10">相手のプロフィール</div>
+                                    <div className="flex flex-col">
+                                        {PROFILE_FIELDS.map(f => renderProfileField(opponentProfile, f, false, opponentRevealedFields))}
+                                    </div>
+                                </div>
+                                <div className="bg-white p-3 rounded-md border border-slate-200 shadow-sm max-h-[250px] overflow-y-auto">
+                                    <div className="text-sm font-bold text-slate-700 mb-2 border-b pb-1 sticky top-0 bg-white z-10">あなたのプロフィール</div>
+                                    <div className="flex flex-col">
+                                        {PROFILE_FIELDS.map(f => renderProfileField(myProfile, f, true, myRevealedFields))}
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Agreement Logic */}

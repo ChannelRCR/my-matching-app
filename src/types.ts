@@ -80,4 +80,6 @@ export interface Deal {
     sellerAgreedAt?: string;
     buyerAgreedAt?: string;
     contractDate?: string;
+    sellerRevealedFields?: Record<string, boolean>;
+    buyerRevealedFields?: Record<string, boolean>;
 }
