@@ -226,25 +226,27 @@ export const ChatPage: React.FC = () => {
     ) => {
         if (!profile) return null;
 
-        const value = profile[field.key as keyof typeof profile];
-        if (!value) return null;
+        let value = profile[field.key as keyof typeof profile];
+        const isEmpty = value === undefined || value === null || value === '';
 
         const isPublic = profile.privacySettings?.[field.key as keyof typeof profile.privacySettings] !== false;
         const isRevealed = revealedFields[field.key] === true;
 
-        let displayValue = String(value);
+        let displayValue = isEmpty ? '未設定' : String(value);
         let showRevealButton = false;
         let isHiddenFromOpponent = false;
 
         if (isMine) {
             if (!isPublic && !isRevealed) {
                 isHiddenFromOpponent = true;
-                showRevealButton = true;
+                showRevealButton = !isEmpty; // Only can reveal if it's set
             }
         } else {
             if (!isPublic && !isRevealed) {
                 displayValue = '非公開（***）';
                 isHiddenFromOpponent = true;
+            } else if (isEmpty) {
+                displayValue = '未設定';
             }
         }
 
@@ -252,7 +254,7 @@ export const ChatPage: React.FC = () => {
             <div key={field.key} className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
                 <span className="text-slate-500 shrink-0 mr-2">{field.label}</span>
                 <div className="flex-1 flex justify-end items-center gap-2 text-right">
-                    <span className={`truncate ${isHiddenFromOpponent ? 'text-slate-400 italic' : 'text-slate-800'}`}>
+                    <span className={`truncate ${isHiddenFromOpponent || isEmpty ? 'text-slate-400 italic' : 'text-slate-800'}`}>
                         {displayValue}
                     </span>
                     {showRevealButton && ['open', 'pending', 'negotiating'].includes(deal?.status || '') && (
