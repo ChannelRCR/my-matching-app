@@ -65,6 +65,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 id: u.id, name: u.name, companyName: u.company_name, role: u.role,
                 avatarUrl: u.avatar_url, budget: u.budget, appealPoint: u.appeal_point,
                 status: u.status, registeredAt: u.registered_at,
+                // Add mapping for new profile fields
+                representativeName: u.representative_name,
+                contactPerson: u.contact_person,
+                address: u.address,
+                bankAccountInfo: u.bank_account_info,
+                phone: u.phone_number,
+                email: u.email_address,
+                privacySettings: u.privacy_settings || {
+                    companyName: true,
+                    representativeName: true,
+                    contactPerson: true,
+                    address: true,
+                    bankAccountInfo: true,
+                    phone: true,
+                    email: true
+                },
             })));
         }
     };
