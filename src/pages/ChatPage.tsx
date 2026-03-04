@@ -44,6 +44,18 @@ export const ChatPage: React.FC = () => {
     const myRevealedFields = isBuyer ? (deal?.buyerRevealedFields || {}) : (deal?.sellerRevealedFields || {});
     const opponentRevealedFields = isBuyer ? (deal?.sellerRevealedFields || {}) : (deal?.buyerRevealedFields || {});
 
+    // Debug logging requested by user
+    useEffect(() => {
+        console.log("=== Debug: Profiles ===", {
+            myPrivacySettings: myProfile?.privacySettings,
+            counterpartPrivacySettings: opponentProfile?.privacySettings
+        });
+        console.log("=== Debug: Deal ===", {
+            sellerRevealed: deal?.sellerRevealedFields,
+            buyerRevealed: deal?.buyerRevealedFields
+        });
+    }, [myProfile, opponentProfile, deal]);
+
     useEffect(() => {
         if (dealId && user) {
             const foundDeal = deals.find(d => d.id === dealId);
