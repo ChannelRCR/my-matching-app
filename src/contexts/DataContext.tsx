@@ -59,20 +59,34 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const fetchUsers = async () => {
-        const { data } = await supabase.from('users').select('*');
-        if (data) {
-            setUsers(data.map((u: any) => ({
+        const { data: usersData } = await supabase.from('users').select('*');
+        if (!usersData) return;
+
+        // Fetch all sellers and buyers to merge data efficiently without N+1 queries
+        const { data: sellersData } = await supabase.from('sellers').select('*');
+        const { data: buyersData } = await supabase.from('buyers').select('*');
+
+        const sellersMap = new Map((sellersData || []).map(s => [s.id, s]));
+        const buyersMap = new Map((buyersData || []).map(b => [b.id, b]));
+
+        setUsers(usersData.map((u: any) => {
+            const roleData = u.role === 'seller' ? sellersMap.get(u.id) : buyersMap.get(u.id);
+            // Fallback to empty object if no role data found yet
+            const profile = roleData || {};
+
+            return {
                 id: u.id, name: u.name, companyName: u.company_name, role: u.role,
                 avatarUrl: u.avatar_url, budget: u.budget, appealPoint: u.appeal_point,
                 status: u.status, registeredAt: u.registered_at,
-                // Add mapping for new profile fields
-                representativeName: u.representative_name,
-                contactPerson: u.contact_person,
-                address: u.address,
-                bankAccountInfo: u.bank_account_info,
-                phone: u.phone_number,
-                email: u.email_address,
-                privacySettings: u.privacy_settings || {
+
+                // Fields from specialized tables
+                representativeName: profile.representative_name,
+                contactPerson: profile.contact_person,
+                address: profile.address,
+                bankAccountInfo: profile.bank_account_info,
+                phone: profile.phone,
+                email: profile.email,
+                privacySettings: profile.privacy_settings || {
                     companyName: true,
                     representativeName: true,
                     contactPerson: true,
@@ -81,8 +95,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     phone: true,
                     email: true
                 },
-            })));
-        }
+            };
+        }));
     };
 
     const updateUser = async (userId: string, updates: Partial<User>) => {

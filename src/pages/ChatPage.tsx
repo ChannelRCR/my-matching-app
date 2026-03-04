@@ -44,6 +44,16 @@ export const ChatPage: React.FC = () => {
     const myRevealedFields = isBuyer ? (deal?.buyerRevealedFields || {}) : (deal?.sellerRevealedFields || {});
     const opponentRevealedFields = isBuyer ? (deal?.sellerRevealedFields || {}) : (deal?.buyerRevealedFields || {});
 
+    // Temporarily added for user verification of profile data coming from DataContext
+    useEffect(() => {
+        if (myProfile || opponentProfile) {
+            console.log("=== Debug: Full Profile Data ===", {
+                myProfile,
+                opponentProfile
+            });
+        }
+    }, [myProfile, opponentProfile]);
+
     useEffect(() => {
         if (dealId && user) {
             const foundDeal = deals.find(d => d.id === dealId);
