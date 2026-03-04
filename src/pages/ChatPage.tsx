@@ -44,18 +44,6 @@ export const ChatPage: React.FC = () => {
     const myRevealedFields = isBuyer ? (deal?.buyerRevealedFields || {}) : (deal?.sellerRevealedFields || {});
     const opponentRevealedFields = isBuyer ? (deal?.sellerRevealedFields || {}) : (deal?.buyerRevealedFields || {});
 
-    // Debug logging requested by user
-    useEffect(() => {
-        console.log("=== Debug: Profiles ===", {
-            myPrivacySettings: myProfile?.privacySettings,
-            counterpartPrivacySettings: opponentProfile?.privacySettings
-        });
-        console.log("=== Debug: Deal ===", {
-            sellerRevealed: deal?.sellerRevealedFields,
-            buyerRevealed: deal?.buyerRevealedFields
-        });
-    }, [myProfile, opponentProfile, deal]);
-
     useEffect(() => {
         if (dealId && user) {
             const foundDeal = deals.find(d => d.id === dealId);
@@ -243,7 +231,14 @@ export const ChatPage: React.FC = () => {
         const valueStr = isEmpty ? '未設定' : String(value);
 
         // Rule evaluation based on user instruction
-        const isPublic = profile.privacySettings?.[field.key as keyof typeof profile.privacySettings] !== false; // Default to true if undefined
+        // Explicit boolean cast and handling missing privacySettings objects safely.
+        // We look up the exact camelCase key (e.g. 'companyName') from privacySettings
+        const privacySettingValue = profile.privacySettings?.[field.key as keyof typeof profile.privacySettings];
+
+        // Treat as true ONLY if explicitly true, or completely undefined/null (defaulting to public if missing)
+        const isPublic = privacySettingValue === true || privacySettingValue === undefined || privacySettingValue === null;
+
+        // Also look up using EXACT camelCase key in the revealedFields
         const isRevealed = revealedFields[field.key] === true;
 
         let displayValue = valueStr;
