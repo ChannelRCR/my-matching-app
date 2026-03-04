@@ -226,62 +226,57 @@ export const ChatPage: React.FC = () => {
     ) => {
         if (!profile) return null;
 
-        let value = profile[field.key as keyof typeof profile];
-        const isEmpty = value === undefined || value === null || value === '';
-        const valueStr = isEmpty ? '未設定' : String(value);
+        // 1. Get the actual value using the camelCase key (e.g., 'companyName', 'address')
+        const rawValue = profile[field.key as keyof typeof profile];
+        const isEmpty = rawValue === undefined || rawValue === null || rawValue === '';
+        const valueStr = isEmpty ? '未設定' : String(rawValue);
 
-        // Rule evaluation based on user instruction
-        // Explicit boolean cast and handling missing privacySettings objects safely.
-        // We look up the exact camelCase key (e.g. 'companyName') from privacySettings
+        // 2. Evaluate Privacy Settings
         const privacySettingValue = profile.privacySettings?.[field.key as keyof typeof profile.privacySettings];
-
-        // Treat as true ONLY if explicitly true, or completely undefined/null (defaulting to public if missing)
         const isPublic = privacySettingValue === true || privacySettingValue === undefined || privacySettingValue === null;
-
-        // Also look up using EXACT camelCase key in the revealedFields
         const isRevealed = revealedFields[field.key] === true;
 
-        let displayValue = valueStr;
+        let displayValue = '';
         let isMasked = false;
         let actionElement: React.ReactNode = null;
 
-        if (!isMine) {
-            // Logic for Opponent's Profile
-            if (isPublic) {
-                // Rule 1: Public -> Show
-                displayValue = valueStr;
-            } else if (!isPublic && isRevealed) {
-                // Rule 2: Private but Revealed -> Show
-                displayValue = valueStr;
-            } else {
-                // Rule 3: Private and Not Revealed -> Mask
-                displayValue = '非公開（***）';
-                isMasked = true;
-            }
+        // 3. Logic based on user instructions
+        // If it's completely empty, it always shows as '未設定' (fallback before privacy evaluation for display)
+        if (isEmpty) {
+            displayValue = '未設定';
+            isMasked = true; // treat as muted gray text visually
         } else {
-            // Logic for My Profile
-            if (isPublic) {
-                // Rule 1: Public -> Show, No Action
-                displayValue = valueStr;
-            } else if (!isPublic && isRevealed) {
-                // Rule 2: Private and Revealed -> Show, Add "Revealed" indicator
-                displayValue = valueStr;
-                actionElement = <span className="text-[10px] text-green-600 font-bold bg-green-50 px-1.5 py-0.5 rounded border border-green-200">開示済み ✓</span>;
+            if (!isMine) {
+                // Opponent's Profile (Value Exists)
+                if (isPublic) {
+                    displayValue = valueStr;
+                } else if (!isPublic && isRevealed) {
+                    displayValue = valueStr;
+                } else {
+                    displayValue = '非公開（***）';
+                    isMasked = true;
+                }
             } else {
-                // Rule 3: Private and Not Revealed -> Show, Add "Reveal" button
-                displayValue = valueStr;
-                // Only show reveal button if there is actual data to reveal
-                if (!isEmpty && ['open', 'pending', 'negotiating'].includes(deal?.status || '')) {
-                    actionElement = (
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-6 text-[10px] px-2 border-blue-200 text-blue-600 hover:bg-blue-50"
-                            onClick={() => handleRevealField(field.key, field.label)}
-                        >
-                            開示する
-                        </Button>
-                    );
+                // My Profile (Value Exists)
+                if (isPublic) {
+                    displayValue = valueStr;
+                } else if (!isPublic && isRevealed) {
+                    displayValue = valueStr;
+                    actionElement = <span className="text-[10px] text-green-600 font-bold bg-green-50 px-1.5 py-0.5 rounded border border-green-200">開示済み ✓</span>;
+                } else {
+                    displayValue = valueStr;
+                    if (['open', 'pending', 'negotiating'].includes(deal?.status || '')) {
+                        actionElement = (
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-6 text-[10px] px-2 border-blue-200 text-blue-600 hover:bg-blue-50"
+                                onClick={() => handleRevealField(field.key, field.label)}
+                            >
+                                開示する
+                            </Button>
+                        );
+                    }
                 }
             }
         }
