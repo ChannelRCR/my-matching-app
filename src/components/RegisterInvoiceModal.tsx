@@ -25,6 +25,8 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
         dueDate: '',
         debtorName: '',
         debtorAddress: '',
+        isClientNamePublic: false,
+        isClientAddressPublic: false,
         industry: '',
         companySize: 'SMB', // Default
         companyCredit: '',
@@ -36,8 +38,13 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
     if (!isOpen) return null;
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        const { name, value, type } = e.target;
+        if (type === 'checkbox') {
+            const checked = (e.target as HTMLInputElement).checked;
+            setFormData(prev => ({ ...prev, [name]: checked }));
+        } else {
+            setFormData(prev => ({ ...prev, [name]: value }));
+        }
     };
 
     const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -130,6 +137,8 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
             dueDate: formData.dueDate,
             debtorName: formData.debtorName,
             debtorAddress: formData.debtorAddress,
+            isClientNamePublic: formData.isClientNamePublic,
+            isClientAddressPublic: formData.isClientAddressPublic,
             industry: formData.industry,
             companySize: formData.companySize as any,
             companyCredit: formData.companyCredit,
@@ -150,6 +159,8 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
                 dueDate: '',
                 debtorName: '',
                 debtorAddress: '',
+                isClientNamePublic: false,
+                isClientAddressPublic: false,
                 industry: '',
                 companySize: 'SMB',
                 companyCredit: '',
@@ -242,21 +253,49 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
                             <div className="space-y-4 md:col-span-2 p-4 bg-slate-50 border border-slate-200 rounded-lg mt-2 mb-2">
                                 <h4 className="font-bold text-slate-700 text-sm mb-2">取引先（売掛先）情報</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <Input
-                                        label="取引先企業名 *"
-                                        name="debtorName"
-                                        value={formData.debtorName}
-                                        onChange={handleInputChange}
-                                        placeholder="例: 株式会社○○..."
-                                        required
-                                    />
-                                    <Input
-                                        label="取引先所在地"
-                                        name="debtorAddress"
-                                        value={formData.debtorAddress}
-                                        onChange={handleInputChange}
-                                        placeholder="例: 東京都千代田区..."
-                                    />
+                                    <div>
+                                        <Input
+                                            label="取引先企業名 *"
+                                            name="debtorName"
+                                            value={formData.debtorName}
+                                            onChange={handleInputChange}
+                                            placeholder="例: 株式会社○○..."
+                                            required
+                                        />
+                                        <div className="mt-2 flex items-center">
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    name="isClientNamePublic"
+                                                    checked={formData.isClientNamePublic}
+                                                    onChange={handleInputChange}
+                                                    className="rounded border-slate-300 text-primary focus:ring-primary h-4 w-4"
+                                                />
+                                                <span className="text-sm text-slate-600 font-medium">企業名を全体に公開する</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <Input
+                                            label="取引先所在地"
+                                            name="debtorAddress"
+                                            value={formData.debtorAddress}
+                                            onChange={handleInputChange}
+                                            placeholder="例: 東京都千代田区..."
+                                        />
+                                        <div className="mt-2 flex items-center">
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    name="isClientAddressPublic"
+                                                    checked={formData.isClientAddressPublic}
+                                                    onChange={handleInputChange}
+                                                    className="rounded border-slate-300 text-primary focus:ring-primary h-4 w-4"
+                                                />
+                                                <span className="text-sm text-slate-600 font-medium">所在地を全体に公開する</span>
+                                            </label>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -372,10 +411,22 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
                                     <div className="font-bold">{formData.dueDate}</div>
 
                                     <div className="text-slate-500 font-medium">取引先企業名:</div>
-                                    <div className="font-bold">{formData.debtorName}</div>
+                                    <div className="font-bold">
+                                        {formData.debtorName}
+                                        <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${formData.isClientNamePublic ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'}`}>
+                                            {formData.isClientNamePublic ? '公開' : '非公開'}
+                                        </span>
+                                    </div>
 
                                     <div className="text-slate-500 font-medium">取引先所在地:</div>
-                                    <div className="font-bold">{formData.debtorAddress || '（未入力）'}</div>
+                                    <div className="font-bold">
+                                        {formData.debtorAddress || '（未入力）'}
+                                        {formData.debtorAddress && (
+                                            <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${formData.isClientAddressPublic ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'}`}>
+                                                {formData.isClientAddressPublic ? '公開' : '非公開'}
+                                            </span>
+                                        )}
+                                    </div>
 
                                     <div className="text-slate-500 font-medium">業種 / 企業規模:</div>
                                     <div className="font-bold">{formData.industry} / {translateCompanySize(formData.companySize)}</div>

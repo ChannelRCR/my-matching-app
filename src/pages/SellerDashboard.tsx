@@ -111,7 +111,7 @@ export const SellerDashboard: React.FC = () => {
                                     </div>
 
                                     <div className="text-sm font-bold text-slate-800 mb-1 flex items-center justify-between">
-                                        <span>企業名非公開 <span className="text-xs text-slate-400 font-normal ml-1">ID: {inv.id}</span></span>
+                                        <span>{inv.isClientNamePublic ? (inv.debtorName || '企業名未設定') : '企業名非公開'} <span className="text-xs text-slate-400 font-normal ml-1">ID: {inv.id}</span></span>
                                         <span className="text-xs text-slate-500 font-normal flex items-center gap-1"><Calendar className="w-3 h-3" />登録: {formattedDate}</span>
                                     </div>
 

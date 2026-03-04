@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
-import { Send, User, ChevronLeft, DollarSign } from 'lucide-react';
+import { Send, User, ChevronLeft, DollarSign, ChevronDown, ChevronUp } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -34,6 +34,13 @@ export const ChatPage: React.FC = () => {
     const [counterpartName, setCounterpartName] = useState('');
     const [isTermsAgreed, setIsTermsAgreed] = useState(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+    // For mobile responsive accordion
+    const [expandedPanels, setExpandedPanels] = useState<Record<string, boolean>>({
+        receivable: false,
+        opponent: false,
+        mine: false,
+    });
 
     const isBuyer = user && deal ? user.id === deal.buyerId : false;
     const isPriceMatched = deal ? (deal.currentBuyerPrice || 0) > 0 && deal.currentBuyerPrice === deal.currentSellerPrice : false;
@@ -228,6 +235,33 @@ export const ChatPage: React.FC = () => {
         } finally {
             setIsGeneratingPdf(false);
         }
+    };
+
+    const togglePanel = (key: string) => {
+        setExpandedPanels(prev => ({ ...prev, [key]: !prev[key] }));
+    };
+
+    const renderAccordionPanel = (key: string, title: string, content: React.ReactNode) => {
+        const isExpanded = expandedPanels[key];
+        return (
+            <div className="bg-white rounded-md border border-slate-200 shadow-sm flex flex-col">
+                <div
+                    className="flex justify-between items-center p-3 cursor-pointer md:cursor-default md:pointer-events-none sticky top-0 bg-white z-10"
+                    onClick={() => { if (window.innerWidth < 768) togglePanel(key); }}
+                >
+                    <div className="text-sm font-bold text-slate-700">{title}</div>
+                    <div className="md:hidden text-slate-400 pointer-events-auto">
+                        {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </div>
+                </div>
+                {/* On mobile: explicitly hidden if not expanded. On md/desktop: explicitly always block. */}
+                <div className={`${isExpanded ? 'block' : 'hidden'} md:block px-3 pb-3 border-t border-slate-100 max-h-[250px] overflow-y-auto`}>
+                    <div className="flex flex-col pt-2">
+                        {content}
+                    </div>
+                </div>
+            </div>
+        );
     };
 
     const PROFILE_FIELDS = [
@@ -432,20 +466,46 @@ export const ChatPage: React.FC = () => {
                                 )}
                             </div>
 
-                            {/* --- Profile Panels --- */}
+                            {/* --- Information Panels (Responsive Accordion) --- */}
                             <div className="space-y-4 pt-2">
-                                <div className="bg-white p-3 rounded-md border border-slate-200 shadow-sm max-h-[250px] overflow-y-auto">
-                                    <div className="text-sm font-bold text-slate-700 mb-2 border-b pb-1 sticky top-0 bg-white z-10">相手のプロフィール</div>
-                                    <div className="flex flex-col">
+                                {renderAccordionPanel('receivable', '対象債権情報', (
+                                    <>
+                                        <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
+                                            <span className="text-slate-500 shrink-0 mr-2">請求書額面</span>
+                                            <div className="flex-1 text-right font-medium text-slate-800">¥{invoice.amount.toLocaleString()}</div>
+                                        </div>
+                                        <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
+                                            <span className="text-slate-500 shrink-0 mr-2">売却対象額</span>
+                                            <div className="flex-1 text-right font-medium text-blue-700">{invoice.sellingAmount ? `¥${invoice.sellingAmount.toLocaleString()}` : `¥${invoice.amount.toLocaleString()}`}</div>
+                                        </div>
+                                        <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
+                                            <span className="text-slate-500 shrink-0 mr-2">入金期日</span>
+                                            <div className="flex-1 text-right font-medium text-slate-800">{invoice.dueDate}</div>
+                                        </div>
+                                        <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
+                                            <span className="text-slate-500 shrink-0 mr-2">企業名</span>
+                                            <div className="flex-1 text-right font-medium text-slate-800">{invoice.isClientNamePublic ? (invoice.debtorName || '未設定') : '*** (非公開)'}</div>
+                                        </div>
+                                        <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
+                                            <span className="text-slate-500 shrink-0 mr-2">所在地</span>
+                                            <div className="flex-1 text-right font-medium text-slate-800">{invoice.isClientAddressPublic ? (invoice.debtorAddress || '未設定') : '*** (非公開)'}</div>
+                                        </div>
+                                        <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
+                                            <span className="text-slate-500 shrink-0 mr-2">業種 / 規模</span>
+                                            <div className="flex-1 text-right font-medium text-slate-800">{invoice.industry} / {invoice.companySize ? invoice.companySize : '未設定'}</div>
+                                        </div>
+                                    </>
+                                ))}
+                                {renderAccordionPanel('opponent', '相手のプロフィール', (
+                                    <>
                                         {PROFILE_FIELDS.map(f => renderProfileField(opponentProfile, f, false, opponentRevealedFields))}
-                                    </div>
-                                </div>
-                                <div className="bg-white p-3 rounded-md border border-slate-200 shadow-sm max-h-[250px] overflow-y-auto">
-                                    <div className="text-sm font-bold text-slate-700 mb-2 border-b pb-1 sticky top-0 bg-white z-10">あなたのプロフィール</div>
-                                    <div className="flex flex-col">
+                                    </>
+                                ))}
+                                {renderAccordionPanel('mine', 'あなたのプロフィール', (
+                                    <>
                                         {PROFILE_FIELDS.map(f => renderProfileField(myProfile, f, true, myRevealedFields))}
-                                    </div>
-                                </div>
+                                    </>
+                                ))}
                             </div>
 
                             {/* Agreement Logic */}

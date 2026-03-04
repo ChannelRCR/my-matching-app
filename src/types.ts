@@ -36,6 +36,8 @@ export interface Invoice {
     dueDate: string; // YYYY-MM-DD
     debtorName?: string;
     debtorAddress?: string;
+    isClientNamePublic?: boolean;
+    isClientAddressPublic?: boolean;
     industry: string;
     companySize?: 'Listed' | 'Large' | 'SMB' | 'Individual'; // Updated enum
     companyCredit: string; // Credit info of the debtor company

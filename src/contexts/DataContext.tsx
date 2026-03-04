@@ -119,8 +119,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (data) {
             setInvoices(data.map((i: any) => ({
                 id: i.id, sellerId: i.seller_id, amount: i.amount, sellingAmount: i.selling_amount,
-                dueDate: i.due_date, debtorName: i.debtor_name, debtorAddress: i.debtor_address, industry: i.industry, companySize: i.company_size,
-                companyCredit: i.company_credit, status: i.status, requestedAmount: i.requested_amount,
+                dueDate: i.due_date, debtorName: i.debtor_name, debtorAddress: i.debtor_address,
+                isClientNamePublic: i.is_client_name_public, isClientAddressPublic: i.is_client_address_public,
+                industry: i.industry, companySize: i.company_size, companyCredit: i.company_credit, status: i.status, requestedAmount: i.requested_amount,
                 evidenceUrl: i.evidence_url, evidenceName: i.evidence_name,
                 createdAt: i.created_at,
             })));
@@ -139,6 +140,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             due_date: invoice.dueDate,
             debtor_name: invoice.debtorName,
             debtor_address: invoice.debtorAddress,
+            is_client_name_public: invoice.isClientNamePublic || false,
+            is_client_address_public: invoice.isClientAddressPublic || false,
             industry: invoice.industry,
             company_size: invoice.companySize,
             company_credit: invoice.companyCredit,
