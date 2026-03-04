@@ -28,7 +28,7 @@ export const SellerDashboard: React.FC = () => {
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold flex items-center gap-2">
                     <FileText className="h-6 w-6 text-primary" />
-                    売掛金（請求書）管理
+                    債権一覧
                 </h1>
                 <Button onClick={() => setIsRegisterModalOpen(true)}>
                     <PlusCircle className="mr-2 h-4 w-4" />

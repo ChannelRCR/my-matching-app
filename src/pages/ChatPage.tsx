@@ -96,6 +96,18 @@ export const ChatPage: React.FC = () => {
                     const buyer = users.find(u => u.id === foundDeal.buyerId);
                     setCounterpartName(buyer?.companyName || '投資家');
                 }
+
+                // Initialize input value based on current deal negotiation status,
+                // ONLY if the proposedPrice state is currently completely empty to avoid overwriting typed input
+                setProposedPrice(prev => {
+                    if (prev !== '') return prev;
+                    if (isBuyer && foundDeal.currentBuyerPrice) {
+                        return String(foundDeal.currentBuyerPrice);
+                    } else if (!isBuyer && foundDeal.currentSellerPrice) {
+                        return String(foundDeal.currentSellerPrice);
+                    }
+                    return '';
+                });
             }
         }
     }, [dealId, deals, invoices, allMessages, users, user]);

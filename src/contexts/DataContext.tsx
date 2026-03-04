@@ -226,8 +226,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const createChatRoom = async (invoiceId: string, buyerId: string): Promise<Deal | null> => {
-        const sellerId = invoices.find(i => i.id === invoiceId)?.sellerId;
+        const invoice = invoices.find(i => i.id === invoiceId);
+        const sellerId = invoice?.sellerId;
         if (!sellerId) return null;
+
+        const initialSellerPrice = invoice?.requestedAmount || invoice?.sellingAmount || invoice?.amount || 0;
 
         const dbDeal = {
             invoice_id: invoiceId,
@@ -236,7 +239,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             status: 'negotiating',
             initial_offer_amount: 0,
             current_amount: 0,
-            current_seller_price: 0,
+            current_seller_price: initialSellerPrice,
             current_buyer_price: 0
         };
 
@@ -272,8 +275,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const createDeal = async (invoiceId: string, buyerId: string, offerAmount: number, message: string): Promise<Deal | null> => {
-        const sellerId = invoices.find(i => i.id === invoiceId)?.sellerId;
+        const invoice = invoices.find(i => i.id === invoiceId);
+        const sellerId = invoice?.sellerId;
         if (!sellerId) return null;
+
+        const initialSellerPrice = invoice?.requestedAmount || invoice?.sellingAmount || invoice?.amount || 0;
 
         const dbDeal = {
             invoice_id: invoiceId,
@@ -282,7 +288,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             status: 'open',
             initial_offer_amount: offerAmount,
             current_amount: offerAmount,
-            current_seller_price: 0,
+            current_seller_price: initialSellerPrice,
             current_buyer_price: offerAmount
         };
 
