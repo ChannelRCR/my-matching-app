@@ -64,7 +64,7 @@ export const BuyerDashboard: React.FC = () => {
     }, [invoices, user]);
 
     const activeOpenInvoices = React.useMemo(() => {
-        return invoices.filter(inv => inv.status === 'open' || inv.status === 'pending');
+        return invoices.filter(inv => ['open', 'pending', 'negotiating', 'sold'].includes(inv.status));
     }, [invoices]);
 
     const filterProps = useInvoiceFilter(activeOpenInvoices);
@@ -208,11 +208,11 @@ export const BuyerDashboard: React.FC = () => {
                     const formattedDate = inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '不明';
 
                     // Dynamic Status Logic
-                    const dynamicStatus = inv.status === 'open' || inv.status === 'pending' ? '募集中' : inv.status === 'negotiating' ? '交渉中' : '🎉 売却済';
-                    const statusColor = inv.status === 'open' || inv.status === 'pending' ? 'text-green-600 bg-green-50' : inv.status === 'negotiating' ? 'text-orange-600 bg-orange-50' : 'text-slate-600 bg-slate-100';
+                    const dynamicStatus = inv.status === 'open' || inv.status === 'pending' ? '募集中' : inv.status === 'negotiating' ? '交渉中' : '成約済';
+                    const statusColor = inv.status === 'open' || inv.status === 'pending' ? 'text-green-600 bg-green-50' : inv.status === 'negotiating' ? 'text-orange-600 bg-orange-50' : 'text-white bg-slate-500 uppercase tracking-widest';
 
                     return (
-                        <Card key={inv.id} className="flex flex-col h-full hover:shadow-lg transition-shadow border-slate-200 cursor-pointer" onClick={() => navigate(`/market/invoices/${inv.id}`)}>
+                        <Card key={inv.id} className={`flex flex-col h-full hover:shadow-lg transition-shadow border-slate-200 cursor-pointer ${inv.status === 'sold' ? 'opacity-[0.85] grayscale-[20%]' : ''}`} onClick={() => { if (inv.status !== 'sold') navigate(`/market/invoices/${inv.id}`) }}>
                             <CardContent className="p-5 flex-1 flex flex-col">
                                 <div className="flex justify-between items-start mb-3">
                                     <div className="flex flex-wrap gap-1.5 mb-2">
@@ -280,11 +280,20 @@ export const BuyerDashboard: React.FC = () => {
                                 </div>
                             </CardContent>
                             <CardFooter className="pt-0 pb-4">
-                                <Button
-                                    className={`w-full ${!isBuyer ? 'bg-gray-400 hover:bg-gray-500 cursor-not-allowed opacity-70' : ''}`}
-                                >
-                                    詳細を見る
-                                </Button>
+                                {inv.status === 'sold' ? (
+                                    <Button
+                                        className="w-full bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200"
+                                        disabled
+                                    >
+                                        取引終了
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        className={`w-full ${!isBuyer ? 'bg-gray-400 hover:bg-gray-500 cursor-not-allowed opacity-70' : ''}`}
+                                    >
+                                        詳細を見る
+                                    </Button>
+                                )}
                             </CardFooter>
                         </Card>
                     );

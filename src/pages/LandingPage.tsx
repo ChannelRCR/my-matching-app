@@ -15,7 +15,7 @@ export const LandingPage: React.FC = () => {
     const navigate = useNavigate();
 
     const activeOpenInvoices = React.useMemo(() => {
-        return invoices.filter(inv => inv.status === 'open' || inv.status === 'pending');
+        return invoices.filter(inv => ['open', 'pending', 'negotiating', 'sold'].includes(inv.status));
     }, [invoices]);
 
     const filterProps = useInvoiceFilter(activeOpenInvoices);
@@ -227,6 +227,11 @@ export const LandingPage: React.FC = () => {
                                                         {isPartial ? '一部売却' : '全部売却'}
                                                     </span>
                                                 </div>
+                                                {inv.status === 'sold' && (
+                                                    <span className="bg-slate-500 text-white px-2 py-0.5 rounded text-xs font-bold whitespace-nowrap shadow-sm shrink-0 uppercase tracking-widest">
+                                                        成約済
+                                                    </span>
+                                                )}
                                             </div>
 
                                             <div className="text-sm font-bold text-slate-800 mb-1 flex items-center justify-between">
@@ -250,7 +255,7 @@ export const LandingPage: React.FC = () => {
                                                 </div>
                                             </div>
                                             <div className="mt-4 pt-3 border-t border-slate-100 text-sm text-center text-slate-500">
-                                                詳細を見るにはログインが必要です
+                                                {inv.status === 'sold' ? '成約済みの案件です' : '詳細を見るにはログインが必要です'}
                                             </div>
                                         </CardContent>
                                     </Card>

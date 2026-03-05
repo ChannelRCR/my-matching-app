@@ -86,8 +86,8 @@ export const SellerDashboard: React.FC = () => {
                         const formattedDate = inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '不明';
 
                         // Dynamic Status Logic
-                        let dynamicStatus = inv.status === 'open' || inv.status === 'pending' ? '募集中' : inv.status === 'negotiating' ? '交渉中' : '🎉 売却済';
-                        let statusColor = inv.status === 'open' || inv.status === 'pending' ? 'text-green-600 bg-green-50' : inv.status === 'negotiating' ? 'text-orange-600 bg-orange-50' : 'text-slate-600 bg-slate-100';
+                        let dynamicStatus = inv.status === 'open' || inv.status === 'pending' ? '募集中' : inv.status === 'negotiating' ? '交渉中' : '成約済';
+                        let statusColor = inv.status === 'open' || inv.status === 'pending' ? 'text-green-600 bg-green-50' : inv.status === 'negotiating' ? 'text-orange-600 bg-orange-50' : 'text-white bg-slate-500 uppercase tracking-widest';
 
                         // Determine if there are specific negotiation states for MY invoices
                         if (activeTab === 'my' && inv.status === 'negotiating') {
@@ -110,7 +110,7 @@ export const SellerDashboard: React.FC = () => {
                         return (
                             <Card
                                 key={inv.id}
-                                className="flex flex-col h-full hover:shadow-lg transition-shadow border-slate-200 cursor-pointer"
+                                className={`flex flex-col h-full hover:shadow-lg transition-shadow border-slate-200 cursor-pointer ${inv.status === 'sold' ? 'opacity-[0.85] grayscale-[20%]' : ''}`}
                                 onClick={() => navigate(activeTab === 'my' ? `/seller/invoices/${inv.id}` : `/market/invoices/${inv.id}`)}
                             >
                                 <CardContent className="p-5 flex-1 flex flex-col">

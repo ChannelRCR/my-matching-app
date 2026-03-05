@@ -7,11 +7,15 @@ export function useInvoiceFilter(initialInvoices: Invoice[]) {
     const [industryFilter, setIndustryFilter] = useState('');
     const [sortBy, setSortBy] = useState('newest'); // 'newest', 'priceDesc', 'priceAsc'
     const [isFilterOpen, setIsFilterOpen] = useState(false); // For mobile tracking
+    const [showSold, setShowSold] = useState(false); // New explicit toggle for sold records
 
     const filteredAndSortedInvoices = useMemo(() => {
         let result = [...initialInvoices];
 
         // Filtering
+        if (!showSold) {
+            result = result.filter(inv => inv.status !== 'sold');
+        }
         if (minAmount) {
             result = result.filter(inv => (inv.requestedAmount || 0) >= Number(minAmount));
         }
@@ -44,6 +48,7 @@ export function useInvoiceFilter(initialInvoices: Invoice[]) {
         setMaxAmount('');
         setIndustryFilter('');
         setSortBy('newest');
+        setShowSold(false);
     };
 
     return {
@@ -52,6 +57,7 @@ export function useInvoiceFilter(initialInvoices: Invoice[]) {
         industryFilter, setIndustryFilter,
         sortBy, setSortBy,
         isFilterOpen, setIsFilterOpen,
+        showSold, setShowSold,
         filteredAndSortedInvoices,
         resetFilters
     };

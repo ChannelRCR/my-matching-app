@@ -14,6 +14,8 @@ interface InvoiceFilterPanelProps {
     setSortBy: (v: string) => void;
     isFilterOpen: boolean;
     setIsFilterOpen: (v: boolean) => void;
+    showSold?: boolean;
+    setShowSold?: (v: boolean) => void;
 }
 
 export const InvoiceFilterPanel: React.FC<InvoiceFilterPanelProps> = ({
@@ -21,7 +23,8 @@ export const InvoiceFilterPanel: React.FC<InvoiceFilterPanelProps> = ({
     maxAmount, setMaxAmount,
     industryFilter, setIndustryFilter,
     sortBy, setSortBy,
-    isFilterOpen, setIsFilterOpen
+    isFilterOpen, setIsFilterOpen,
+    showSold, setShowSold
 }) => {
     return (
         <>
@@ -90,6 +93,19 @@ export const InvoiceFilterPanel: React.FC<InvoiceFilterPanelProps> = ({
                         </div>
                     </div>
                 </div>
+                {setShowSold && showSold !== undefined && (
+                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2">
+                        <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer select-none">
+                            <input
+                                type="checkbox"
+                                checked={showSold}
+                                onChange={(e) => setShowSold(e.target.checked)}
+                                className="w-4 h-4 text-primary rounded border-slate-300 focus:ring-primary"
+                            />
+                            <span>成約済みの案件も表示する</span>
+                        </label>
+                    </div>
+                )}
             </div>
         </>
     );

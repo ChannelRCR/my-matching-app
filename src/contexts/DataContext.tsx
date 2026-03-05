@@ -362,6 +362,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 content: "【システム】双方が合意し、契約が成立しました🎉"
             };
             await supabase.from('messages').insert([dbMsg]);
+
+            // Target Receivable becomes 'sold'
+            await supabase.from('invoices').update({ status: 'sold' }).eq('id', deal.invoiceId);
+            fetchInvoices();
         }
 
         await updateDeal(dealId, updates);
