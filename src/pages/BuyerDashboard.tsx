@@ -17,8 +17,21 @@ export const BuyerDashboard: React.FC = () => {
     const { invoices, deals, messages, updateUser } = useData();
     const { user } = useAuth();
 
-    // Filter deals for current buyer
-    const activeDeals = user ? deals.filter(d => d.buyerId === user.id) : [];
+    const [negotiatingSortOrder, setNegotiatingSortOrder] = useState<'desc' | 'asc'>('desc');
+
+    // Filter and sort deals for current buyer
+    const activeDeals = React.useMemo(() => {
+        if (!user) return [];
+        let filtered = deals.filter(d => d.buyerId === user.id);
+
+        filtered.sort((a, b) => {
+            const timeA = new Date(a.startedAt).getTime();
+            const timeB = new Date(b.startedAt).getTime();
+            return negotiatingSortOrder === 'desc' ? timeB - timeA : timeA - timeB;
+        });
+
+        return filtered;
+    }, [deals, user, negotiatingSortOrder]);
 
     // We already have profile in AuthContext, but let's assume we want editable profile data.
     // We can use the user object from AuthContext or find it in users list if needed for updates.
@@ -149,10 +162,20 @@ export const BuyerDashboard: React.FC = () => {
             {/* Tab 2: Negotiating Deals */}
             {activeTab === 'negotiating' && (
                 <div className="mb-8 p-4 bg-orange-50/50 rounded-lg border border-orange-100">
-                    <h2 className="text-xl font-bold flex items-center gap-2 mb-4 text-slate-800">
-                        <CreditCard className="h-5 w-5 text-orange-500" />
-                        現在交渉中の案件
-                    </h2>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                        <h2 className="text-xl font-bold flex items-center gap-2 text-slate-800">
+                            <CreditCard className="h-5 w-5 text-orange-500" />
+                            現在交渉中の案件
+                        </h2>
+                        <select
+                            className="w-full sm:w-auto h-9 rounded-md border border-orange-200 bg-white px-3 py-1.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 shadow-sm text-slate-700"
+                            value={negotiatingSortOrder}
+                            onChange={(e) => setNegotiatingSortOrder(e.target.value as 'desc' | 'asc')}
+                        >
+                            <option value="desc">新着順</option>
+                            <option value="asc">古い順</option>
+                        </select>
+                    </div>
 
                     {activeDeals.length === 0 ? (
                         <div className="text-center py-12 bg-white rounded-xl border border-dashed border-orange-200 col-span-full">
