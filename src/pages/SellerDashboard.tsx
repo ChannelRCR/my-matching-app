@@ -31,6 +31,13 @@ export const SellerDashboard: React.FC = () => {
         return [];
     }, [invoices, user, activeTab]);
 
+    const hasUnreadMyInvoices = React.useMemo(() => {
+        if (!user) return false;
+        const myInvoiceIds = invoices.filter(inv => inv.sellerId === user.id).map(i => i.id);
+        const myDeals = deals.filter(d => myInvoiceIds.includes(d.invoiceId));
+        return myDeals.some(deal => hasUnreadMessages(deal.id, messages, user.id));
+    }, [invoices, deals, messages, user]);
+
     const filterProps = useInvoiceFilter(displayInvoices);
     const {
         filteredAndSortedInvoices,
@@ -58,10 +65,16 @@ export const SellerDashboard: React.FC = () => {
             {/* Tabs */}
             <div className="flex overflow-x-auto no-scrollbar gap-2 max-w-full border-b border-slate-200 mb-6">
                 <button
-                    className={`shrink-0 pb-2 px-3 text-sm font-bold transition-colors border-b-2 ${activeTab === 'my' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                    className={`shrink-0 pb-2 px-3 text-sm font-bold transition-colors border-b-2 relative flex items-center gap-1 ${activeTab === 'my' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                     onClick={() => setActiveTab('my')}
                 >
                     自分の登録案件
+                    {hasUnreadMyInvoices && (
+                        <span className="flex h-2 w-2 relative ml-1">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                        </span>
+                    )}
                 </button>
                 <button
                     className={`shrink-0 pb-2 px-3 text-sm font-bold transition-colors border-b-2 ${activeTab === 'market' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}

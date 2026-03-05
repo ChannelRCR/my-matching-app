@@ -10,7 +10,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useMarket } from '../contexts/MarketContext';
 import { Handshake, FileText } from 'lucide-react';
 import type { Deal, Invoice, User as UserType } from '../types';
-import { markDealAsRead } from '../utils/chat';
 interface ChatMessage {
     id: string;
     sender: 'me' | 'other';
@@ -25,7 +24,7 @@ export const ChatPage: React.FC = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const dealId = searchParams.get('dealId');
-    const { deals, invoices, messages: allMessages, users, addMessage, updateDeal, agreeToDeal } = useData();
+    const { deals, invoices, messages: allMessages, users, addMessage, updateDeal, agreeToDeal, markMessagesAsRead } = useData();
     const { completeDeal } = useMarket();
     const { user } = useAuth(); // Use real auth user
 
@@ -100,7 +99,7 @@ export const ChatPage: React.FC = () => {
 
                 // Mark deal as read
                 if (user) {
-                    markDealAsRead(dealId, user.id);
+                    markMessagesAsRead(dealId, user.id);
                 }
 
                 // Set counterpart name

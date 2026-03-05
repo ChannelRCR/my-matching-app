@@ -19,7 +19,6 @@ export const BuyerDashboard: React.FC = () => {
 
     const [negotiatingSortOrder, setNegotiatingSortOrder] = useState<'desc' | 'asc'>('desc');
 
-    // Filter and sort deals for current buyer
     const activeDeals = React.useMemo(() => {
         if (!user) return [];
         let filtered = deals.filter(d => d.buyerId === user.id);
@@ -32,6 +31,10 @@ export const BuyerDashboard: React.FC = () => {
 
         return filtered;
     }, [deals, user, negotiatingSortOrder]);
+
+    const hasUnreadNegotiating = React.useMemo(() => {
+        return activeDeals.some(deal => hasUnreadMessages(deal.id, messages, user?.id));
+    }, [activeDeals, messages, user]);
 
     // We already have profile in AuthContext, but let's assume we want editable profile data.
     // We can use the user object from AuthContext or find it in users list if needed for updates.
@@ -145,10 +148,16 @@ export const BuyerDashboard: React.FC = () => {
                         プラットフォーム全体の案件
                     </button>
                     <button
-                        className={`shrink-0 pb-2 px-3 text-sm font-bold transition-colors border-b-2 ${activeTab === 'negotiating' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                        className={`shrink-0 pb-2 px-3 text-sm font-bold transition-colors border-b-2 relative flex items-center gap-1 ${activeTab === 'negotiating' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                         onClick={() => setActiveTab('negotiating')}
                     >
                         交渉中の案件
+                        {hasUnreadNegotiating && (
+                            <span className="flex h-2 w-2 relative ml-1">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                            </span>
+                        )}
                     </button>
                     <button
                         className={`shrink-0 pb-2 px-3 text-sm font-bold transition-colors border-b-2 ${activeTab === 'sold' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}

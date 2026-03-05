@@ -17,6 +17,7 @@ interface DataContextType {
     createChatRoom: (invoiceId: string, buyerId: string) => Promise<Deal | null>;
     acceptDeal: (deal: Deal) => Promise<void>;
     agreeToDeal: (dealId: string, isBuyer: boolean) => Promise<void>;
+    markMessagesAsRead: (dealId: string, userId: string) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -198,7 +199,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 fileUrl: m.file_url,
                 fileName: m.file_name,
                 fileType: m.file_type,
+                isRead: m.is_read
             })));
+        }
+    };
+
+    const markMessagesAsRead = async (dealId: string, userId: string) => {
+        const { error } = await supabase
+            .from('messages')
+            .update({ is_read: true })
+            .eq('deal_id', dealId)
+            .eq('receiver_id', userId)
+            .eq('is_read', false);
+
+        if (error) {
+            console.error("Error marking messages as read:", error);
+        } else {
+            // Re-fetch to update local state immediately
+            fetchMessages();
         }
     };
 
@@ -381,7 +399,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         <DataContext.Provider value={{
             invoices, deals, messages, users, loading,
             addInvoice, addMessage, updateDeal, updateUser,
-            createDeal, createChatRoom, acceptDeal, agreeToDeal
+            createDeal, createChatRoom, acceptDeal, agreeToDeal,
+            markMessagesAsRead
         }}>
             {children}
         </DataContext.Provider>

@@ -68,6 +68,7 @@ export interface Message {
     fileUrl?: string;
     fileName?: string;
     fileType?: string;
+    isRead?: boolean;
 }
 
 export interface Deal {
