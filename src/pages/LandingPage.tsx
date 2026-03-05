@@ -1,12 +1,25 @@
 import React from 'react';
-import { TrendingUp, Wallet, Scale, LineChart, Handshake, DollarSign, Clock, ShieldCheck } from 'lucide-react';
+import { TrendingUp, Wallet, Scale, LineChart, Handshake, DollarSign, Clock, ShieldCheck, CreditCard } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useMarket } from '../contexts/MarketContext';
+import { useData } from '../contexts/DataContext';
 import { useNavigate } from 'react-router-dom';
+import { useInvoiceFilter } from '../hooks/useInvoiceFilter';
+import { InvoiceFilterPanel } from '../components/InvoiceFilterPanel';
+import { translateCompanySize } from '../utils/translations';
+import { Card, CardContent } from '../components/ui/Card';
 
 export const LandingPage: React.FC = () => {
     const { stats } = useMarket();
+    const { invoices } = useData();
     const navigate = useNavigate();
+
+    const activeOpenInvoices = React.useMemo(() => {
+        return invoices.filter(inv => inv.status === 'open' || inv.status === 'pending');
+    }, [invoices]);
+
+    const filterProps = useInvoiceFilter(activeOpenInvoices);
+    const { filteredAndSortedInvoices, resetFilters } = filterProps;
 
     return (
         <div className="flex flex-col min-h-screen">
@@ -178,6 +191,79 @@ export const LandingPage: React.FC = () => {
                             </div>
                         </div>
                     </div>
+                </div>
+            </section>
+
+            {/* Public Invoices List Section */}
+            <section className="py-20 bg-slate-50 border-t border-slate-200">
+                <div className="container mx-auto px-4 max-w-6xl">
+                    <h2 className="text-3xl font-bold text-center mb-12 text-slate-900">
+                        現在募集中の案件（一部公開）
+                    </h2>
+
+                    <InvoiceFilterPanel {...filterProps} />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+                        {filteredAndSortedInvoices.length === 0 ? (
+                            <div className="text-center py-12 bg-white rounded-xl border border-dashed border-slate-300 col-span-full">
+                                <p className="text-slate-500 font-medium">条件に一致する案件は見つかりませんでした。</p>
+                                <Button variant="ghost" onClick={resetFilters} className="text-primary mt-2">
+                                    検索条件をクリアする
+                                </Button>
+                            </div>
+                        ) : (
+                            // Limit to 6 items to not overwhelm the public page
+                            filteredAndSortedInvoices.slice(0, 6).map((inv) => {
+                                const isPartial = inv.sellingAmount && inv.sellingAmount < inv.amount;
+
+                                return (
+                                    <Card key={inv.id} className="flex flex-col h-full hover:shadow-lg transition-shadow border-slate-200 cursor-pointer" onClick={() => navigate('/login')}>
+                                        <CardContent className="p-5 flex-1 flex flex-col">
+                                            <div className="flex justify-between items-start mb-3">
+                                                <div className="flex flex-wrap gap-1.5 mb-2">
+                                                    <span className="bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded font-medium border border-slate-200">{inv.industry}</span>
+                                                    <span className="bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded font-medium border border-slate-200">{translateCompanySize(inv.companySize)}</span>
+                                                    <span className={`text-xs px-2 py-1 rounded font-bold ${isPartial ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                        {isPartial ? '一部売却' : '全部売却'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className="text-sm font-bold text-slate-800 mb-1 flex items-center justify-between">
+                                                <span>{inv.isClientNamePublic ? (inv.debtorName || '企業名未設定') : '企業名非公開'}</span>
+                                            </div>
+
+                                            <div className="mt-4 space-y-3 bg-slate-50 p-3 rounded-lg border border-slate-100 flex-1">
+                                                <div className="flex justify-between items-center text-sm">
+                                                    <span className="text-slate-500 flex items-center"><CreditCard className="w-4 h-4 mr-1" />全体債権額</span>
+                                                    <span className={isPartial ? 'line-through text-slate-400' : 'font-bold text-slate-700'}>¥{inv.amount.toLocaleString()}</span>
+                                                </div>
+                                                {isPartial && (
+                                                    <div className="flex justify-between items-center text-sm border-t border-slate-200 pt-2">
+                                                        <span className="text-amber-700 font-bold flex items-center"><DollarSign className="w-4 h-4 mr-1" />取引対象債権額</span>
+                                                        <span className="font-bold text-amber-600 text-base">¥{inv.sellingAmount?.toLocaleString()}</span>
+                                                    </div>
+                                                )}
+                                                <div className="flex justify-between items-center text-sm border-t border-slate-200 pt-2">
+                                                    <span className="text-primary font-bold">希望売却額</span>
+                                                    <span className="font-bold text-primary text-lg">¥{inv.requestedAmount?.toLocaleString() || '未設定'}</span>
+                                                </div>
+                                            </div>
+                                            <div className="mt-4 pt-3 border-t border-slate-100 text-sm text-center text-slate-500">
+                                                詳細を見るにはログインが必要です
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                );
+                            })
+                        )}
+                    </div>
+                    {filteredAndSortedInvoices.length > 6 && (
+                        <div className="text-center mt-8">
+                            <p className="text-slate-500 mb-4">他にも {filteredAndSortedInvoices.length - 6} 件の公開案件があります。</p>
+                            <Button variant="outline" onClick={() => navigate('/login')}>ログインしてすべての案件を見る</Button>
+                        </div>
+                    )}
                 </div>
             </section>
 

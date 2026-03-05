@@ -8,6 +8,9 @@ import { useNavigate } from 'react-router-dom';
 import { RegisterInvoiceModal } from '../components/RegisterInvoiceModal';
 import { hasUnreadMessages } from '../utils/chat';
 import { translateCompanySize } from '../utils/translations';
+import { useInvoiceFilter } from '../hooks/useInvoiceFilter';
+import { InvoiceFilterPanel } from '../components/InvoiceFilterPanel';
+import { Search } from 'lucide-react';
 
 export const SellerDashboard: React.FC = () => {
     const navigate = useNavigate();
@@ -22,6 +25,12 @@ export const SellerDashboard: React.FC = () => {
     const marketInvoices = user ? invoices.filter(inv => inv.sellerId !== user.id && (inv.status === 'open' || inv.status === 'pending')) : [];
 
     const displayInvoices = activeTab === 'my' ? myInvoices : marketInvoices;
+
+    const filterProps = useInvoiceFilter(displayInvoices);
+    const {
+        filteredAndSortedInvoices,
+        resetFilters
+    } = filterProps;
 
     return (
         <div className="space-y-6">
@@ -57,12 +66,20 @@ export const SellerDashboard: React.FC = () => {
                 </button>
             </div>
 
+            <InvoiceFilterPanel {...filterProps} />
+
             {/* Invoice List */}
             <div className={`grid gap-6 ${activeTab === 'market' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'}`}>
-                {displayInvoices.length === 0 ? (
-                    <p className="text-center text-slate-500 py-8 col-span-full">表示する案件がありません。</p>
+                {filteredAndSortedInvoices.length === 0 ? (
+                    <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-300 col-span-full">
+                        <Search className="h-8 w-8 text-slate-400 mx-auto mb-3" />
+                        <p className="text-slate-500 font-medium">条件に一致する案件は見つかりませんでした。</p>
+                        <Button variant="ghost" onClick={resetFilters} className="text-primary mt-2">
+                            検索条件をクリアする
+                        </Button>
+                    </div>
                 ) : (
-                    displayInvoices.map((inv) => {
+                    filteredAndSortedInvoices.map((inv) => {
                         const invDeals = deals.filter(d => d.invoiceId === inv.id && ['open', 'pending', 'negotiating'].includes(d.status));
                         const maxOffer = invDeals.length > 0 ? Math.max(...invDeals.map(d => d.currentBuyerPrice || d.initialOfferAmount || 0)) : 0;
                         const isPartial = inv.sellingAmount && inv.sellingAmount < inv.amount;
