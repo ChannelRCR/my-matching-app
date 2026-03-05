@@ -79,7 +79,16 @@ export const BuyerDashboard: React.FC = () => {
         console.log("4. RLS等での欠落確認: もし1の数が0なら、フロントエンドより前にDB側(RLS等)で弾かれています。");
     }, [invoices, user]);
 
-    const [activeTab, setActiveTab] = useState<'all' | 'negotiating' | 'sold'>('all');
+    // Tab State with sessionStorage persistence
+    const [activeTab, setActiveTabState] = useState<'all' | 'negotiating' | 'sold'>(() => {
+        const saved = sessionStorage.getItem('buyerDashboardTab');
+        return (saved === 'all' || saved === 'negotiating' || saved === 'sold') ? saved : 'all';
+    });
+
+    const setActiveTab = (tab: 'all' | 'negotiating' | 'sold') => {
+        setActiveTabState(tab);
+        sessionStorage.setItem('buyerDashboardTab', tab);
+    };
 
     const displayInvoices = React.useMemo(() => {
         if (activeTab === 'all') {

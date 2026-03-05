@@ -17,7 +17,16 @@ export const SellerDashboard: React.FC = () => {
     const { invoices, deals, messages } = useData();
     const { user } = useAuth();
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState<'my' | 'market' | 'sold'>('my');
+    // Tab State with sessionStorage persistence
+    const [activeTab, setActiveTabState] = useState<'my' | 'market' | 'sold'>(() => {
+        const saved = sessionStorage.getItem('sellerDashboardTab');
+        return (saved === 'my' || saved === 'market' || saved === 'sold') ? saved : 'my';
+    });
+
+    const setActiveTab = (tab: 'my' | 'market' | 'sold') => {
+        setActiveTabState(tab);
+        sessionStorage.setItem('sellerDashboardTab', tab);
+    };
 
     const displayInvoices = React.useMemo(() => {
         if (!user) return [];
@@ -33,8 +42,10 @@ export const SellerDashboard: React.FC = () => {
 
     const hasUnreadMyInvoices = React.useMemo(() => {
         if (!user) return false;
-        const myInvoiceIds = invoices.filter(inv => inv.sellerId === user.id).map(i => i.id);
-        const myDeals = deals.filter(d => myInvoiceIds.includes(d.invoiceId));
+        // Only consider invoices that are not sold
+        const myInvoiceIds = invoices.filter(inv => inv.sellerId === user.id && inv.status !== 'sold').map(i => i.id);
+        // Only consider active/negotiating deals
+        const myDeals = deals.filter(d => myInvoiceIds.includes(d.invoiceId) && ['open', 'pending', 'negotiating'].includes(d.status));
         return myDeals.some(deal => hasUnreadMessages(deal.id, messages, user.id));
     }, [invoices, deals, messages, user]);
 
