@@ -65,6 +65,9 @@ export interface Message {
     timestamp: string;
     invoiceId?: string;
     dealId?: string;
+    fileUrl?: string;
+    fileName?: string;
+    fileType?: string;
 }
 
 export interface Deal {

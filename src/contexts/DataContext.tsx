@@ -195,17 +195,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 receiverId: m.receiver_id,
                 content: m.content,
                 timestamp: m.timestamp,
+                fileUrl: m.file_url,
+                fileName: m.file_name,
+                fileType: m.file_type,
             })));
         }
     };
 
     const addMessage = async (message: Message) => {
-        const dbMsg = {
+        const dbMsg: any = {
             deal_id: message.dealId,
             sender_id: message.senderId,
             receiver_id: message.receiverId,
             content: message.content
         };
+        if (message.fileUrl) dbMsg.file_url = message.fileUrl;
+        if (message.fileName) dbMsg.file_name = message.fileName;
+        if (message.fileType) dbMsg.file_type = message.fileType;
         const { error } = await supabase.from('messages').insert([dbMsg]);
         if (error) console.error("Error sending message", error);
         else fetchMessages();

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
-import { Send, User, ChevronLeft, DollarSign, ChevronDown, ChevronUp } from 'lucide-react';
+import { Send, User, ChevronLeft, DollarSign, ChevronDown, ChevronUp, Paperclip, FileText as FileTextIcon } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,12 +11,14 @@ import { useMarket } from '../contexts/MarketContext';
 import { Handshake, FileText } from 'lucide-react';
 import type { Deal, Invoice, User as UserType } from '../types';
 import { markDealAsRead } from '../utils/chat';
-
 interface ChatMessage {
     id: string;
     sender: 'me' | 'other';
     text: string;
     timestamp: string;
+    fileUrl?: string;
+    fileName?: string;
+    fileType?: string;
 }
 
 export const ChatPage: React.FC = () => {
@@ -34,6 +37,8 @@ export const ChatPage: React.FC = () => {
     const [counterpartName, setCounterpartName] = useState('');
     const [isTermsAgreed, setIsTermsAgreed] = useState(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
 
     // For mobile responsive accordion
     const [expandedPanels, setExpandedPanels] = useState<Record<string, boolean>>({
@@ -84,7 +89,10 @@ export const ChatPage: React.FC = () => {
                         id: m.id,
                         sender: isMe ? 'me' : 'other',
                         text: m.content,
-                        timestamp: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        timestamp: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        fileUrl: m.fileUrl || (m as any).file_url,
+                        fileName: m.fileName || (m as any).file_name,
+                        fileType: m.fileType || (m as any).file_type,
                     };
                 });
 
@@ -141,6 +149,69 @@ export const ChatPage: React.FC = () => {
 
         await updateDeal(deal.id, { lastMessageAt: now.toISOString() });
         setInputText('');
+    };
+
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file || !deal || !user) return;
+        event.target.value = ''; // Reset input
+
+        // Validation
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        if (file.size > maxSize) {
+            alert('5MB以下のファイルを選択してください。');
+            return;
+        }
+
+        const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+        if (!allowedTypes.includes(file.type)) {
+            alert('PDF、JPG、PNGのみアップロード可能です。');
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${deal.id}/${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('chat_attachments')
+                .upload(fileName, file, { cacheControl: '3600', upsert: false });
+
+            if (uploadError) throw uploadError;
+
+            const { data: publicUrlData } = supabase.storage
+                .from('chat_attachments')
+                .getPublicUrl(fileName);
+
+            const fileUrl = publicUrlData.publicUrl;
+
+            // Send message with file info
+            const myId = user.id;
+            const receiverId = user.id === deal.buyerId ? deal.sellerId : deal.buyerId;
+            const now = new Date();
+
+            await addMessage({
+                id: `msg_${Date.now()}`,
+                dealId: deal.id,
+                senderId: myId,
+                receiverId: receiverId,
+                content: inputText.trim() || 'ファイルを送信しました',
+                timestamp: now.toISOString(),
+                fileUrl,
+                fileName: file.name,
+                fileType: file.type
+            });
+
+            await updateDeal(deal.id, { lastMessageAt: now.toISOString() });
+            setInputText('');
+
+        } catch (error) {
+            console.error('File upload error:', error);
+            alert('ファイルのアップロードに失敗しました。');
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     const handleProposePrice = async () => {
@@ -365,6 +436,20 @@ export const ChatPage: React.FC = () => {
                                 : 'bg-slate-200 text-slate-800 rounded-tl-none'
                                 }`}
                         >
+                            {msg.fileUrl && (
+                                <div className="mb-2">
+                                    {msg.fileType?.startsWith('image/') ? (
+                                        <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="block outline-none">
+                                            <img src={msg.fileUrl} alt={msg.fileName || '添付画像'} className="max-w-full max-h-48 rounded-md object-cover hover:opacity-90 transition-opacity border border-white/20 shadow-sm" />
+                                        </a>
+                                    ) : (
+                                        <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-md bg-white/20 hover:bg-white/30 transition-colors border border-white/30 text-current no-underline group block max-w-sm">
+                                            <FileTextIcon className="w-5 h-5 opacity-80 shrink-0" />
+                                            <span className="truncate text-xs font-medium">{msg.fileName || '添付ファイル'}</span>
+                                        </a>
+                                    )}
+                                </div>
+                            )}
                             {msg.text}
                         </div>
                         <span className="text-[10px] text-slate-400 mt-1 px-1">
@@ -592,14 +677,32 @@ export const ChatPage: React.FC = () => {
                             {renderMessages()}
                         </CardContent>
 
-                        <CardFooter className="bg-slate-50 border-t p-3 border-slate-200 sticky bottom-0 z-10">
+                        <CardFooter className="bg-slate-50 border-t p-3 border-slate-200 sticky bottom-0 z-10 flex flex-col items-stretch gap-2">
                             <form
-                                className="flex w-full gap-2"
+                                className="flex w-full gap-2 relative"
                                 onSubmit={(e) => {
                                     e.preventDefault();
                                     handleSend();
                                 }}
                             >
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    onChange={handleFileUpload}
+                                    accept=".pdf,image/png,image/jpeg,image/jpg"
+                                    className="hidden"
+                                />
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-10 w-10 shrink-0 border-slate-300 text-slate-500 hover:bg-slate-200 disabled:opacity-50 !p-0"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    disabled={!['open', 'pending', 'negotiating'].includes(deal.status) || isUploading}
+                                    title="ファイルを添付する"
+                                >
+                                    <Paperclip className="h-5 w-5" />
+                                </Button>
                                 <Input
                                     value={inputText}
                                     onChange={(e) => setInputText(e.target.value)}
@@ -609,14 +712,20 @@ export const ChatPage: React.FC = () => {
                                                 "取引が終了しました"
                                     }
                                     className="flex-1 bg-white h-10"
-                                    disabled={!['open', 'pending', 'negotiating'].includes(deal.status)}
+                                    disabled={!['open', 'pending', 'negotiating'].includes(deal.status) || isUploading}
                                     autoComplete="off"
                                     autoCorrect="off"
                                     spellCheck={false}
                                 />
-                                <Button type="submit" size="md" disabled={!['open', 'pending', 'negotiating'].includes(deal.status)} className="h-10 px-5 shrink-0 bg-primary hover:bg-primary/90 text-white shadow-sm">
-                                    <Send className="h-4 w-4 mr-2" />
-                                    送信
+                                <Button type="submit" size="md" disabled={(!inputText.trim() && !isUploading) || !['open', 'pending', 'negotiating'].includes(deal.status) || isUploading} className="h-10 px-5 shrink-0 bg-primary hover:bg-primary/90 text-white shadow-sm flex items-center justify-center">
+                                    {isUploading ? (
+                                        <div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin"></div>
+                                    ) : (
+                                        <>
+                                            <Send className="h-4 w-4 mr-2" />
+                                            送信
+                                        </>
+                                    )}
                                 </Button>
                             </form>
                         </CardFooter>
