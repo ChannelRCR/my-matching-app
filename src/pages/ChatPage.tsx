@@ -97,8 +97,13 @@ export const ChatPage: React.FC = () => {
 
                 setMessages(chatMessages);
 
-                // Mark deal as read
-                if (user) {
+                // Mark deal as read ONLY if there are actually unread messages for me
+                const hasUnread = dealMessages.some(m => {
+                    const receiverIdStr = String(m.receiverId || (m as any).receiver_id);
+                    return receiverIdStr === String(user?.id) && m.isRead === false;
+                });
+
+                if (user && hasUnread) {
                     markMessagesAsRead(dealId, user.id);
                 }
 

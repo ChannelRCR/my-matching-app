@@ -205,6 +205,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const markMessagesAsRead = async (dealId: string, userId: string) => {
+        // Optimistically update local state so badges clear instantly
+        let updated = false;
+        setMessages(prev => prev.map(m => {
+            const receiverIdStr = String(m.receiverId || (m as any).receiver_id);
+            const dealIdStr = String(m.dealId || (m as any).deal_id);
+            if (dealIdStr === dealId && receiverIdStr === userId && m.isRead === false) {
+                updated = true;
+                return { ...m, isRead: true, is_read: true };
+            }
+            return m;
+        }));
+
+        if (!updated) return; // Skip DB call if nothing was actually unread
+
         const { error } = await supabase
             .from('messages')
             .update({ is_read: true })
@@ -214,9 +228,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (error) {
             console.error("Error marking messages as read:", error);
-        } else {
-            // Re-fetch to update local state immediately
-            fetchMessages();
+            fetchMessages(); // Revert/sync on failure
         }
     };
 
