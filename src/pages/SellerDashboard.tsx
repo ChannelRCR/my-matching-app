@@ -17,14 +17,19 @@ export const SellerDashboard: React.FC = () => {
     const { invoices, deals, messages } = useData();
     const { user } = useAuth();
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState<'my' | 'market'>('my');
+    const [activeTab, setActiveTab] = useState<'my' | 'market' | 'sold'>('my');
 
-    // Filter for current seller (strict check)
-    const myInvoices = user ? invoices.filter(inv => inv.sellerId === user.id) : [];
-    // Filter for market invoices (not mine, open or pending)
-    const marketInvoices = user ? invoices.filter(inv => inv.sellerId !== user.id && (inv.status === 'open' || inv.status === 'pending')) : [];
-
-    const displayInvoices = activeTab === 'my' ? myInvoices : marketInvoices;
+    const displayInvoices = React.useMemo(() => {
+        if (!user) return [];
+        if (activeTab === 'my') {
+            return invoices.filter(inv => inv.sellerId === user.id && inv.status !== 'sold');
+        } else if (activeTab === 'market') {
+            return invoices.filter(inv => inv.status !== 'sold');
+        } else if (activeTab === 'sold') {
+            return invoices.filter(inv => inv.sellerId === user.id && inv.status === 'sold');
+        }
+        return [];
+    }, [invoices, user, activeTab]);
 
     const filterProps = useInvoiceFilter(displayInvoices);
     const {
@@ -51,32 +56,46 @@ export const SellerDashboard: React.FC = () => {
             />
 
             {/* Tabs */}
-            <div className="flex border-b border-slate-200">
+            <div className="flex overflow-x-auto no-scrollbar gap-2 max-w-full border-b border-slate-200 mb-6">
                 <button
-                    className={`pb-3 px-4 text-sm font-medium transition-colors ${activeTab === 'my' ? 'border-b-2 border-primary text-primary' : 'text-slate-500 hover:text-slate-700'}`}
+                    className={`shrink-0 pb-2 px-3 text-sm font-bold transition-colors border-b-2 ${activeTab === 'my' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                     onClick={() => setActiveTab('my')}
                 >
                     自分の登録案件
                 </button>
                 <button
-                    className={`pb-3 px-4 text-sm font-medium transition-colors ${activeTab === 'market' ? 'border-b-2 border-primary text-primary' : 'text-slate-500 hover:text-slate-700'}`}
+                    className={`shrink-0 pb-2 px-3 text-sm font-bold transition-colors border-b-2 ${activeTab === 'market' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                     onClick={() => setActiveTab('market')}
                 >
                     プラットフォーム全体の案件
                 </button>
+                <button
+                    className={`shrink-0 pb-2 px-3 text-sm font-bold transition-colors border-b-2 ${activeTab === 'sold' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                    onClick={() => setActiveTab('sold')}
+                >
+                    成約済みの案件
+                </button>
             </div>
 
-            <InvoiceFilterPanel {...filterProps} />
+            {activeTab === 'my' && (
+                <div className="mb-6">
+                    <InvoiceFilterPanel {...filterProps} />
+                </div>
+            )}
 
             {/* Invoice List */}
             <div className={`grid gap-6 ${activeTab === 'market' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'}`}>
                 {filteredAndSortedInvoices.length === 0 ? (
                     <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-300 col-span-full">
                         <Search className="h-8 w-8 text-slate-400 mx-auto mb-3" />
-                        <p className="text-slate-500 font-medium">条件に一致する案件は見つかりませんでした。</p>
-                        <Button variant="ghost" onClick={resetFilters} className="text-primary mt-2">
-                            検索条件をクリアする
-                        </Button>
+                        <p className="text-slate-500 font-medium">
+                            {activeTab === 'sold' ? '成約済みの案件はありません。' : '条件に一致する案件は見つかりませんでした。'}
+                        </p>
+                        {activeTab === 'my' && (
+                            <Button variant="ghost" onClick={resetFilters} className="text-primary mt-2">
+                                検索条件をクリアする
+                            </Button>
+                        )}
                     </div>
                 ) : (
                     filteredAndSortedInvoices.map((inv) => {
