@@ -85,8 +85,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 contactPerson: profile.contact_person,
                 address: profile.address,
                 bankAccountInfo: profile.bank_account_info,
-                phone: profile.phone,
-                email: profile.email,
+                phone: profile.phone_number,
+                email: profile.email_address,
                 privacySettings: profile.privacy_settings || {
                     companyName: true,
                     representativeName: true,
