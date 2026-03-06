@@ -10,18 +10,27 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
 
     // IMPORTANT: Do NOT use left/top -9999px or display none.
     // We must render it within the viewport but behind everything else to force the browser to actually paint it.
-    wrapper.style.position = 'fixed';
+    wrapper.style.position = 'absolute';
     wrapper.style.top = '0';
     wrapper.style.left = '0';
     wrapper.style.width = '800px'; // Explicit width for rendering
     wrapper.style.backgroundColor = '#ffffff'; // Explicit background to prevent transparency
     wrapper.style.color = '#000000';
-    wrapper.style.padding = '80px';
-    wrapper.style.boxSizing = 'border-box';
     wrapper.style.zIndex = '-9999'; // Behind all other UI
 
     // Mount to DOM so browser can begin layout/paint
     document.body.appendChild(wrapper);
+
+    // Shared styling for A4 proportion constraints
+    const pageContainerStyle: React.CSSProperties = {
+        width: '800px',
+        minHeight: '1131px', // ~A4 proportion 1:1.414 at 800px width
+        padding: '80px',
+        boxSizing: 'border-box',
+        backgroundColor: '#ffffff',
+        position: 'relative',
+        marginBottom: '20px' // Just for clear DOM separation inspect
+    };
 
     // 2. Build the UI as a React Component to ensure styles and fonts apply normally
     const contractDate = deal.contractDate ? new Date(deal.contractDate) : new Date();
@@ -31,9 +40,9 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
     const targetAmountText = isPartialSale ? `金 ${invoice.sellingAmount?.toLocaleString()} 円 （一部譲渡）` : `金 ${invoice.amount.toLocaleString()} 円 （全部譲渡）`;
 
     const ContractComponent = () => (
-        <div style={{ fontFamily: '"Noto Serif JP", "Hiragino Mincho ProN", "MS PMincho", serif', width: '100%', color: '#000' }}>
-            {/* 本文ページ */}
-            <div style={{ minHeight: '1000px' }}>
+        <div style={{ fontFamily: '"Noto Serif JP", "Hiragino Mincho ProN", "MS PMincho", serif', color: '#000' }}>
+            {/* --- PAGE 1: 本文 --- */}
+            <div id="pdf-page-1" style={pageContainerStyle}>
                 <h1 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold', marginBottom: '40px', letterSpacing: '2px' }}>
                     債権譲渡契約書
                 </h1>
@@ -43,7 +52,7 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
                 </div>
 
                 <div style={{ fontSize: '13px', marginBottom: '30px', lineHeight: 1.8, textIndent: '1em' }}>
-                    譲渡人（以下「甲」という）と、譲受人（以下「乙」という）は、当プラットフォームを通じて、以下の通り債権譲渡契約（以下「本契約」という）を締結した。
+                    本契約の当事者である譲渡人（以下「甲」という。詳細は末尾当事者目録記載の通り）と、譲受人（以下「乙」という。詳細は末尾当事者目録記載の通り）は、当プラットフォームを通じて、以下の通り債権譲渡契約（以下「本契約」という）を締結した。
                 </div>
 
                 <h2 style={{ fontSize: '15px', fontWeight: 'bold', borderBottom: '1px solid #000', paddingBottom: '5px', marginBottom: '15px', marginTop: '30px' }}>
@@ -116,8 +125,8 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
                 </div>
             </div>
 
-            {/* 当事者目録 (Party Directory) - New Page / Section */}
-            <div style={{ marginTop: '100px', borderTop: '2px dashed #000', paddingTop: '60px' }}>
+            {/* --- PAGE 2: 目録 --- */}
+            <div id="pdf-page-2" style={pageContainerStyle}>
                 <h2 style={{ textAlign: 'center', fontSize: '18px', fontWeight: 'bold', marginBottom: '30px', letterSpacing: '2px' }}>
                     当事者目録
                 </h2>
@@ -182,23 +191,39 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
         // 3. FORCE DELAY: Wait 1.5 seconds for React to mount, browser layout to settle, and any fonts to strictly render
         await new Promise(resolve => setTimeout(resolve, 1500));
 
-        // 4. Capture the actual rendered DOM into a PNG
-        const imgData = await toPng(wrapper, {
-            pixelRatio: 2,
-            backgroundColor: '#ffffff'
-        });
-
-        // 5. Convert Image to PDF
+        // 4. Initialize PDF
         const pdf = new jsPDF({
             orientation: 'p',
             unit: 'mm',
             format: 'a4'
         });
-
         const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (wrapper.offsetHeight * pdfWidth) / wrapper.offsetWidth;
 
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        const pagesToRender = ['pdf-page-1', 'pdf-page-2'];
+
+        // 5. Iterate through defined pages, rendering each one sequentially
+        for (let i = 0; i < pagesToRender.length; i++) {
+            const pageNode = document.getElementById(pagesToRender[i]);
+            if (!pageNode) continue;
+
+            const imgData = await toPng(pageNode, {
+                pixelRatio: 2,
+                backgroundColor: '#ffffff',
+                cacheBust: true, // prevent stale fonts caching issue
+            });
+
+            if (i > 0) {
+                pdf.addPage();
+            }
+
+            // Calculate scaled height to maintain aspect ratio, but cap at max dimension of A4 to prevent blank overlaps
+            const renderRatio = pageNode.offsetHeight / pageNode.offsetWidth;
+            const scaledHeight = pdfWidth * renderRatio;
+
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, scaledHeight);
+        }
+
+        // 6. Save the final multi-page PDF
         pdf.save(`債権譲渡契約書_${deal.id}.pdf`);
     } catch (error) {
         console.error("PDF canvas generation failed:", error);
