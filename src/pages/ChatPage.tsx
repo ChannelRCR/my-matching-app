@@ -4,7 +4,7 @@ import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { Send, User, ChevronLeft, DollarSign, ChevronDown, ChevronUp, Paperclip, FileText as FileTextIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useMarket } from '../contexts/MarketContext';
@@ -620,7 +620,12 @@ export const ChatPage: React.FC = () => {
                                                             onChange={(e) => setIsTermsAgreed(e.target.checked)}
                                                             className="mt-1 w-4 h-4 text-green-600 rounded border-slate-300 focus:ring-green-500 shrink-0"
                                                         />
-                                                        <span className="leading-snug">利用規約および債権譲渡約款に同意する</span>
+                                                        <span className="leading-snug">
+                                                            <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline">
+                                                                [プラットフォーム利用約款および債権譲渡契約条項]
+                                                            </Link>
+                                                            に同意する
+                                                        </span>
                                                     </label>
                                                     <Button
                                                         size="sm"

@@ -13,6 +13,7 @@ import { BuyerList } from './pages/BuyerList';
 import { ChatPage } from './pages/ChatPage';
 import { ContractPrintPage } from './pages/ContractPrintPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { TermsOfService } from './pages/TermsOfService';
 
 import { DataProvider } from './contexts/DataContext';
 import { MarketProvider } from './contexts/MarketContext';
@@ -33,6 +34,7 @@ function App() {
 
               <Route element={<Layout />}>
                 <Route path="/" element={<LandingPage />} />
+                <Route path="/terms" element={<TermsOfService />} />
 
                 {/* Protected Routes: General */}
                 <Route element={<ProtectedRoute />}>
