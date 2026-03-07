@@ -52,11 +52,11 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
                 </div>
 
                 <div style={{ fontSize: '13px', marginBottom: '30px', lineHeight: 1.8, textIndent: '1em' }}>
-                    本契約の当事者である譲渡人（以下「甲」という。詳細は末尾当事者目録記載の通り）と、譲受人（以下「乙」という。詳細は末尾当事者目録記載の通り）は、当プラットフォームを通じて、以下の通り債権譲渡契約（以下「本契約」という）を締結した。
+                    本契約の当事者である譲渡人（以下「甲」という。）と、譲受人（以下「乙」という。）は、当プラットフォームを通じて、以下の通り債権譲渡契約（以下「本契約」という）を締結した。なお、当事者の詳細は末尾当事者目録記載の通り。
                 </div>
 
                 <h2 style={{ fontSize: '15px', fontWeight: 'bold', borderBottom: '1px solid #000', paddingBottom: '5px', marginBottom: '15px', marginTop: '30px' }}>
-                    第1条（譲渡対象債権）
+                    第1条（債権の譲渡）
                 </h2>
                 <div style={{ fontSize: '13px', marginLeft: '20px', marginBottom: '20px', lineHeight: 1.8 }}>
                     甲は乙に対し、甲が末尾債権目録記載の原債務者に対して有する売掛債権（以下「本件債権」という）を譲渡し、乙はこれを譲り受けた。
@@ -65,11 +65,10 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
                 </div>
 
                 <h2 style={{ fontSize: '15px', fontWeight: 'bold', borderBottom: '1px solid #000', paddingBottom: '5px', marginBottom: '15px', marginTop: '30px' }}>
-                    第2条（譲渡代金および支払方法）
+                    第2条（譲渡代金および支払い方法）
                 </h2>
                 <div style={{ fontSize: '13px', marginLeft: '20px', marginBottom: '20px', lineHeight: 1.8 }}>
-                    乙は甲に対し、本件債権の譲受代金として以下の金額を、甲の指定する銀行口座に振り込む方法により支払う。なお、振込手数料は乙の負担とする。<br />
-                    <strong>譲渡代金: 金 {deal.currentAmount.toLocaleString()} 円</strong>
+                    乙は甲に対し、本件債権の譲受代金として金 {deal.currentAmount.toLocaleString()} 円を、別途当事者間で合意した銀行口座（末尾当事者目録の振込先口座情報を参照）に振り込む方法により支払う。なお、振込手数料は乙の負担とする。
                 </div>
 
                 <h2 style={{ fontSize: '15px', fontWeight: 'bold', borderBottom: '1px solid #000', paddingBottom: '5px', marginBottom: '15px', marginTop: '30px' }}>
@@ -163,8 +162,8 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
                 </table>
             </div>
 
-            {/* 債権目録 (Receivable Directory) */}
-            <div style={{ marginTop: '60px' }}>
+            {/* --- PAGE 3: 債権目録 --- */}
+            <div id="pdf-page-3" style={pageContainerStyle}>
                 <h2 style={{ textAlign: 'center', fontSize: '18px', fontWeight: 'bold', marginBottom: '30px', letterSpacing: '2px' }}>
                     債権目録
                 </h2>
@@ -199,7 +198,7 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
         });
         const pdfWidth = pdf.internal.pageSize.getWidth();
 
-        const pagesToRender = ['pdf-page-1', 'pdf-page-2'];
+        const pagesToRender = ['pdf-page-1', 'pdf-page-2', 'pdf-page-3'];
 
         // 5. Iterate through defined pages, rendering each one sequentially
         for (let i = 0; i < pagesToRender.length; i++) {
