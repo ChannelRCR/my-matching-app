@@ -291,6 +291,36 @@ export const ChatPage: React.FC = () => {
         }
     };
 
+    const handleBuyerPaymentReport = async () => {
+        if (!deal || !user) return;
+        if (window.confirm("本当に振込を完了しましたか？売主に報告が行われます。")) {
+            await updateDeal(deal.id, { paymentStatus: 'paid' });
+            await addMessage({
+                id: `sys_${Date.now()}`,
+                dealId: deal.id,
+                senderId: user.id,
+                receiverId: deal.sellerId,
+                content: "【システム通知】買い手が振込完了を報告しました。",
+                timestamp: new Date().toISOString()
+            });
+        }
+    };
+
+    const handleSellerPaymentConfirm = async () => {
+        if (!deal || !user) return;
+        if (window.confirm("着金を確認し、取引を完了しますか？この操作は取り消せません。")) {
+            await updateDeal(deal.id, { paymentStatus: 'completed' });
+            await addMessage({
+                id: `sys_${Date.now()}`,
+                dealId: deal.id,
+                senderId: user.id,
+                receiverId: deal.buyerId,
+                content: "【システム通知】売り手が着金を確認しました。速やかに債権譲渡通知等の手続きを行ってください。",
+                timestamp: new Date().toISOString()
+            });
+        }
+    };
+
     const handlePrintContract = async () => {
         if (!deal || !invoice) return;
         const buyer = users.find(u => u.id === deal.buyerId);
@@ -659,16 +689,59 @@ export const ChatPage: React.FC = () => {
                                             <span className="bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-bold border border-green-200">
                                                 契約成立🎉
                                             </span>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                className="border-green-600 text-green-700 hover:bg-green-50 w-full shadow-sm"
-                                                onClick={handlePrintContract}
-                                                disabled={isGeneratingPdf}
-                                            >
-                                                <FileText className="w-4 h-4 mr-2" />
-                                                {isGeneratingPdf ? "PDF生成中..." : "契約書（PDF）を保存"}
-                                            </Button>
+
+                                            {/* --- PAYMENT & PROCEDURE PANEL --- */}
+                                            {isBuyer ? (
+                                                <div className="w-full bg-blue-50 border border-blue-200 p-4 rounded-lg shadow-sm text-sm text-left">
+                                                    <p className="font-bold text-blue-800 mb-2">契約が成立しました。速やかに以下の口座へ譲渡代金（合意金額: ¥{(deal.currentAmount || deal.currentBuyerPrice || 0).toLocaleString()}）をお振込みください。</p>
+                                                    <div className="bg-white p-3 rounded border border-blue-100 mb-3 space-y-1 text-slate-700">
+                                                        <p><strong>振込先口座:</strong></p>
+                                                        <p>{opponentProfile?.bankAccountInfo || '口座情報が未設定です。売主にお問い合わせください。'}</p>
+                                                    </div>
+                                                    {(!deal.paymentStatus || deal.paymentStatus === 'pending') ? (
+                                                        <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold shadow" onClick={handleBuyerPaymentReport}>
+                                                            振込を完了し、売り手に報告する
+                                                        </Button>
+                                                    ) : (
+                                                        <div className="text-center p-2 bg-slate-100 border border-slate-200 text-slate-600 rounded font-medium mt-2">
+                                                            {deal.paymentStatus === 'paid' ? '振込報告済み。売り手の確認待ちです。' : '決済および全ての手続きが完了しました。'}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div className="w-full bg-blue-50 border border-blue-200 p-4 rounded-lg shadow-sm text-sm text-left">
+                                                    <p className="font-bold text-blue-800 mb-3">契約が成立しました。買い手からの入金をお待ちください。</p>
+                                                    {(!deal.paymentStatus || deal.paymentStatus === 'pending') ? (
+                                                        <div className="text-center p-2 bg-white border border-slate-200 text-slate-500 rounded font-medium">
+                                                            買い手の振込・報告待ちです。
+                                                        </div>
+                                                    ) : deal.paymentStatus === 'paid' ? (
+                                                        <div className="flex flex-col gap-2 mt-2">
+                                                            <p className="text-green-700 font-bold mb-1">✅ 買い手から振込完了の報告がありました。</p>
+                                                            <Button className="w-full bg-green-600 hover:bg-green-700 text-white font-bold shadow" onClick={handleSellerPaymentConfirm}>
+                                                                着金を確認し、取引を完了する
+                                                            </Button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-center p-2 bg-slate-100 border border-slate-200 text-slate-600 rounded font-medium mt-2">
+                                                            着金確認済み。取引は完了しました。
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            <div className="w-full mt-2 border-t border-slate-200 pt-3">
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="border-green-600 text-green-700 hover:bg-green-50 w-full shadow-sm"
+                                                    onClick={handlePrintContract}
+                                                    disabled={isGeneratingPdf}
+                                                >
+                                                    <FileText className="w-4 h-4 mr-2" />
+                                                    {isGeneratingPdf ? "PDF生成中..." : "契約書（PDF）を保存"}
+                                                </Button>
+                                            </div>
                                         </div>
                                     ) : (
                                         <span className="bg-slate-100 text-slate-600 px-4 py-2 rounded-full text-sm font-bold border border-slate-200">
@@ -707,7 +780,7 @@ export const ChatPage: React.FC = () => {
                                     size="sm"
                                     className="h-10 w-10 shrink-0 border-slate-300 text-slate-500 hover:bg-slate-200 disabled:opacity-50 !p-0"
                                     onClick={() => fileInputRef.current?.click()}
-                                    disabled={!['open', 'pending', 'negotiating'].includes(deal.status) || isUploading}
+                                    disabled={deal.status === 'rejected' || deal.paymentStatus === 'completed' || isUploading}
                                     title="ファイルを添付する"
                                 >
                                     <Paperclip className="h-5 w-5" />
@@ -716,17 +789,17 @@ export const ChatPage: React.FC = () => {
                                     value={inputText}
                                     onChange={(e) => setInputText(e.target.value)}
                                     placeholder={
-                                        ['open', 'pending', 'negotiating'].includes(deal.status) ? "メッセージを入力..." :
-                                            deal.status === 'concluded' ? "契約が完成しました。" :
-                                                "取引が終了しました"
+                                        (deal.status === 'rejected' || deal.paymentStatus === 'completed') ?
+                                            "取引が終了しました（メッセージの送信はできません）。" :
+                                            "メッセージを入力..."
                                     }
                                     className="flex-1 bg-white h-10"
-                                    disabled={!['open', 'pending', 'negotiating'].includes(deal.status) || isUploading}
+                                    disabled={deal.status === 'rejected' || deal.paymentStatus === 'completed' || isUploading}
                                     autoComplete="off"
                                     autoCorrect="off"
                                     spellCheck={false}
                                 />
-                                <Button type="submit" size="md" disabled={(!inputText.trim() && !isUploading) || !['open', 'pending', 'negotiating'].includes(deal.status) || isUploading} className="h-10 px-5 shrink-0 bg-primary hover:bg-primary/90 text-white shadow-sm flex items-center justify-center">
+                                <Button type="submit" size="md" disabled={(!inputText.trim() && !isUploading) || deal.status === 'rejected' || deal.paymentStatus === 'completed' || isUploading} className="h-10 px-5 shrink-0 bg-primary hover:bg-primary/90 text-white shadow-sm flex items-center justify-center">
                                     {isUploading ? (
                                         <div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin"></div>
                                     ) : (

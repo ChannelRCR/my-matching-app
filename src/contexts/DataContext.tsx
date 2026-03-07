@@ -182,6 +182,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 contractDate: d.contract_date,
                 sellerRevealedFields: d.seller_revealed_fields || {},
                 buyerRevealedFields: d.buyer_revealed_fields || {},
+                paymentStatus: d.payment_status || 'pending',
             })));
         }
     };
@@ -259,6 +260,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (updates.contractDate !== undefined) dbUpdates.contract_date = updates.contractDate;
         if (updates.sellerRevealedFields !== undefined) dbUpdates.seller_revealed_fields = updates.sellerRevealedFields;
         if (updates.buyerRevealedFields !== undefined) dbUpdates.buyer_revealed_fields = updates.buyerRevealedFields;
+        if (updates.paymentStatus !== undefined) dbUpdates.payment_status = updates.paymentStatus;
 
         await supabase.from('deals').update(dbUpdates).eq('id', dealId);
         fetchDeals();
@@ -299,6 +301,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             lastMessageAt: data.last_message_at,
             sellerRevealedFields: data.seller_revealed_fields || {},
             buyerRevealedFields: data.buyer_revealed_fields || {},
+            paymentStatus: data.payment_status || 'pending',
         };
 
         const dbMsg = {
@@ -348,6 +351,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             lastMessageAt: data.last_message_at,
             sellerRevealedFields: data.seller_revealed_fields || {},
             buyerRevealedFields: data.buyer_revealed_fields || {},
+            paymentStatus: data.payment_status || 'pending',
         };
 
         const dbMsg = {

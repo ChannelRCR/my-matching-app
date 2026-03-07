@@ -88,4 +88,5 @@ export interface Deal {
     contractDate?: string;
     sellerRevealedFields?: Record<string, boolean>;
     buyerRevealedFields?: Record<string, boolean>;
+    paymentStatus?: 'pending' | 'paid' | 'completed';
 }
