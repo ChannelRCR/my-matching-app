@@ -389,6 +389,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (willBeConcluded) {
             updates.status = 'concluded';
             updates.contractDate = now;
+            updates.currentAmount = deal.currentBuyerPrice || deal.currentSellerPrice || deal.currentAmount;
 
             // Add a system message for contract conclusion
             const dbMsg = {

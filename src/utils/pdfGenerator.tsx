@@ -38,6 +38,7 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
 
     const isPartialSale = invoice.sellingAmount !== undefined && invoice.sellingAmount < invoice.amount;
     const targetAmountText = isPartialSale ? `金 ${invoice.sellingAmount?.toLocaleString()} 円 （一部譲渡）` : `金 ${invoice.amount.toLocaleString()} 円 （全部譲渡）`;
+    const finalPrice = deal.currentAmount || deal.currentBuyerPrice || deal.currentSellerPrice || 0;
 
     const ContractComponent = () => (
         <div style={{ fontFamily: '"Noto Serif JP", "Hiragino Mincho ProN", "MS PMincho", serif', color: '#000' }}>
@@ -68,7 +69,7 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
                     第2条（譲渡代金および支払い方法）
                 </h2>
                 <div style={{ fontSize: '13px', marginLeft: '20px', marginBottom: '20px', lineHeight: 1.8 }}>
-                    乙は甲に対し、本件債権の譲受代金として金 {deal.currentAmount.toLocaleString()} 円を、別途当事者間で合意した銀行口座（末尾当事者目録の振込先口座情報を参照）に振り込む方法により支払う。なお、振込手数料は乙の負担とする。
+                    乙は甲に対し、本件債権の譲受代金として金 {finalPrice.toLocaleString()} 円を、別途当事者間で合意した銀行口座（末尾当事者目録の振込先口座情報を参照）に振り込む方法により支払う。なお、振込手数料は乙の負担とする。
                 </div>
 
                 <h2 style={{ fontSize: '15px', fontWeight: 'bold', borderBottom: '1px solid #000', paddingBottom: '5px', marginBottom: '15px', marginTop: '30px' }}>
@@ -175,7 +176,7 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
                         <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>請求額面額</td><td style={{ border: '1px solid #000', padding: '8px' }}>金 {invoice.amount.toLocaleString()} 円</td></tr>
                         <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>譲渡の範囲</td><td style={{ border: '1px solid #000', padding: '8px', fontWeight: 'bold' }}>{targetAmountText}</td></tr>
                         <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>入金期日（支払期日）</td><td style={{ border: '1px solid #000', padding: '8px' }}>{invoice.dueDate || '未設定'}</td></tr>
-                        <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>本件譲渡代金</td><td style={{ border: '1px solid #000', padding: '8px', fontWeight: 'bold' }}>金 {deal.currentAmount.toLocaleString()} 円</td></tr>
+                        <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>本件譲渡代金</td><td style={{ border: '1px solid #000', padding: '8px', fontWeight: 'bold' }}>金 {finalPrice.toLocaleString()} 円</td></tr>
                         <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>売却条件ステータス</td><td style={{ border: '1px solid #000', padding: '8px' }}>償還請求権なし（ノンリコース）</td></tr>
                     </tbody>
                 </table>

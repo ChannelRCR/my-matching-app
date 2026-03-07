@@ -37,6 +37,8 @@ export const ContractPrintPage: React.FC = () => {
         return <div className="p-8 text-center">この案件はまだ契約が成立していません。</div>;
     }
 
+    const finalPrice = deal.currentAmount || deal.currentBuyerPrice || deal.currentSellerPrice || 0;
+
     const handlePrint = () => {
         window.print();
     };
@@ -82,7 +84,7 @@ export const ContractPrintPage: React.FC = () => {
 
                     <h2 className="text-lg font-bold mb-3 border-b border-black pb-1">2. 譲渡代金</h2>
                     <p className="mb-6 leading-relaxed pl-4">
-                        金 {deal.currentAmount.toLocaleString()} 円
+                        金 {finalPrice.toLocaleString()} 円
                     </p>
 
                     <h2 className="text-lg font-bold mb-3 border-b border-black pb-1">3. 権利移転時期（所有権留保）</h2>
