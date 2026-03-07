@@ -78,7 +78,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return {
                 id: u.id, name: u.name, companyName: u.company_name, role: u.role,
                 avatarUrl: u.avatar_url, budget: u.budget, appealPoint: u.appeal_point,
-                status: u.status, registeredAt: u.registered_at,
+                status: u.status, isAdmin: u.is_admin, registeredAt: u.registered_at,
 
                 // Fields from specialized tables
                 representativeName: profile.representative_name,

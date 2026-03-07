@@ -42,6 +42,11 @@ export const Layout: React.FC = () => {
                                 <Link to="/buyers" className="text-sm font-medium hover:text-primary transition-colors">
                                     買い手情報（投資家一覧）
                                 </Link>
+                                {profile?.isAdmin && (
+                                    <Link to="/admin" className="text-sm font-bold text-amber-600 hover:text-amber-700 transition-colors ml-4 bg-amber-50 px-3 py-1.5 rounded-md border border-amber-200 shadow-sm">
+                                        管理者ダッシュボード
+                                    </Link>
+                                )}
                             </>
                         )}
                     </nav>
@@ -123,6 +128,12 @@ export const Layout: React.FC = () => {
                                     プロフィール設定
                                     <Settings size={20} className="text-slate-400" />
                                 </Link>
+                                {profile?.isAdmin && (
+                                    <Link to="/admin" className="flex items-center justify-between border-b border-amber-100 pb-4 text-amber-600 font-bold bg-amber-50/50 p-2 rounded-lg" onClick={() => setIsMenuOpen(false)}>
+                                        管理者ダッシュボード
+                                        <ChevronRight size={20} className="text-amber-400" />
+                                    </Link>
+                                )}
                                 <button
                                     className="mt-4 flex items-center justify-center gap-2 text-emerald-700 bg-emerald-50 py-3 rounded-lg font-bold"
                                     onClick={() => {

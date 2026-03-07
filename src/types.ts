@@ -10,6 +10,7 @@ export interface User {
     appealPoint?: string;
     status?: 'active' | 'suspended';
     registeredAt?: string;
+    isAdmin?: boolean;
     // New Profile Fields
     representativeName?: string;
     contactPerson?: string;

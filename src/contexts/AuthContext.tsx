@@ -110,6 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 appealPoint: userData.appeal_point,
                 status: userData.status,
                 registeredAt: userData.registered_at,
+                isAdmin: userData.is_admin,
                 // Merged fields from sellers/buyers
                 representativeName: profileData.representative_name,
                 contactPerson: profileData.contact_person,

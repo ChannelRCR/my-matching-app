@@ -19,6 +19,7 @@ import { DataProvider } from './contexts/DataContext';
 import { MarketProvider } from './contexts/MarketContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { AdminProtectedRoute } from './components/AdminProtectedRoute';
 import { DashboardRedirector } from './components/DashboardRedirector';
 
 function App() {
@@ -62,7 +63,7 @@ function App() {
                   <Route path="/contract/:dealId" element={<ContractPrintPage />} />
                 </Route>
 
-                <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                <Route element={<AdminProtectedRoute />}>
                   <Route path="/admin" element={<AdminDashboard />} />
                 </Route>
               </Route>
