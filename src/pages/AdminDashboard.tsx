@@ -1,16 +1,25 @@
 import React, { useState } from 'react';
-import { Users, DollarSign, Activity, AlertTriangle, ShieldAlert, CheckCircle, FileText, Handshake, LayoutDashboard } from 'lucide-react';
+import { Users, DollarSign, Activity, AlertTriangle, ShieldAlert, CheckCircle, FileText, Handshake, LayoutDashboard, X } from 'lucide-react';
 import { useMarket } from '../contexts/MarketContext';
 import { useData } from '../contexts/DataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import type { User } from '../types';
 
 type TabId = 'summary' | 'users' | 'invoices' | 'deals';
 
 export const AdminDashboard: React.FC = () => {
     const [activeTab, setActiveTab] = useState<TabId>('summary');
+    const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const { stats } = useMarket();
     const { users, deals, invoices, updateUser } = useData();
+
+    const getOngoingDealsCount = (userId: string) => {
+        return deals.filter(d =>
+            (d.buyerId === userId || d.sellerId === userId) &&
+            ['open', 'negotiating', 'agreed'].includes(d.status)
+        ).length;
+    };
 
     // Calculate approximate fees (Mock calculation: 1% of total volume for demo)
     const totalFees = Math.floor(stats.totalVolume * 0.01);
@@ -172,15 +181,25 @@ export const AdminDashboard: React.FC = () => {
                                             )}
                                         </td>
                                         <td className="px-4 py-3 text-right">
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                className={`h-8 text-xs ${u.status === 'suspended' ? 'bg-white border-slate-300 text-slate-600' : 'text-red-600 border-red-200 hover:bg-red-50 hover:border-red-600'}`}
-                                                onClick={() => handleSuspendUser(u.id, u.status)}
-                                                disabled={u.isAdmin}
-                                            >
-                                                {u.status === 'suspended' ? '解除 (Activate)' : '停止 (Suspend)'}
-                                            </Button>
+                                            <div className="flex justify-end items-center gap-2">
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="h-8 text-xs text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-600 focus:ring-0"
+                                                    onClick={() => setSelectedUser(u)}
+                                                >
+                                                    詳細
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className={`h-8 text-xs ${u.status === 'suspended' ? 'bg-white border-slate-300 text-slate-600' : 'text-red-600 border-red-200 hover:bg-red-50 hover:border-red-600'}`}
+                                                    onClick={() => handleSuspendUser(u.id, u.status)}
+                                                    disabled={u.isAdmin}
+                                                >
+                                                    {u.status === 'suspended' ? '解除 (Activate)' : '停止 (Suspend)'}
+                                                </Button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -332,6 +351,66 @@ export const AdminDashboard: React.FC = () => {
                         </table>
                     </div>
                 </Card>
+            )}
+
+            {/* User Detail Modal */}
+            {selectedUser && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm"
+                    onClick={() => setSelectedUser(null)}
+                >
+                    <div
+                        className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50">
+                            <h3 className="font-bold text-slate-800">ユーザー詳細情報</h3>
+                            <button
+                                onClick={() => setSelectedUser(null)}
+                                className="p-1 hover:bg-slate-200 rounded-full text-slate-500 transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="grid grid-cols-3 gap-y-3 gap-x-4 text-sm">
+                                <div className="text-slate-500 font-medium pt-1">ユーザーID</div>
+                                <div className="col-span-2 font-mono text-slate-800 bg-slate-50 p-1.5 rounded border border-slate-100 break-all">{selectedUser.id}</div>
+
+                                <div className="text-slate-500 font-medium pt-1">登録日時</div>
+                                <div className="col-span-2 text-slate-800 pt-1">
+                                    {selectedUser.registeredAt ? new Date(selectedUser.registeredAt).toLocaleString('ja-JP') : '-'}
+                                </div>
+
+                                <div className="text-slate-500 font-medium pt-1">氏名</div>
+                                <div className="col-span-2 font-bold text-slate-800 pt-1">{selectedUser.name || '-'}</div>
+
+                                <div className="text-slate-500 font-medium pt-1">企業名</div>
+                                <div className="col-span-2 text-slate-800 pt-1">{selectedUser.companyName || '-'}</div>
+
+                                <div className="text-slate-500 font-medium pt-1">メールアドレス</div>
+                                <div className="col-span-2 text-slate-800 pt-1 break-all">{selectedUser.email || '-'}</div>
+
+                                <div className="text-slate-500 font-medium pt-1">役割</div>
+                                <div className="col-span-2 pt-1">
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${selectedUser.role === 'seller' ? 'bg-blue-100 text-blue-800' :
+                                            selectedUser.role === 'buyer' ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-200 text-slate-800'
+                                        }`}>
+                                        {selectedUser.role.toUpperCase()}
+                                    </span>
+                                </div>
+
+                                <div className="text-slate-500 font-medium pt-1">進行中の取引数</div>
+                                <div className="col-span-2 text-slate-800 font-bold pt-1">
+                                    <span className="text-lg text-emerald-600 mr-1">{getOngoingDealsCount(selectedUser.id)}</span>件
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+                            <Button variant="outline" onClick={() => setSelectedUser(null)}>閉じる</Button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

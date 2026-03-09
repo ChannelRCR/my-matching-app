@@ -195,7 +195,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 address: extraData.address,
                 bank_account_info: extraData.bankAccountInfo,
                 phone_number: extraData.phone,
-                email_address: extraData.email,
                 privacy_settings: extraData.privacySettings,
             };
             const { error } = await supabase.from('sellers').insert([sellerProfile]);
@@ -208,7 +207,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 contact_person: extraData.contactPerson,
                 address: extraData.address,
                 phone_number: extraData.phone,
-                email_address: extraData.email,
                 privacy_settings: extraData.privacySettings,
                 // Buyers don't have bank_account_info in the form usually, but if they did...
                 // Assuming buyers form doesn't strictly require bank info yet or we add it if needed.
@@ -247,7 +245,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (data.contactPerson !== undefined) specificData.contact_person = data.contactPerson;
             if (data.address !== undefined) specificData.address = data.address;
             if (data.phone !== undefined) specificData.phone_number = data.phone;
-            if (data.email !== undefined) specificData.email_address = data.email;
             if (data.privacySettings !== undefined) specificData.privacy_settings = data.privacySettings;
 
             if (profile.role === 'seller') {
