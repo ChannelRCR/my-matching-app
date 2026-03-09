@@ -18,6 +18,7 @@ interface DataContextType {
     acceptDeal: (deal: Deal) => Promise<void>;
     agreeToDeal: (dealId: string, isBuyer: boolean) => Promise<void>;
     markMessagesAsRead: (dealId: string, userId: string) => Promise<void>;
+    getUserTrackRecord: (userId: string, role: 'buyer' | 'seller') => number;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -113,6 +114,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const { error } = await supabase.from('users').update(dbUpdates).eq('id', userId);
         if (error) alert('プロフィールの更新に失敗しました。');
+    };
+
+    const getUserTrackRecord = (userId: string, role: 'buyer' | 'seller'): number => {
+        if (role === 'buyer') {
+            // Buyer track record: initial remittance confirmed by seller 
+            // (or further steps completed)
+            return deals.filter(d =>
+                d.buyerId === userId &&
+                ['seller_received', 'seller_repaid', 'fully_settled'].includes(d.paymentStatus || '')
+            ).length;
+        } else {
+            // Seller track record: final repayment confirmed by buyer
+            return deals.filter(d =>
+                d.sellerId === userId &&
+                d.paymentStatus === 'fully_settled'
+            ).length;
+        }
     };
 
     const fetchInvoices = async () => {
@@ -417,7 +435,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             invoices, deals, messages, users, loading,
             addInvoice, addMessage, updateDeal, updateUser,
             createDeal, createChatRoom, acceptDeal, agreeToDeal,
-            markMessagesAsRead
+            markMessagesAsRead, getUserTrackRecord
         }}>
             {children}
         </DataContext.Provider>

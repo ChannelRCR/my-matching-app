@@ -12,7 +12,7 @@ export const AdminDashboard: React.FC = () => {
     const [activeTab, setActiveTab] = useState<TabId>('summary');
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const { stats } = useMarket();
-    const { users, deals, invoices, updateUser } = useData();
+    const { users, deals, invoices, updateUser, getUserTrackRecord } = useData();
 
     const getOngoingDealsCount = (userId: string) => {
         return deals.filter(d =>
@@ -327,7 +327,7 @@ export const AdminDashboard: React.FC = () => {
                                             <td className="px-4 py-3">
                                                 {['concluded', 'agreed'].includes(deal.status) ? (
                                                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${!deal.paymentStatus || deal.paymentStatus === 'pending' ? 'bg-amber-100 text-amber-800' :
-                                                        deal.paymentStatus === 'paid' ? 'bg-blue-100 text-blue-800' :
+                                                        ['buyer_paid', 'seller_received', 'seller_repaid'].includes(deal.paymentStatus) ? 'bg-blue-100 text-blue-800' :
                                                             'bg-emerald-100 text-emerald-800'
                                                         }`}>
                                                         {(!deal.paymentStatus || deal.paymentStatus === 'pending') ? 'PENDING' : deal.paymentStatus.toUpperCase()}
@@ -394,7 +394,7 @@ export const AdminDashboard: React.FC = () => {
                                 <div className="text-slate-500 font-medium pt-1">役割</div>
                                 <div className="col-span-2 pt-1">
                                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${selectedUser.role === 'seller' ? 'bg-blue-100 text-blue-800' :
-                                            selectedUser.role === 'buyer' ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-200 text-slate-800'
+                                        selectedUser.role === 'buyer' ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-200 text-slate-800'
                                         }`}>
                                         {selectedUser.role.toUpperCase()}
                                     </span>
@@ -403,6 +403,13 @@ export const AdminDashboard: React.FC = () => {
                                 <div className="text-slate-500 font-medium pt-1">進行中の取引数</div>
                                 <div className="col-span-2 text-slate-800 font-bold pt-1">
                                     <span className="text-lg text-emerald-600 mr-1">{getOngoingDealsCount(selectedUser.id)}</span>件
+                                </div>
+
+                                <div className="text-slate-500 font-medium pt-1">取引実績 (完了)</div>
+                                <div className="col-span-2 text-slate-800 font-bold pt-1">
+                                    <span className="text-lg text-blue-600 mr-1">
+                                        {getUserTrackRecord(selectedUser.id, selectedUser.role === 'buyer' ? 'buyer' : 'seller')}
+                                    </span>件
                                 </div>
                             </div>
                         </div>

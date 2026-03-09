@@ -294,7 +294,7 @@ export const ChatPage: React.FC = () => {
     const handleBuyerPaymentReport = async () => {
         if (!deal || !user) return;
         if (window.confirm("本当に振込を完了しましたか？売主に報告が行われます。")) {
-            await updateDeal(deal.id, { paymentStatus: 'paid' });
+            await updateDeal(deal.id, { paymentStatus: 'buyer_paid' });
             await addMessage({
                 id: `sys_${Date.now()}`,
                 dealId: deal.id,
@@ -308,14 +308,44 @@ export const ChatPage: React.FC = () => {
 
     const handleSellerPaymentConfirm = async () => {
         if (!deal || !user) return;
-        if (window.confirm("着金を確認し、取引を完了しますか？この操作は取り消せません。")) {
-            await updateDeal(deal.id, { paymentStatus: 'completed' });
+        if (window.confirm("着金を確認し、取引を継続しますか？この操作で買い手に実績が付与され、第三債務者からの回収フェーズに移行します。")) {
+            await updateDeal(deal.id, { paymentStatus: 'seller_received' });
             await addMessage({
                 id: `sys_${Date.now()}`,
                 dealId: deal.id,
                 senderId: user.id,
                 receiverId: deal.buyerId,
-                content: "【システム通知】売り手が着金を確認しました。速やかに債権譲渡通知等の手続きを行ってください。",
+                content: "【システム通知】売り手が着金を確認しました。期日後の「回収・送金報告」をお待ちください。",
+                timestamp: new Date().toISOString()
+            });
+        }
+    };
+
+    const handleSellerRepaymentReport = async () => {
+        if (!deal || !user) return;
+        if (window.confirm("第三債務者からの回収および買い手への送金を完了しましたか？買い手に報告が行われます。")) {
+            await updateDeal(deal.id, { paymentStatus: 'seller_repaid' });
+            await addMessage({
+                id: `sys_${Date.now()}`,
+                dealId: deal.id,
+                senderId: user.id,
+                receiverId: deal.buyerId,
+                content: "【システム通知】売り手が回収および買い手への送金完了を報告しました。着金をご確認ください。",
+                timestamp: new Date().toISOString()
+            });
+        }
+    };
+
+    const handleBuyerRepaymentConfirm = async () => {
+        if (!deal || !user) return;
+        if (window.confirm("着金を確認し、全取引を完了しますか？この操作は取り消せず、売り手に実績が付与されます。")) {
+            await updateDeal(deal.id, { paymentStatus: 'fully_settled' });
+            await addMessage({
+                id: `sys_${Date.now()}`,
+                dealId: deal.id,
+                senderId: user.id,
+                receiverId: deal.sellerId,
+                content: "【システム通知】買い手が着金を確認しました。これにて本取引は全て完了となります。",
                 timestamp: new Date().toISOString()
             });
         }
@@ -698,33 +728,63 @@ export const ChatPage: React.FC = () => {
                                                         <p><strong>振込先口座:</strong></p>
                                                         <p>{opponentProfile?.bankAccountInfo || '口座情報が未設定です。売主にお問い合わせください。'}</p>
                                                     </div>
+
                                                     {(!deal.paymentStatus || deal.paymentStatus === 'pending') ? (
                                                         <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold shadow" onClick={handleBuyerPaymentReport}>
                                                             振込を完了し、売り手に報告する
                                                         </Button>
-                                                    ) : (
+                                                    ) : deal.paymentStatus === 'buyer_paid' ? (
                                                         <div className="text-center p-2 bg-slate-100 border border-slate-200 text-slate-600 rounded font-medium mt-2">
-                                                            {deal.paymentStatus === 'paid' ? '振込報告済み。売り手の確認待ちです。' : '決済および全ての手続きが完了しました。'}
+                                                            最初の振込報告済み。売り手の確認待ちです。
+                                                        </div>
+                                                    ) : deal.paymentStatus === 'seller_received' ? (
+                                                        <div className="text-center p-2 bg-blue-100 border border-blue-200 text-blue-800 rounded font-medium mt-2">
+                                                            売り手が着金を確認しました。期日の回収と送金をお待ちください。
+                                                        </div>
+                                                    ) : deal.paymentStatus === 'seller_repaid' ? (
+                                                        <div className="flex flex-col gap-2 mt-2">
+                                                            <p className="text-orange-700 font-bold mb-1">📢 売り手から回収・送金完了の報告がありました。</p>
+                                                            <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold shadow" onClick={handleBuyerRepaymentConfirm}>
+                                                                着金を確認し、全取引を完了する
+                                                            </Button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-center p-2 mt-2 font-bold text-emerald-800 bg-emerald-100 rounded border border-emerald-200 flex items-center justify-center gap-1">
+                                                            <span>最終着金確認済み。全取引が完了しました。</span>
                                                         </div>
                                                     )}
                                                 </div>
                                             ) : (
                                                 <div className="w-full bg-blue-50 border border-blue-200 p-4 rounded-lg shadow-sm text-sm text-left">
                                                     <p className="font-bold text-blue-800 mb-3">契約が成立しました。買い手からの入金をお待ちください。</p>
+
                                                     {(!deal.paymentStatus || deal.paymentStatus === 'pending') ? (
                                                         <div className="text-center p-2 bg-white border border-slate-200 text-slate-500 rounded font-medium">
-                                                            買い手の振込・報告待ちです。
+                                                            買い手の最初の振込・報告待ちです。
                                                         </div>
-                                                    ) : deal.paymentStatus === 'paid' ? (
+                                                    ) : deal.paymentStatus === 'buyer_paid' ? (
                                                         <div className="flex flex-col gap-2 mt-2">
-                                                            <p className="text-green-700 font-bold mb-1">✅ 買い手から振込完了の報告がありました。</p>
+                                                            <p className="text-green-700 font-bold mb-1">✅ 買い手から譲渡代金の振込完了報告がありました。</p>
                                                             <Button className="w-full bg-green-600 hover:bg-green-700 text-white font-bold shadow" onClick={handleSellerPaymentConfirm}>
-                                                                着金を確認し、取引を完了する
+                                                                着金を確認し、取引を継続する
                                                             </Button>
                                                         </div>
-                                                    ) : (
+                                                    ) : deal.paymentStatus === 'seller_received' ? (
+                                                        <div className="flex flex-col gap-2 mt-2">
+                                                            <p className="text-slate-700 font-medium mb-1 border-t border-blue-200 pt-2 text-xs">
+                                                                最初の着金を確認済みです。期日に第三債務者から回収後、速やかに買い手へ送金してください。
+                                                            </p>
+                                                            <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold shadow" onClick={handleSellerRepaymentReport}>
+                                                                回収完了および買い手への送金報告
+                                                            </Button>
+                                                        </div>
+                                                    ) : deal.paymentStatus === 'seller_repaid' ? (
                                                         <div className="text-center p-2 bg-slate-100 border border-slate-200 text-slate-600 rounded font-medium mt-2">
-                                                            着金確認済み。取引は完了しました。
+                                                            回収・送金報告済み。買い手の最終着金確認待ちです。
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-center p-2 mt-2 font-bold text-emerald-800 bg-emerald-100 rounded border border-emerald-200 flex items-center justify-center gap-1">
+                                                            <span>買い手の最終着金確認済み。全取引が完了しました。</span>
                                                         </div>
                                                     )}
                                                 </div>
@@ -780,7 +840,7 @@ export const ChatPage: React.FC = () => {
                                     size="sm"
                                     className="h-10 w-10 shrink-0 border-slate-300 text-slate-500 hover:bg-slate-200 disabled:opacity-50 !p-0"
                                     onClick={() => fileInputRef.current?.click()}
-                                    disabled={deal.status === 'rejected' || deal.paymentStatus === 'completed' || isUploading}
+                                    disabled={deal.status === 'rejected' || deal.paymentStatus === 'fully_settled' || isUploading}
                                     title="ファイルを添付する"
                                 >
                                     <Paperclip className="h-5 w-5" />
@@ -789,17 +849,17 @@ export const ChatPage: React.FC = () => {
                                     value={inputText}
                                     onChange={(e) => setInputText(e.target.value)}
                                     placeholder={
-                                        (deal.status === 'rejected' || deal.paymentStatus === 'completed') ?
+                                        (deal.status === 'rejected' || deal.paymentStatus === 'fully_settled') ?
                                             "取引が終了しました（メッセージの送信はできません）。" :
                                             "メッセージを入力..."
                                     }
                                     className="flex-1 bg-white h-10"
-                                    disabled={deal.status === 'rejected' || deal.paymentStatus === 'completed' || isUploading}
+                                    disabled={deal.status === 'rejected' || deal.paymentStatus === 'fully_settled' || isUploading}
                                     autoComplete="off"
                                     autoCorrect="off"
                                     spellCheck={false}
                                 />
-                                <Button type="submit" size="md" disabled={(!inputText.trim() && !isUploading) || deal.status === 'rejected' || deal.paymentStatus === 'completed' || isUploading} className="h-10 px-5 shrink-0 bg-primary hover:bg-primary/90 text-white shadow-sm flex items-center justify-center">
+                                <Button type="submit" size="md" disabled={(!inputText.trim() && !isUploading) || deal.status === 'rejected' || deal.paymentStatus === 'fully_settled' || isUploading} className="h-10 px-5 shrink-0 bg-primary hover:bg-primary/90 text-white shadow-sm flex items-center justify-center">
                                     {isUploading ? (
                                         <div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin"></div>
                                     ) : (

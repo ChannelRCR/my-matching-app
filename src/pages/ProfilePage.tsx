@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Eye, EyeOff, Save, Loader2, Building2, User as UserIcon, MapPin, Phone, Mail, CreditCard } from 'lucide-react';
+import { useData } from '../contexts/DataContext';
+import { Eye, EyeOff, Save, Loader2, Building2, User as UserIcon, MapPin, Phone, Mail, CreditCard, Activity } from 'lucide-react';
 
 export const ProfilePage: React.FC = () => {
     const { profile, updateProfile, loading: authLoading } = useAuth();
+    const { getUserTrackRecord } = useData();
 
     // Form State
     const [formData, setFormData] = useState({
@@ -152,6 +154,21 @@ export const ProfilePage: React.FC = () => {
                     </h2>
                     <div className="text-xs font-bold px-3 py-1 rounded-full bg-slate-200 text-slate-600">
                         {profile.role === 'seller' ? '売り手アカウント' : '買い手アカウント'}
+                    </div>
+                </div>
+
+                <div className="px-6 py-4 bg-blue-50/50 border-b border-blue-100 flex items-center justify-between">
+                    <div className="flex flex-col">
+                        <span className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-1 flex items-center gap-1">
+                            <Activity size={14} />
+                            プラットフォーム取引実績
+                        </span>
+                        <span className="text-sm text-slate-600">
+                            {profile.role === 'seller' ? '完了した売却取引数' : '完了した購入・回収取引数'}
+                        </span>
+                    </div>
+                    <div className="text-2xl font-black text-blue-700 bg-white px-4 py-2 rounded-lg shadow-sm border border-blue-100">
+                        {getUserTrackRecord(profile.id, profile.role === 'buyer' ? 'buyer' : 'seller')} <span className="text-sm font-medium text-slate-500">件</span>
                     </div>
                 </div>
 
