@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import jsPDF from 'jspdf';
 import { toPng } from 'html-to-image';
 import type { Deal, Invoice, User } from '../types';
+import { getDisplayName } from './displayName';
 
 export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: User, buyer: User): Promise<void> => {
     // 1. Create a wrapper div to contain the HTML template
@@ -137,7 +138,7 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
                 </h3>
                 <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000', fontSize: '12px', marginBottom: '40px' }}>
                     <tbody>
-                        <tr><td style={{ border: '1px solid #000', padding: '8px', width: '25%', backgroundColor: '#f9f9f9' }}>企業名 / 氏名</td><td style={{ border: '1px solid #000', padding: '8px' }}>{seller.companyName || seller.name || '未設定'}</td></tr>
+                        <tr><td style={{ border: '1px solid #000', padding: '8px', width: '25%', backgroundColor: '#f9f9f9' }}>企業名 / 氏名</td><td style={{ border: '1px solid #000', padding: '8px' }}>{getDisplayName(seller)}</td></tr>
                         <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>代表者名</td><td style={{ border: '1px solid #000', padding: '8px' }}>{seller.representativeName || '未設定'}</td></tr>
                         <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>担当者名</td><td style={{ border: '1px solid #000', padding: '8px' }}>{seller.contactPerson || '-'}</td></tr>
                         <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>所在地</td><td style={{ border: '1px solid #000', padding: '8px' }}>{seller.address || '未設定'}</td></tr>
@@ -153,7 +154,7 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
                 </h3>
                 <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000', fontSize: '12px', marginBottom: '40px' }}>
                     <tbody>
-                        <tr><td style={{ border: '1px solid #000', padding: '8px', width: '25%', backgroundColor: '#f9f9f9' }}>企業名 / 氏名</td><td style={{ border: '1px solid #000', padding: '8px' }}>{buyer.companyName || buyer.name || '未設定'}</td></tr>
+                        <tr><td style={{ border: '1px solid #000', padding: '8px', width: '25%', backgroundColor: '#f9f9f9' }}>企業名 / 氏名</td><td style={{ border: '1px solid #000', padding: '8px' }}>{getDisplayName(buyer)}</td></tr>
                         <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>代表者名</td><td style={{ border: '1px solid #000', padding: '8px' }}>{buyer.representativeName || '未設定'}</td></tr>
                         <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>担当者名</td><td style={{ border: '1px solid #000', padding: '8px' }}>{buyer.contactPerson || '-'}</td></tr>
                         <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>所在地</td><td style={{ border: '1px solid #000', padding: '8px' }}>{buyer.address || '未設定'}</td></tr>

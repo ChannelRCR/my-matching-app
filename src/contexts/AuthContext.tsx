@@ -18,6 +18,14 @@ interface AuthContextType {
         bankAccountInfo: string;
         phone: string;
         email: string;
+        entityType: 'corporate' | 'individual';
+        hasNoTradeName: boolean;
+        postalCode: string;
+        companyNameKana: string;
+        representativeNameKana: string;
+        industry: string;
+        industryOther: string;
+        appealPoint: string;
         privacySettings: Record<string, boolean>;
     }) => Promise<{ error: any }>;
     updateProfile: (data: Partial<PublicUser>) => Promise<{ error: any }>;
@@ -118,6 +126,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 bankAccountInfo: profileData.bank_account_info,
                 phone: profileData.phone,
                 email: profileData.email,
+                entityType: profileData.entity_type,
+                hasNoTradeName: profileData.has_no_trade_name,
+                postalCode: profileData.postal_code,
+                companyNameKana: profileData.company_name_kana,
+                representativeNameKana: profileData.representative_name_kana,
+                industry: profileData.industry,
+                industryOther: profileData.industry_other,
                 privacySettings: profileData.privacy_settings,
             });
         } catch (err) {
@@ -144,6 +159,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         bankAccountInfo: string;
         phone: string;
         email: string; // The profile email, usually the same as auth email
+        entityType: 'corporate' | 'individual';
+        hasNoTradeName: boolean;
+        postalCode: string;
+        companyNameKana: string;
+        representativeNameKana: string;
+        industry: string;
+        industryOther: string;
+        appealPoint: string;
         privacySettings: Record<string, boolean>;
     }) => {
         // 1. Sign up to Auth
@@ -195,6 +218,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 address: extraData.address,
                 bank_account_info: extraData.bankAccountInfo,
                 phone_number: extraData.phone,
+                entity_type: extraData.entityType,
+                has_no_trade_name: extraData.hasNoTradeName,
+                postal_code: extraData.postalCode,
+                company_name_kana: extraData.companyNameKana,
+                representative_name_kana: extraData.representativeNameKana,
+                industry: extraData.industry,
+                industry_other: extraData.industryOther,
+                appeal_point: extraData.appealPoint,
                 privacy_settings: extraData.privacySettings,
             };
             const { error } = await supabase.from('sellers').insert([sellerProfile]);
@@ -207,6 +238,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 contact_person: extraData.contactPerson,
                 address: extraData.address,
                 phone_number: extraData.phone,
+                entity_type: extraData.entityType,
+                has_no_trade_name: extraData.hasNoTradeName,
+                postal_code: extraData.postalCode,
+                company_name_kana: extraData.companyNameKana,
+                representative_name_kana: extraData.representativeNameKana,
+                industry: extraData.industry,
+                industry_other: extraData.industryOther,
+                appeal_point: extraData.appealPoint,
                 privacy_settings: extraData.privacySettings,
                 // Buyers don't have bank_account_info in the form usually, but if they did...
                 // Assuming buyers form doesn't strictly require bank info yet or we add it if needed.
@@ -245,6 +284,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (data.contactPerson !== undefined) specificData.contact_person = data.contactPerson;
             if (data.address !== undefined) specificData.address = data.address;
             if (data.phone !== undefined) specificData.phone_number = data.phone;
+            if (data.entityType !== undefined) specificData.entity_type = data.entityType;
+            if (data.hasNoTradeName !== undefined) specificData.has_no_trade_name = data.hasNoTradeName;
+            if (data.postalCode !== undefined) specificData.postal_code = data.postalCode;
+            if (data.companyNameKana !== undefined) specificData.company_name_kana = data.companyNameKana;
+            if (data.representativeNameKana !== undefined) specificData.representative_name_kana = data.representativeNameKana;
+            if (data.industry !== undefined) specificData.industry = data.industry;
+            if (data.industryOther !== undefined) specificData.industry_other = data.industryOther;
+            if (data.appealPoint !== undefined) specificData.appeal_point = data.appealPoint;
             if (data.privacySettings !== undefined) specificData.privacy_settings = data.privacySettings;
 
             if (profile.role === 'seller') {

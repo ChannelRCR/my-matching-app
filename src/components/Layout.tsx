@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Briefcase, Coins, Menu, X, ChevronRight, Settings } from 'lucide-react';
 import { DonationModal } from './DonationModal';
 import { useAuth } from '../contexts/AuthContext';
+import { getDisplayName } from '../utils/displayName';
 
 export const Layout: React.FC = () => {
     const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
@@ -55,14 +56,24 @@ export const Layout: React.FC = () => {
                         {user ? (
                             <>
                                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200">
-                                    <div className="text-right">
-                                        <div className="text-xs font-bold text-slate-700">{profile?.companyName || user.email}</div>
-                                        <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">
-                                            {profile?.role === 'seller' ? '売り手' : profile?.role === 'buyer' ? '買い手' : profile?.role}
+                                    <div className="flex flex-col">
+                                        <div className="font-semibold text-slate-800 leading-tight">
+                                            {getDisplayName(profile)}
+                                        </div>
+                                        <div className="text-xs text-slate-500 font-medium flex items-center gap-1">
+                                            <span>
+                                                {profile?.role === 'seller' ? '売り手' : profile?.role === 'buyer' ? '買い手' : '管理者'}
+                                            </span>
+                                            {profile?.entityType && (
+                                                <>
+                                                    <span className="text-slate-300">•</span>
+                                                    <span>{profile.entityType === 'corporate' ? '法人' : '個人'}</span>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                                        {profile?.name?.charAt(0) || 'U'}
+                                        {profile?.companyName?.charAt(0) || profile?.email?.charAt(0)?.toUpperCase()}
                                     </div>
                                 </div>
 

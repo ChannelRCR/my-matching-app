@@ -8,6 +8,8 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { translateCompanySize } from '../utils/translations';
+import { INDUSTRY_OPTIONS, CLAIM_TYPE_OPTIONS } from '../utils/constants';
+import { fetchAddressFromZip } from '../utils/zipcode';
 
 interface RegisterInvoiceModalProps {
     isOpen: boolean;
@@ -23,13 +25,18 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
         amount: '',
         sellingAmount: '',
         dueDate: '',
+        debtorEntityType: 'corporate' as 'corporate' | 'individual',
+        debtorPostalCode: '',
         debtorName: '',
         debtorAddress: '',
         isClientNamePublic: false,
         isClientAddressPublic: false,
         industry: '',
+        industryOther: '',
         companySize: 'SMB', // Default
         companyCredit: '',
+        claimType: '売掛金（商品代金）',
+        claimTypeOther: '',
         requestedAmount: '', // Manual input
     });
     const [evidenceFile, setEvidenceFile] = useState<{ file: File, url: string } | null>(null);
@@ -61,6 +68,19 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
             const file = e.target.files[0];
             const url = URL.createObjectURL(file);
             setEvidenceFile({ file, url });
+        }
+    };
+
+    const handlePostalCodeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setFormData(prev => ({ ...prev, debtorPostalCode: val }));
+
+        const cleaned = val.replace(/[^\d]/g, '');
+        if (cleaned.length === 7) {
+            const fetchedAddress = await fetchAddressFromZip(cleaned);
+            if (fetchedAddress) {
+                setFormData(prev => ({ ...prev, debtorAddress: fetchedAddress }));
+            }
         }
     };
 
@@ -135,13 +155,18 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
             amount: amountNum,
             sellingAmount: actualSellingAmount,
             dueDate: formData.dueDate,
+            debtorEntityType: formData.debtorEntityType as any,
+            debtorPostalCode: formData.debtorPostalCode,
             debtorName: formData.debtorName,
             debtorAddress: formData.debtorAddress,
             isClientNamePublic: formData.isClientNamePublic,
             isClientAddressPublic: formData.isClientAddressPublic,
             industry: formData.industry,
+            industryOther: formData.industryOther,
             companySize: formData.companySize as any,
             companyCredit: formData.companyCredit,
+            claimType: formData.claimType,
+            claimTypeOther: formData.claimTypeOther,
             status: 'open',
             requestedAmount: requestedAmountNum, // Manual input
             evidenceUrl: finalEvidenceUrl,
@@ -157,13 +182,18 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
                 amount: '',
                 sellingAmount: '',
                 dueDate: '',
+                debtorEntityType: 'corporate',
+                debtorPostalCode: '',
                 debtorName: '',
                 debtorAddress: '',
                 isClientNamePublic: false,
                 isClientAddressPublic: false,
                 industry: '',
+                industryOther: '',
                 companySize: 'SMB',
                 companyCredit: '',
+                claimType: '売掛金（商品代金）',
+                claimTypeOther: '',
                 requestedAmount: '',
             });
             setEvidenceFile(null);
@@ -252,14 +282,26 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
 
                             <div className="space-y-4 md:col-span-2 p-4 bg-slate-50 border border-slate-200 rounded-lg mt-2 mb-2">
                                 <h4 className="font-bold text-slate-700 text-sm mb-2">取引先（売掛先）情報</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                                <div className="flex gap-4 mb-2">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="debtorEntityType" value="corporate" checked={formData.debtorEntityType === 'corporate'} onChange={handleInputChange} className="text-primary focus:ring-primary" />
+                                        <span className="text-sm font-medium">法人</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="debtorEntityType" value="individual" checked={formData.debtorEntityType === 'individual'} onChange={handleInputChange} className="text-primary focus:ring-primary" />
+                                        <span className="text-sm font-medium">個人（個人事業主）</span>
+                                    </label>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-4">
                                     <div>
                                         <Input
-                                            label="取引先企業名 *"
+                                            label={formData.debtorEntityType === 'corporate' ? "取引先企業名 *" : "取引先屋号/氏名 *"}
                                             name="debtorName"
                                             value={formData.debtorName}
                                             onChange={handleInputChange}
-                                            placeholder="例: 株式会社○○..."
+                                            placeholder={formData.debtorEntityType === 'corporate' ? "例: 株式会社○○..." : "例: 山田 太郎"}
                                             required
                                         />
                                         <div className="mt-2 flex items-center">
@@ -271,43 +313,84 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
                                                     onChange={handleInputChange}
                                                     className="rounded border-slate-300 text-primary focus:ring-primary h-4 w-4"
                                                 />
-                                                <span className="text-sm text-slate-600 font-medium">企業名を全体に公開する</span>
+                                                <span className="text-sm text-slate-600 font-medium">企業名/氏名を全体に公開する</span>
                                             </label>
                                         </div>
                                     </div>
-                                    <div>
-                                        <Input
-                                            label="取引先所在地"
-                                            name="debtorAddress"
-                                            value={formData.debtorAddress}
-                                            onChange={handleInputChange}
-                                            placeholder="例: 東京都千代田区..."
-                                        />
-                                        <div className="mt-2 flex items-center">
-                                            <label className="flex items-center gap-2 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    name="isClientAddressPublic"
-                                                    checked={formData.isClientAddressPublic}
-                                                    onChange={handleInputChange}
-                                                    className="rounded border-slate-300 text-primary focus:ring-primary h-4 w-4"
-                                                />
-                                                <span className="text-sm text-slate-600 font-medium">所在地を全体に公開する</span>
-                                            </label>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <Input
+                                                label="取引先郵便番号"
+                                                name="debtorPostalCode"
+                                                value={formData.debtorPostalCode}
+                                                onChange={handlePostalCodeChange}
+                                                placeholder="例: 1000001"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Input
+                                                label="取引先所在地"
+                                                name="debtorAddress"
+                                                value={formData.debtorAddress}
+                                                onChange={handleInputChange}
+                                                placeholder="例: 東京都千代田区..."
+                                            />
+                                            <div className="mt-2 flex items-center">
+                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        name="isClientAddressPublic"
+                                                        checked={formData.isClientAddressPublic}
+                                                        onChange={handleInputChange}
+                                                        className="rounded border-slate-300 text-primary focus:ring-primary h-4 w-4"
+                                                    />
+                                                    <span className="text-sm text-slate-600 font-medium">所在地を全体に公開する</span>
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-700">取引先企業の業種 *</label>
-                                <Input
-                                    name="industry"
-                                    value={formData.industry}
-                                    onChange={handleInputChange}
-                                    placeholder="例: 建設業、IT、運送業..."
-                                    required
-                                />
+                            <div className="space-y-4 md:col-span-2">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-slate-700">債権の種類 *</label>
+                                        <select
+                                            name="claimType"
+                                            value={formData.claimType}
+                                            onChange={handleInputChange}
+                                            className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        >
+                                            {CLAIM_TYPE_OPTIONS.map(opt => (
+                                                <option key={opt} value={opt}>{opt}</option>
+                                            ))}
+                                        </select>
+                                        {formData.claimType === 'その他' && (
+                                            <Input name="claimTypeOther" value={formData.claimTypeOther} onChange={handleInputChange} placeholder="具体的な債権の種類を入力" required />
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-slate-700">取引先企業の業種 *</label>
+                                        <select
+                                            name="industry"
+                                            value={formData.industry}
+                                            onChange={handleInputChange}
+                                            className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50"
+                                            required
+                                        >
+                                            <option value="" disabled>業種を選択してください</option>
+                                            {INDUSTRY_OPTIONS.map(opt => (
+                                                <option key={opt} value={opt}>{opt}</option>
+                                            ))}
+                                        </select>
+                                        {formData.industry === 'その他' && (
+                                            <Input name="industryOther" value={formData.industryOther} onChange={handleInputChange} placeholder="具体的な業種を入力" required />
+                                        )}
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="space-y-2">

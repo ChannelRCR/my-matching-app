@@ -4,8 +4,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import { Briefcase, Wallet, LineChart } from 'lucide-react';
+import { Briefcase, Wallet, LineChart, Building2, User } from 'lucide-react';
 import type { UserRole } from '../types';
+import { fetchAddressFromZip } from '../utils/zipcode';
+import { INDUSTRY_OPTIONS } from '../utils/constants';
 
 export const RegisterPage: React.FC = () => {
     const { signUp } = useAuth();
@@ -23,17 +25,23 @@ export const RegisterPage: React.FC = () => {
     const [showPassword, setShowPassword] = useState(false);
 
     // Basic profile fields
-    const [name, setName] = useState('');
     const [companyName, setCompanyName] = useState('');
 
     // Detailed profile fields
     const [formData, setFormData] = useState({
+        entityType: 'corporate' as 'corporate' | 'individual',
+        hasNoTradeName: false,
+        postalCode: '',
+        companyNameKana: '',
+        representativeNameKana: '',
         representativeName: '',
         contactPerson: '',
         address: '',
         bankAccountInfo: '',
         phone: '',
-        email: '',
+        appealPoint: '',
+        industry: '',
+        industryOther: '',
     });
 
     const [privacySettings, setPrivacySettings] = useState({
@@ -50,8 +58,22 @@ export const RegisterPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [isConfirming, setIsConfirming] = useState(false);
 
-    const handleChange = (field: string, value: string) => {
+    const handleChange = (field: string, value: string | boolean) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handlePostalCodeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        handleChange('postalCode', val);
+
+        // Only fetch if exactly 7 digits (with or without hyphen)
+        const cleaned = val.replace(/[^\d]/g, '');
+        if (cleaned.length === 7) {
+            const fetchedAddress = await fetchAddressFromZip(cleaned);
+            if (fetchedAddress) {
+                handleChange('address', fetchedAddress);
+            }
+        }
     };
 
     const togglePrivacy = (field: string) => {
@@ -65,8 +87,8 @@ export const RegisterPage: React.FC = () => {
         setError(null);
 
         // Pre-validation
-        if (!email || !password || !name || !companyName) {
-            setError('必須項目（氏名、社名、メールアドレス、パスワード）が入力されていません。');
+        if (!email || !password || !companyName || !formData.industry) {
+            setError('必須項目（社名/屋号、業種、メールアドレス、パスワード）が入力されていません。');
             setLoading(false);
             return;
         }
@@ -98,10 +120,11 @@ export const RegisterPage: React.FC = () => {
         }
 
         const { error: signUpError } = await signUp(email, password, role, {
-            name,
+            name: companyName, // Dummy name field for internal auth since it's deprecated
             companyName,
             ...formData,
-            contactPerson: formData.contactPerson || name, // フォールバック: 空の場合は担当者氏名を使用
+            email: email, // Set email derived from auth fields
+            contactPerson: formData.contactPerson || companyName, // フォールバック: 空の場合は代表される入力を使用
             privacySettings
         });
 
@@ -124,34 +147,46 @@ export const RegisterPage: React.FC = () => {
         }
     };
 
-    const renderInputWithPrivacy = (label: string, field: keyof typeof formData, placeholder: string = "", type: string = "text") => (
+    const renderInputWithPrivacy = (label: string, field: keyof typeof formData, placeholder: string = "", type: string = "text", customOnChange?: (e: React.ChangeEvent<HTMLInputElement>) => void) => (
         <div className="space-y-1">
             <div className="flex justify-between items-center">
                 <label className="text-sm font-medium text-gray-700">{label}</label>
-                <div className="flex items-center gap-2 text-xs">
-                    <span className={privacySettings[field] ? "text-blue-600 font-bold" : "text-slate-400"}>
-                        {privacySettings[field] ? "公開" : "非公開"}
-                    </span>
-                    <button
-                        type="button"
-                        onClick={() => togglePrivacy(field as any)}
-                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${privacySettings[field] ? 'bg-primary' : 'bg-slate-200'
-                            }`}
-                    >
-                        <span
-                            className={`${privacySettings[field] ? 'translate-x-5' : 'translate-x-1'
-                                } inline-block h-3 w-3 transform rounded-full bg-white transition-transform`}
-                        />
-                    </button>
-                </div>
+                {(field in privacySettings) && (
+                    <div className="flex items-center gap-2 text-xs">
+                        <span className={(privacySettings as any)[field] ? "text-blue-600 font-bold" : "text-slate-400"}>
+                            {(privacySettings as any)[field] ? "公開" : "非公開"}
+                        </span>
+                        <button
+                            type="button"
+                            onClick={() => togglePrivacy(field as any)}
+                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${(privacySettings as any)[field] ? 'bg-primary' : 'bg-slate-200'
+                                }`}
+                        >
+                            <span
+                                className={`${(privacySettings as any)[field] ? 'translate-x-5' : 'translate-x-1'
+                                    } inline-block h-3 w-3 transform rounded-full bg-white transition-transform`}
+                            />
+                        </button>
+                    </div>
+                )}
             </div>
-            <Input
-                value={formData[field]}
-                onChange={(e) => handleChange(field, e.target.value)}
-                placeholder={placeholder}
-                type={type}
-                required
-            />
+            {type === 'textarea' ? (
+                <textarea
+                    value={String(formData[field])}
+                    onChange={(e) => handleChange(field, e.target.value)}
+                    placeholder={placeholder}
+                    required
+                    className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none resize-none h-24 text-slate-800"
+                />
+            ) : (
+                <Input
+                    value={String(formData[field])}
+                    onChange={customOnChange || ((e) => handleChange(field, e.target.value))}
+                    placeholder={placeholder}
+                    type={type}
+                    required={field !== 'appealPoint' && field !== 'postalCode' && field !== 'companyNameKana' && field !== 'representativeNameKana' && field !== 'contactPerson'}
+                />
+            )}
         </div>
     );
 
@@ -199,30 +234,203 @@ export const RegisterPage: React.FC = () => {
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
+
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                            <button
+                                type="button"
+                                onClick={() => handleChange('entityType', 'corporate')}
+                                className={`p-3 rounded-lg border-2 flex flex-col items-center gap-2 transition-all ${formData.entityType === 'corporate'
+                                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                                    : 'border-slate-200 hover:border-slate-300 text-slate-500'
+                                    }`}
+                            >
+                                <Building2 size={24} />
+                                <span className="font-bold text-sm">法人 ({role === 'seller' ? '企業' : '法人投資家'})</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    handleChange('entityType', 'individual');
+                                    // Reset non-applicable fields
+                                    handleChange('companyNameKana', '');
+                                }}
+                                className={`p-3 rounded-lg border-2 flex flex-col items-center gap-2 transition-all ${formData.entityType === 'individual'
+                                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                                    : 'border-slate-200 hover:border-slate-300 text-slate-500'
+                                    }`}
+                            >
+                                <User size={24} />
+                                <span className="font-bold text-sm">個人 / 個人事業主</span>
+                            </button>
+                        </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Input
-                                label="氏名 (担当者名)"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                required
-                            />
-                            <Input
-                                label="会社名 / 屋号"
-                                value={companyName}
-                                onChange={(e) => setCompanyName(e.target.value)}
-                                required
-                            />
+                            {formData.entityType === 'corporate' ? (
+                                <div className="space-y-4">
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-sm font-medium text-gray-700">法人名</label>
+                                            <div className="flex items-center gap-2 text-xs">
+                                                <span className={privacySettings.companyName ? "text-blue-600 font-bold" : "text-slate-400"}>
+                                                    {privacySettings.companyName ? "公開" : "非公開"}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => togglePrivacy('companyName')}
+                                                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${privacySettings.companyName ? 'bg-primary' : 'bg-slate-200'}`}
+                                                >
+                                                    <span className={`${privacySettings.companyName ? 'translate-x-5' : 'translate-x-1'} inline-block h-3 w-3 transform rounded-full bg-white transition-transform`} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <Input
+                                            placeholder="例 〇〇株式会社"
+                                            value={companyName}
+                                            onChange={(e) => setCompanyName(e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                    <Input
+                                        label="法人名（フリガナ）"
+                                        placeholder="例 マルマル カブシキガイシャ"
+                                        value={formData.companyNameKana}
+                                        onChange={(e) => handleChange('companyNameKana', e.target.value)}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-sm font-medium text-gray-700">屋号</label>
+                                            <div className="flex items-center gap-2 text-xs">
+                                                <span className={privacySettings.companyName ? "text-blue-600 font-bold" : "text-slate-400"}>
+                                                    {privacySettings.companyName ? "公開" : "非公開"}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => togglePrivacy('companyName')}
+                                                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${privacySettings.companyName ? 'bg-primary' : 'bg-slate-200'}`}
+                                                >
+                                                    <span className={`${privacySettings.companyName ? 'translate-x-5' : 'translate-x-1'} inline-block h-3 w-3 transform rounded-full bg-white transition-transform`} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between items-end gap-2">
+                                            <div className="flex-1">
+                                                <Input
+                                                    placeholder="例 〇〇商会"
+                                                    value={formData.hasNoTradeName ? '屋号無し' : companyName}
+                                                    onChange={(e) => setCompanyName(e.target.value)}
+                                                    required
+                                                    disabled={formData.hasNoTradeName}
+                                                />
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    const noTrade = !formData.hasNoTradeName;
+                                                    handleChange('hasNoTradeName', noTrade);
+                                                    if (noTrade) setCompanyName('屋号無し');
+                                                    else setCompanyName('');
+                                                }}
+                                                className={formData.hasNoTradeName ? "bg-slate-200 border-slate-300" : ""}
+                                            >
+                                                {formData.hasNoTradeName ? "取消" : "屋号無し"}
+                                            </Button>
+                                        </div>
+                                        <span className="text-xs text-slate-500 block mt-1">※屋号がない場合は「屋号無し」として登録されます</span>
+                                    </div>
+                                    <Input
+                                        label="屋号（フリガナ）"
+                                        placeholder="例 マルマル ショウカイ"
+                                        value={formData.companyNameKana}
+                                        onChange={(e) => handleChange('companyNameKana', e.target.value)}
+                                    />
+                                </div>
+                            )}
                         </div>
 
                         <div className="space-y-4 border-t border-slate-100 pt-4">
                             <h3 className="font-bold text-slate-700">詳細プロフィール情報</h3>
 
+                            <div className="space-y-4 mb-4">
+                                <div className="space-y-1">
+                                    <label className="text-sm font-medium text-gray-700">業種 *</label>
+                                    <select
+                                        value={formData.industry}
+                                        onChange={(e) => handleChange('industry', e.target.value)}
+                                        className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        required
+                                    >
+                                        <option value="" disabled>業種を選択してください</option>
+                                        {INDUSTRY_OPTIONS.map(opt => (
+                                            <option key={opt} value={opt}>{opt}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                {formData.industry === 'その他' && (
+                                    <div className="space-y-1">
+                                        <label className="text-sm font-medium text-gray-700">業種（その他）*</label>
+                                        <Input
+                                            value={formData.industryOther}
+                                            onChange={(e) => handleChange('industryOther', e.target.value)}
+                                            placeholder="具体的な業種を入力してください"
+                                            required
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {renderInputWithPrivacy("代表者名", "representativeName", "例: 山田 太郎")}
+                                <div className="space-y-2">
+                                    {renderInputWithPrivacy(formData.entityType === 'corporate' ? "代表者名" : "代表者名（個人名）", "representativeName", "例: 山田 太郎")}
+                                    {renderInputWithPrivacy("代表者名（フリガナ）", "representativeNameKana", "例: ヤマダ タロウ")}
+                                </div>
+
+                                {formData.entityType === 'corporate' && (
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between items-end gap-2">
+                                            <div className="flex-1">
+                                                {renderInputWithPrivacy("担当者名", "contactPerson", "例: 佐藤 花子")}
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="mb-[2px]"
+                                                onClick={() => {
+                                                    handleChange('contactPerson', formData.representativeName);
+                                                }}
+                                            >
+                                                代表者と共通
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {renderInputWithPrivacy("連絡先電話番号", "phone", "例: 03-1234-5678", "tel")}
                             </div>
 
-                            {renderInputWithPrivacy("住所", "address", "例: 東京都千代田区...")}
+                            <div className="flex gap-4 items-start">
+                                <div className="w-1/3">
+                                    {renderInputWithPrivacy("郵便番号（7桁）", "postalCode", "例: 1000001", "text", handlePostalCodeChange)}
+                                </div>
+                                <div className="w-2/3">
+                                    {renderInputWithPrivacy("所在地", "address", "例: 東京都千代田区...")}
+                                </div>
+                            </div>
+
+                            {renderInputWithPrivacy(
+                                formData.entityType === 'corporate' ? "自社のアピールポイント（最大400文字）" : "貴殿のアピールポイント",
+                                "appealPoint",
+                                role === 'buyer'
+                                    ? "売り手に対するアピールポイントや、希望する買取条件等をお願いします。"
+                                    : "買い手に対するアピールポイントを一言お願いします。",
+                                "textarea"
+                            )}
+
                             {renderInputWithPrivacy("入金口座（本人名義）", "bankAccountInfo", "例: ○○銀行 ××支店 普通 1234567")}
                         </div>
 
@@ -230,7 +438,7 @@ export const RegisterPage: React.FC = () => {
                             <h3 className="font-bold text-slate-700 mb-2">ログイン情報</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Input
-                                    label="メールアドレス (このメールアドレスがログインIDとなります)"
+                                    label="メールアドレス ※ログインIDとなります。"
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
@@ -272,16 +480,23 @@ export const RegisterPage: React.FC = () => {
                                 <h4 className="font-bold text-blue-800 text-center mb-4">以下の内容で登録しますか？</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm">
                                     <div className="text-slate-500 font-medium">登録種別:</div>
-                                    <div className="font-bold">{role === 'seller' ? '売り手 (資金調達)' : '買い手 (投資)'}</div>
+                                    <div className="font-bold">
+                                        {role === 'seller' ? '売り手 (資金調達)' : '買い手 (投資)'}
+                                        ({formData.entityType === 'corporate' ? '法人' : '個人事業主'})
+                                    </div>
 
-                                    <div className="text-slate-500 font-medium">氏名:</div>
-                                    <div className="font-bold">{name}</div>
-
-                                    <div className="text-slate-500 font-medium">会社名 / 屋号:</div>
-                                    <div className="font-bold">{companyName}</div>
+                                    <div className="text-slate-500 font-medium">{formData.entityType === 'corporate' ? '法人名' : '屋号'}:</div>
+                                    <div className="font-bold">
+                                        {companyName}
+                                        <span className="text-xs text-slate-400 font-normal ml-2">({privacySettings.companyName ? '公開' : '非公開'})</span>
+                                    </div>
 
                                     <div className="text-slate-500 font-medium mt-2">代表者名:</div>
-                                    <div className="font-bold mt-2">{formData.representativeName || '-'} <span className="text-xs text-slate-400 font-normal">({privacySettings.representativeName ? '公開' : '非公開'})</span></div>
+                                    <div className="font-bold mt-2">
+                                        {formData.representativeName || '-'}
+                                        {formData.representativeNameKana && <span className="text-xs text-slate-500 block">({formData.representativeNameKana})</span>}
+                                        <span className="text-xs text-slate-400 font-normal">({privacySettings.representativeName ? '公開' : '非公開'})</span>
+                                    </div>
 
                                     <div className="text-slate-500 font-medium">連絡先電話番号:</div>
                                     <div className="font-bold">{formData.phone || '-'} <span className="text-xs text-slate-400 font-normal">({privacySettings.phone ? '公開' : '非公開'})</span></div>

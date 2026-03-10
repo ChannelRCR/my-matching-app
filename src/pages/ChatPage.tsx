@@ -9,6 +9,7 @@ import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useMarket } from '../contexts/MarketContext';
 import { Handshake, FileText } from 'lucide-react';
+import { getDisplayName } from '../utils/displayName';
 import type { Deal, Invoice, User as UserType } from '../types';
 interface ChatMessage {
     id: string;
@@ -110,10 +111,10 @@ export const ChatPage: React.FC = () => {
                 // Set counterpart name
                 if (isBuyer) {
                     const seller = users.find(u => u.id === foundDeal.sellerId);
-                    setCounterpartName(seller?.companyName || '売却企業');
+                    setCounterpartName(getDisplayName(seller));
                 } else {
                     const buyer = users.find(u => u.id === foundDeal.buyerId);
-                    setCounterpartName(buyer?.companyName || '投資家');
+                    setCounterpartName(getDisplayName(buyer));
                 }
 
                 // Initialize input value based on current deal negotiation status,

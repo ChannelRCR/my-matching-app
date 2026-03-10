@@ -18,6 +18,16 @@ export interface User {
     bankAccountInfo?: string;
     phone?: string;
     email?: string; // For display/contact, separate from auth email
+
+    // Revamped Profile Fields
+    entityType?: 'corporate' | 'individual';
+    hasNoTradeName?: boolean;
+    postalCode?: string;
+    companyNameKana?: string;
+    representativeNameKana?: string;
+    industry?: string;
+    industryOther?: string;
+
     privacySettings?: {
         companyName: boolean;
         representativeName: boolean;
@@ -39,9 +49,14 @@ export interface Invoice {
     debtorAddress?: string;
     isClientNamePublic?: boolean;
     isClientAddressPublic?: boolean;
+    debtorEntityType?: 'corporate' | 'individual';
+    debtorPostalCode?: string;
     industry: string;
+    industryOther?: string;
     companySize?: 'Listed' | 'Large' | 'SMB' | 'Individual'; // Updated enum
     companyCredit: string; // Credit info of the debtor company
+    claimType?: string;
+    claimTypeOther?: string;
     status: 'open' | 'negotiating' | 'pending' | 'sold';
     requestedAmount?: number;
     evidenceUrl?: string;

@@ -101,7 +101,7 @@ export const SellerDashboard: React.FC = () => {
                 </button>
             </div>
 
-            {activeTab === 'my' && (
+            {activeTab === 'market' && (
                 <div className="mb-6">
                     <InvoiceFilterPanel {...filterProps} />
                 </div>
@@ -115,7 +115,7 @@ export const SellerDashboard: React.FC = () => {
                         <p className="text-slate-500 font-medium">
                             {activeTab === 'sold' ? '成約済みの案件はありません。' : '条件に一致する案件は見つかりませんでした。'}
                         </p>
-                        {activeTab === 'my' && (
+                        {activeTab === 'market' && (
                             <Button variant="ghost" onClick={resetFilters} className="text-primary mt-2">
                                 検索条件をクリアする
                             </Button>
