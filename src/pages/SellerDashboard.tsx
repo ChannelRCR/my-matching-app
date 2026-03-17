@@ -10,11 +10,11 @@ import { hasUnreadMessages } from '../utils/chat';
 import { translateCompanySize } from '../utils/translations';
 import { useInvoiceFilter } from '../hooks/useInvoiceFilter';
 import { InvoiceFilterPanel } from '../components/InvoiceFilterPanel';
-import { Search } from 'lucide-react';
+import { Search, AlertCircle } from 'lucide-react';
 
 export const SellerDashboard: React.FC = () => {
     const navigate = useNavigate();
-    const { invoices, deals, messages } = useData();
+    const { invoices, deals, messages, users, getUserTrackRecord } = useData();
     const { user } = useAuth();
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
     // Tab State with sessionStorage persistence
@@ -57,11 +57,23 @@ export const SellerDashboard: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold flex items-center gap-2">
-                    <FileText className="h-6 w-6 text-primary" />
-                    債権一覧
-                </h1>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <h1 className="text-2xl font-bold flex items-center gap-2">
+                        <FileText className="h-6 w-6 text-primary" />
+                        債権一覧
+                    </h1>
+                    {user && (
+                        <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200 w-fit">
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Track Record</span>
+                            {getUserTrackRecord(user.id, 'seller') === 0 ? (
+                                <span className="text-sm font-bold text-blue-600 flex items-center gap-1">🔰 初回</span>
+                            ) : (
+                                <span className="text-sm font-bold text-emerald-600 flex items-center gap-1">🏆 成約 {getUserTrackRecord(user.id, 'seller')}件</span>
+                            )}
+                        </div>
+                    )}
+                </div>
                 <Button onClick={() => setIsRegisterModalOpen(true)}>
                     <PlusCircle className="mr-2 h-4 w-4" />
                     案件の新規登録
@@ -113,7 +125,7 @@ export const SellerDashboard: React.FC = () => {
                     <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-300 col-span-full">
                         <Search className="h-8 w-8 text-slate-400 mx-auto mb-3" />
                         <p className="text-slate-500 font-medium">
-                            {activeTab === 'sold' ? '成約済みの案件はありません。' : '条件に一致する案件は見つかりませんでした。'}
+                            {activeTab === 'sold' ? '成約済みの案件はありません。' : activeTab === 'my' ? 'まだ登録された案件はありません。' : '条件に一致する案件は見つかりませんでした。'}
                         </p>
                         {activeTab === 'market' && (
                             <Button variant="ghost" onClick={resetFilters} className="text-primary mt-2">
@@ -150,29 +162,63 @@ export const SellerDashboard: React.FC = () => {
                             }
                         }
 
+                        // Determine if it is an "Uncompleted" transaction
+                        let isUncompleted = false;
+                        if (inv.sellerId === user?.id) {
+                            if (inv.status !== 'sold') {
+                                isUncompleted = true;
+                            } else {
+                                const associatedDeal = deals.find(d => d.invoiceId === inv.id && d.status === 'concluded');
+                                if (associatedDeal && associatedDeal.paymentStatus !== 'fully_settled') {
+                                    isUncompleted = true;
+                                }
+                            }
+                        }
+
                         return (
                             <Card
                                 key={inv.id}
-                                className={`flex flex-col h-full hover:shadow-lg transition-shadow border-slate-200 cursor-pointer ${inv.status === 'sold' ? 'opacity-[0.85] grayscale-[20%]' : ''}`}
+                                className={`flex flex-col h-full hover:shadow-lg transition-shadow border-slate-200 cursor-pointer ${inv.status === 'sold' && !isUncompleted ? 'opacity-[0.85] grayscale-[20%]' : ''}`}
                                 onClick={() => navigate(activeTab === 'my' ? `/seller/invoices/${inv.id}` : `/market/invoices/${inv.id}`)}
                             >
                                 <CardContent className="p-5 flex-1 flex flex-col">
                                     <div className="flex justify-between items-start mb-3">
                                         <div className="flex flex-wrap gap-1.5 mb-2">
+                                            {inv.createdAt && (new Date().getTime() - new Date(inv.createdAt).getTime() < 24 * 60 * 60 * 1000) && (
+                                                <span className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded font-bold border border-red-200">NEW</span>
+                                            )}
                                             <span className="bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded font-medium border border-slate-200">{inv.industry}</span>
                                             <span className="bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded font-medium border border-slate-200">{translateCompanySize(inv.companySize)}</span>
                                             <span className={`text-xs px-2 py-1 rounded font-bold ${isPartial ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
                                                 {isPartial ? '一部売却' : '全部売却'}
                                             </span>
                                         </div>
-                                        <div className={`text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap ${statusColor}`}>
-                                            {dynamicStatus}
+                                        <div className="flex flex-col gap-1 items-end">
+                                            <div className={`text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap ${statusColor}`}>
+                                                {dynamicStatus}
+                                            </div>
+                                            {isUncompleted && (
+                                                <div className="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap bg-orange-100 text-orange-700 border border-orange-200 flex items-center gap-1">
+                                                    <AlertCircle className="w-3 h-3" /> 未決済・進行中
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
-                                    <div className="text-sm font-bold text-slate-800 mb-1 flex items-center justify-between">
-                                        <span>{inv.isClientNamePublic ? (inv.debtorName || '企業名未設定') : '企業名非公開'} <span className="text-xs text-slate-400 font-normal ml-1">ID: {inv.id}</span></span>
-                                        <span className="text-xs text-slate-500 font-normal flex items-center gap-1"><Calendar className="w-3 h-3" />登録: {formattedDate}</span>
+                                    <div className="text-sm font-bold text-slate-800 mb-1 flex items-start sm:items-center justify-between flex-col sm:flex-row gap-2">
+                                        <div className="flex items-center flex-wrap gap-2">
+                                            <span>{inv.isClientNamePublic ? (inv.debtorName || '企業名未設定') : '企業名非公開'} <span className="text-xs text-slate-400 font-normal ml-1">ID: {inv.id}</span></span>
+                                            {users.find(u => u.id === inv.sellerId) && (
+                                                <div className="text-[10px] font-bold bg-slate-100 inline-flex px-1.5 py-0.5 rounded border border-slate-200">
+                                                    {getUserTrackRecord(inv.sellerId, 'seller') === 0 ? (
+                                                        <span className="text-blue-600">🔰 初回</span>
+                                                    ) : (
+                                                        <span className="text-emerald-600">🏆 成約 {getUserTrackRecord(inv.sellerId, 'seller')}件</span>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <span className="text-xs text-slate-500 font-normal flex items-center gap-1 shrink-0"><Calendar className="w-3 h-3" />登録: {formattedDate}</span>
                                     </div>
 
                                     <div className="mt-4 space-y-3 bg-slate-50 p-3 rounded-lg border border-slate-100 flex-1">

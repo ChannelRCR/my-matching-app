@@ -17,7 +17,7 @@ interface RegisterInvoiceModalProps {
 }
 
 export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOpen, onClose }) => {
-    const { addInvoice } = useData();
+    const { addInvoice, invoices, deals } = useData();
     const { user } = useAuth();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [saleMode, setSaleMode] = useState<'full' | 'partial'>('full');
@@ -41,6 +41,24 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
     });
     const [evidenceFile, setEvidenceFile] = useState<{ file: File, url: string } | null>(null);
     const [isConfirming, setIsConfirming] = useState(false);
+
+    // Calculate uncompleted transactions for the current user
+    const uncompletedInvoices = invoices.filter(inv => {
+        if (inv.sellerId !== user?.id) return false;
+        
+        if (inv.status !== 'sold') return true;
+        
+        // If it is sold, check the associated deal's payment status
+        const associatedDeal = deals.find(d => d.invoiceId === inv.id && d.status === 'concluded');
+        if (associatedDeal && associatedDeal.paymentStatus !== 'fully_settled') {
+            return true;
+        }
+        
+        return false;
+    });
+    
+    const uncompletedCount = uncompletedInvoices.length;
+    const isRegistrationBlocked = uncompletedCount >= 3;
 
     if (!isOpen) return null;
 
@@ -111,6 +129,11 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
 
         if (saleMode === 'partial' && actualSellingAmount > amountNum) {
             alert('売却対象金額は額面金額以下に設定してください');
+            return;
+        }
+
+        if (requestedAmountNum > actualSellingAmount) {
+            alert('売却希望額は対象債権額以下に設定してください');
             return;
         }
 
@@ -213,6 +236,20 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
                     </Button>
                 </CardHeader>
                 <CardContent>
+                    {uncompletedCount > 0 && (
+                        <div className={`mb-4 p-4 rounded-lg border font-bold text-sm ${isRegistrationBlocked ? 'bg-red-50 border-red-200 text-red-700' : 'bg-yellow-50 border-yellow-200 text-yellow-800'}`}>
+                            {isRegistrationBlocked ? (
+                                <p className="flex items-center gap-2">
+                                    <span className="text-xl">⚠️</span> 【登録制限】現在、未決済・進行中の取引が{uncompletedCount}件あります。多重債務化防止のため、これ以上の新規案件登録はできません。現在進行中の取引の完了（決済完了）をお待ちください。
+                                </p>
+                            ) : (
+                                <p className="flex items-center gap-2">
+                                    <span className="text-xl">⚠️</span> 注意：現在、未決済・進行中の取引が{uncompletedCount}件あります。<br/>※未決済案件が3件に達すると、新規の案件登録が制限されますのでご注意ください。
+                                </p>
+                            )}
+                        </div>
+                    )}
+                
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
@@ -526,7 +563,9 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
                         ) : (
                             <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
                                 <Button type="button" variant="ghost" onClick={onClose}>キャンセル</Button>
-                                <Button type="submit">出品内容を確認する</Button>
+                                <Button type="submit" disabled={isRegistrationBlocked}>
+                                    出品内容を確認する
+                                </Button>
                             </div>
                         )}
                     </form>
