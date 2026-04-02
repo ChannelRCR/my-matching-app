@@ -11,7 +11,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useMarket } from '../contexts/MarketContext';
 import { getDisplayName } from '../utils/displayName';
 import { translateCompanySize } from '../utils/translations';
-import type { Deal, Invoice, User as UserType } from '../types';
+import type { Deal, Invoice, User as UserType, Dispute } from '../types';
 import { Download, Handshake } from 'lucide-react';
 import { DealStepper } from '../components/DealStepper';
 
@@ -46,6 +46,11 @@ export const ChatPage: React.FC = () => {
     const [isUploading, setIsUploading] = useState(false);
     const [isPriceUnlocked, setIsPriceUnlocked] = useState(false);
     
+    // Dispute state
+    const [activeDispute, setActiveDispute] = useState<Dispute | null>(null);
+    const [disputeClaimAmount, setDisputeClaimAmount] = useState('');
+    const [disputeMonthlyPayment, setDisputeMonthlyPayment] = useState('');
+    
     const fileInputRef = React.useRef<HTMLInputElement>(null);
     const hasSentMatchMessageRef = React.useRef(false);
 
@@ -64,6 +69,8 @@ export const ChatPage: React.FC = () => {
     // Compute effective deal state combining global context and local overrides
     const deal = baseDeal ? { ...baseDeal, ...localDealOverride } as Deal : null;
 
+    const dealIsDisputed = deal?.is_disputed === true || deal?.isDisputed === true;
+
     const isBuyer = user && deal ? user.id === deal.buyerId : false;
     const isPriceMatched = deal ? (deal.currentBuyerPrice || 0) > 0 && deal.currentBuyerPrice === deal.currentSellerPrice : false;
     const effectivelyMatched = isPriceMatched && !isPriceUnlocked;
@@ -80,6 +87,27 @@ export const ChatPage: React.FC = () => {
 
     const myRevealedFields = isBuyer ? (deal?.buyerRevealedFields || {}) : (deal?.sellerRevealedFields || {});
     const opponentRevealedFields = isBuyer ? (deal?.sellerRevealedFields || {}) : (deal?.buyerRevealedFields || {});
+
+    // Fetch dispute info
+    useEffect(() => {
+        if (deal && dealIsDisputed) {
+            const fetchDispute = async () => {
+                const { data, error } = await supabase
+                    .from('disputes')
+                    .select('*')
+                    .eq('deal_id', deal.id)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .single();
+                if (data && !error) {
+                    setActiveDispute(data);
+                    if (data.claim_amount) setDisputeClaimAmount(String(data.claim_amount));
+                    if (data.settlement_amount) setDisputeMonthlyPayment(String(data.settlement_amount));
+                }
+            };
+            fetchDispute();
+        }
+    }, [deal?.id, dealIsDisputed]);
 
     // Temporarily added for user verification of profile data coming from DataContext
     useEffect(() => {
@@ -658,6 +686,97 @@ export const ChatPage: React.FC = () => {
         }
     };
 
+    const handleProposeSettlement = async () => {
+        if (!deal || !user || !invoice || !activeDispute) return;
+        
+        const claimAmt = Number(disputeClaimAmount);
+        const monthlyAmt = Number(disputeMonthlyPayment);
+        
+        if (isNaN(claimAmt) || claimAmt <= 0) {
+            alert("有効な和解請求額を入力してください");
+            return;
+        }
+        if (isNaN(monthlyAmt) || monthlyAmt <= 0) {
+            alert("有効な月々の支払提示額を入力してください");
+            return;
+        }
+        
+        const maxAllowed = invoice.sellingAmount || invoice.amount;
+        if (claimAmt > maxAllowed) {
+            alert(`和解請求額は対象債権額（¥${maxAllowed.toLocaleString()}）を超えることはできません`);
+            return;
+        }
+
+        const count = Math.ceil(claimAmt / monthlyAmt);
+
+        if (!window.confirm(`請求総額 ¥${claimAmt.toLocaleString()} を ${count}回分割（月額 ¥${monthlyAmt.toLocaleString()}）で和解提案しますか？`)) return;
+
+        try {
+            const { error } = await supabase.from('disputes').update({
+                claim_amount: claimAmt,
+                settlement_amount: monthlyAmt,
+                installments_count: count
+            }).eq('id', activeDispute.id);
+
+            if (error) throw error;
+            
+            // local update
+            setActiveDispute(prev => prev ? { ...prev, claim_amount: claimAmt, settlement_amount: monthlyAmt, installments_count: count } : null);
+
+            // send system message
+            const now = new Date();
+            const receiverId = isBuyer ? deal.sellerId : deal.buyerId;
+            const proposerRole = isBuyer ? '買主' : '売主';
+            await addMessage({
+                id: `sys_${Date.now()}`,
+                dealId: deal.id,
+                senderId: user.id,
+                receiverId: receiverId,
+                content: `【システム通知・和解条件の提示】\n${proposerRole}から和解提案がありました。\n総額: ¥${claimAmt.toLocaleString()}\n月額(分割): ¥${monthlyAmt.toLocaleString()} (${count}回払い)`,
+                timestamp: now.toISOString(),
+                isSystemMessage: true
+            });
+            
+            alert("和解案を提示しました。");
+        } catch (error: any) {
+            console.error("Dispute update error:", error);
+            alert("和解提案の送信に失敗しました：" + (error.message || "不明なエラー"));
+        }
+    };
+
+    const handleAgreeSettlement = async () => {
+        if (!deal || !user || !activeDispute) return;
+        if (!window.confirm("現在表示されている和解条件に同意し、合意を形成しますか？")) return;
+
+        try {
+            const { error } = await supabase.from('disputes').update({
+                status: 'agreed'
+            }).eq('id', activeDispute.id);
+
+            if (error) throw error;
+
+            setActiveDispute(prev => prev ? { ...prev, status: 'agreed' } : null);
+
+            const now = new Date();
+            const receiverId = isBuyer ? deal.sellerId : deal.buyerId;
+            const roleName = isBuyer ? '買い手' : '売り手';
+            await addMessage({
+                id: `sys_${Date.now()}`,
+                dealId: deal.id,
+                senderId: user.id,
+                receiverId: receiverId,
+                content: `【システム通知】\n${roleName}が和解条件に同意しました。\n両者の間で和解の合意が形成されました。`,
+                timestamp: now.toISOString(),
+                isSystemMessage: true
+            });
+            
+            alert("和解条件に合意しました。");
+        } catch (error: any) {
+            console.error("Dispute agree error:", error);
+            alert("合意処理に失敗しました：" + (error.message || "不明なエラー"));
+        }
+    };
+
     const togglePanel = (key: string) => {
         setExpandedPanels(prev => ({ ...prev, [key]: !prev[key] }));
     };
@@ -863,14 +982,16 @@ export const ChatPage: React.FC = () => {
             </div>
 
             <Card className="flex-1 flex flex-col shadow-md md:overflow-hidden relative">
-                <CardHeader className="border-b bg-slate-900 z-10 py-2.5 px-4 md:px-6 shadow-sm shrink-0">
+                <CardHeader className={`border-b z-10 py-2.5 px-4 md:px-6 shadow-sm shrink-0 ${dealIsDisputed ? 'bg-red-900 border-red-700' : 'bg-slate-900'}`}>
                     <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-3">
                         <div className="flex items-center gap-3 min-w-0">
                             <div className="bg-slate-800 p-2 rounded-md border border-slate-700 shrink-0 shadow-inner">
                                 <User className="h-6 w-6 text-slate-400" />
                             </div>
                             <div className="flex flex-col min-w-0">
-                                <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">取引相手・出品企業</div>
+                                <div className={`text-[10px] font-bold uppercase tracking-wider mb-0.5 ${dealIsDisputed ? 'text-red-300' : 'text-slate-500'}`}>
+                                    {dealIsDisputed ? `🚨 事故案件（仲裁チャット） - ${activeDispute?.dispute_type || '係争中'}` : '取引相手・出品企業'}
+                                </div>
                                 <div className="text-base text-white font-bold flex items-center gap-2 truncate">
                                     <span className="truncate">{counterpartName}</span>
                                     {opponentProfile && (
@@ -904,7 +1025,7 @@ export const ChatPage: React.FC = () => {
                                 <span className="font-mono font-bold tracking-wide">¥{invoice.requestedAmount?.toLocaleString() || '未設定'}</span>
                             </div>
                             <div className="flex gap-2 shrink-0">
-                                {!isBuyer && ['open', 'pending', 'negotiating'].includes(deal.status) && invoice.status !== 'withdrawn' && !isDealExpired && (
+                                {!isBuyer && ['open', 'pending', 'negotiating'].includes(deal.status) && invoice.status !== 'withdrawn' && !isDealExpired && !dealIsDisputed && (
                                     <Button size="sm" variant="outline" className="h-8 text-xs px-3 border-slate-700 text-slate-400 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-colors bg-transparent" onClick={handleWithdraw}>
                                         取り下げる
                                     </Button>
@@ -920,22 +1041,107 @@ export const ChatPage: React.FC = () => {
                 <div className="flex-1 flex flex-col md:flex-row md:overflow-hidden bg-slate-100 p-2 gap-2">
                     {/* Negotiation Panel (Left Panel) */}
                     <Card className="md:w-[320px] lg:w-[380px] flex flex-col shadow-sm border-slate-200 shrink-0 md:h-full md:overflow-y-auto bg-slate-50">
-                        <CardHeader className="border-b bg-white py-2.5 px-4 sticky top-0 z-10 shadow-sm">
-                            <CardTitle className="text-sm font-bold flex items-center justify-between text-slate-700 tracking-wide uppercase">
+                        <CardHeader className={`border-b py-2.5 px-4 sticky top-0 z-10 shadow-sm ${dealIsDisputed ? 'bg-red-50 border-red-100' : 'bg-white'}`}>
+                            <CardTitle className={`text-sm font-bold flex items-center justify-between tracking-wide uppercase ${dealIsDisputed ? 'text-red-800' : 'text-slate-700'}`}>
                                 <div className="flex items-center gap-2">
-                                    <DollarSign className="w-4 h-4 text-emerald-600" />
-                                    取引ボード
+                                    <DollarSign className={`w-4 h-4 ${dealIsDisputed ? 'text-red-600' : 'text-emerald-600'}`} />
+                                    {dealIsDisputed ? '和解計算ボード' : '取引ボード'}
                                 </div>
                                 <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                                    dealIsDisputed ? 'bg-red-100 text-red-700 border-red-200 animate-pulse' :
                                     isDealExpired || invoice.status === 'withdrawn' ? 'bg-slate-100 text-slate-500 border-slate-300' :
                                     (deal.status === 'open' || deal.status === 'pending' || deal.status === 'negotiating') ? 'bg-emerald-50 text-emerald-700 border-emerald-200 animate-pulse' :
                                     'bg-indigo-50 text-indigo-700 border-indigo-200'
                                 }`}>
-                                    {invoice.status === 'withdrawn' ? '中止' : isDealExpired ? '期限切れ' : (deal.status === 'agreed' || deal.status === 'concluded') ? '成約済' : 'ACTIVE'}
+                                    {dealIsDisputed ? '仲裁中' : invoice.status === 'withdrawn' ? '中止' : isDealExpired ? '期限切れ' : (deal.status === 'agreed' || deal.status === 'concluded') ? '成約済' : 'ACTIVE'}
                                 </span>
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="p-3 space-y-4">
+                            {dealIsDisputed ? (
+                                <div className="flex flex-col gap-3">
+                                    <div className="bg-red-50 p-3 rounded-lg border border-red-200 shadow-sm flex flex-col gap-2">
+                                        <div className="text-[11px] font-bold text-red-600 tracking-wide mb-1">和解条件の計算・提示</div>
+                                        
+                                        <div className="flex flex-col gap-2 relative">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-red-800 font-bold w-24 shrink-0">和解請求総額:</span>
+                                                <div className="flex-1 relative">
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">¥</span>
+                                                    <Input
+                                                        type="number"
+                                                        value={disputeClaimAmount}
+                                                        onChange={(e) => setDisputeClaimAmount(e.target.value)}
+                                                        placeholder="例: 1000000"
+                                                        className="pl-7 h-9 font-mono border-red-200 focus:border-red-500 focus:ring-red-500"
+                                                        min="1"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-red-800 font-bold w-24 shrink-0">月々の提示額:</span>
+                                                <div className="flex-1 relative">
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">¥</span>
+                                                    <Input
+                                                        type="number"
+                                                        value={disputeMonthlyPayment}
+                                                        onChange={(e) => setDisputeMonthlyPayment(e.target.value)}
+                                                        placeholder="例: 50000"
+                                                        className="pl-7 h-9 font-mono border-red-200 focus:border-red-500 focus:ring-red-500"
+                                                        min="1"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {Boolean(Number(disputeClaimAmount)) && Boolean(Number(disputeMonthlyPayment)) && (
+                                            <div className="mt-2 bg-white rounded border border-red-100 p-2 text-xs space-y-1.5 shadow-inner">
+                                                <div className="flex justify-between items-center text-slate-600 font-bold border-b border-red-50 pb-1">
+                                                    <span>支払回数</span>
+                                                    <span className="text-red-700">{Math.ceil(Number(disputeClaimAmount) / Number(disputeMonthlyPayment))} 回払い</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-slate-600 font-bold border-b border-red-50 pb-1">
+                                                    <span>通常月々支払額</span>
+                                                    <span className="text-red-700">¥{Number(disputeMonthlyPayment).toLocaleString()}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-slate-600 font-bold">
+                                                    <span>最終回端数支払額</span>
+                                                    <span className="text-red-700">¥{(Number(disputeClaimAmount) % Number(disputeMonthlyPayment) || Number(disputeMonthlyPayment)).toLocaleString()}</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        <Button 
+                                            size="sm" 
+                                            onClick={handleProposeSettlement}
+                                            className="w-full mt-2 bg-red-600 hover:bg-red-700 text-white font-bold shadow-sm"
+                                            disabled={!disputeClaimAmount || !disputeMonthlyPayment || activeDispute?.status === 'agreed'}
+                                        >
+                                            この条件で和解を提案する
+                                        </Button>
+                                        
+                                        {activeDispute?.status !== 'agreed' && activeDispute?.claim_amount && (
+                                            <div className="mt-3 pt-3 border-t border-red-200 w-full">
+                                                <div className="text-xs text-red-800 font-bold mb-2 text-center">現在提示・保存されている和解条件</div>
+                                                <Button 
+                                                    size="sm" 
+                                                    onClick={handleAgreeSettlement} 
+                                                    variant="outline" 
+                                                    className="w-full border-red-600 text-red-700 hover:bg-red-50 font-bold"
+                                                >
+                                                    現在提示されている条件に合意する
+                                                </Button>
+                                            </div>
+                                        )}
+                                        {activeDispute?.status === 'agreed' && (
+                                            <div className="mt-3 pt-3 border-t border-red-200 text-center text-sm font-bold text-red-700 bg-red-100 rounded py-2">
+                                                ✅ 和解に合意済みです
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
                             <div className={`flex flex-col gap-3 ${(isDealExpired || invoice.status === 'withdrawn') ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
                                 {/* Trading Board Price Grid */}
                                 <div className="grid grid-cols-2 gap-2">
@@ -1231,6 +1437,8 @@ export const ChatPage: React.FC = () => {
                                     )}
                                 </div>
                             )}
+                            </>
+                            )}
 
                             {/* --- Information Panels (Responsive Accordion) --- */}
                             <div className="space-y-4 mt-6">
@@ -1283,18 +1491,18 @@ export const ChatPage: React.FC = () => {
                                 ⚠️ この案件は他のお客様と成約したため、募集・交渉が終了しました。
                             </div>
                         )}
-                        {invoice.status === 'withdrawn' && (
+                        {!dealIsDisputed && invoice.status === 'withdrawn' && (
                             <div className="absolute top-0 left-0 right-0 z-20 bg-slate-100 text-slate-500 px-4 py-3 flex text-center justify-center items-center text-sm font-bold border-b border-slate-300 shadow-sm">
                                 ⚠️ この案件は取り下げられました（メッセージの送信はできません）。
                             </div>
                         )}
-                        {isDealExpired && invoice.status !== 'withdrawn' && (
+                        {!dealIsDisputed && isDealExpired && invoice.status !== 'withdrawn' && (
                             <div className="absolute top-0 left-0 right-0 z-20 bg-slate-100 text-slate-500 px-4 py-3 flex text-center justify-center items-center text-sm font-bold border-b border-slate-300 shadow-sm">
                                 ⚠️ 入金期日が徒過したため、この取引の交渉は終了しました（メッセージの送信はできません）。
                             </div>
                         )}
-                        <CardContent className={`flex-1 md:overflow-y-auto p-0 bg-white min-h-[300px] md:min-h-0 relative ${deal.status === 'rejected' || invoice.status === 'withdrawn' || isDealExpired ? 'mt-12' : ''}`}>
-                            <div className={deal.status === 'rejected' || invoice.status === 'withdrawn' || isDealExpired ? 'pt-12' : ''}>
+                        <CardContent className={`flex-1 md:overflow-y-auto p-0 bg-white min-h-[300px] md:min-h-0 relative ${deal.status === 'rejected' || (!dealIsDisputed && (invoice.status === 'withdrawn' || isDealExpired)) ? 'mt-12' : ''}`}>
+                            <div className={deal.status === 'rejected' || (!dealIsDisputed && (invoice.status === 'withdrawn' || isDealExpired)) ? 'pt-12' : ''}>
                                 {renderMessages()}
                             </div>
                         </CardContent>
@@ -1320,7 +1528,7 @@ export const ChatPage: React.FC = () => {
                                     size="sm"
                                     className="h-10 w-10 shrink-0 border-slate-300 text-slate-500 hover:bg-slate-200 disabled:opacity-50 !p-0"
                                     onClick={() => fileInputRef.current?.click()}
-                                    disabled={deal.status === 'rejected' || deal.paymentStatus === 'fully_settled' || invoice.status === 'withdrawn' || isDealExpired || isUploading}
+                                    disabled={deal.status === 'rejected' || deal.paymentStatus === 'fully_settled' || (!dealIsDisputed && (invoice.status === 'withdrawn' || isDealExpired)) || isUploading}
                                     title="ファイルを添付する"
                                 >
                                     <Paperclip className="h-5 w-5" />
@@ -1329,6 +1537,7 @@ export const ChatPage: React.FC = () => {
                                     value={inputText}
                                     onChange={(e) => setInputText(e.target.value)}
                                     placeholder={
+                                        dealIsDisputed ? "事故解決に向けたメッセージを入力..." :
                                         invoice.status === 'withdrawn' ? "この案件は取り下げられました" :
                                         isDealExpired ? "入金期日の徒過により交渉終了" :
                                         (deal.status === 'rejected' || deal.paymentStatus === 'fully_settled') ?
@@ -1336,12 +1545,12 @@ export const ChatPage: React.FC = () => {
                                             "メッセージを入力..."
                                     }
                                     className="flex-1 bg-white h-10"
-                                    disabled={deal.status === 'rejected' || deal.paymentStatus === 'fully_settled' || invoice.status === 'withdrawn' || isDealExpired || isUploading}
+                                    disabled={deal.status === 'rejected' || deal.paymentStatus === 'fully_settled' || (!dealIsDisputed && (invoice.status === 'withdrawn' || isDealExpired)) || isUploading}
                                     autoComplete="off"
                                     autoCorrect="off"
                                     spellCheck={false}
                                 />
-                                <Button type="submit" size="md" disabled={(!inputText.trim() && !isUploading) || deal.status === 'rejected' || deal.paymentStatus === 'fully_settled' || invoice.status === 'withdrawn' || isDealExpired || isUploading} className="h-10 px-5 shrink-0 bg-primary hover:bg-primary/90 text-white shadow-sm flex items-center justify-center">
+                                <Button type="submit" size="md" disabled={(!inputText.trim() && !isUploading) || deal.status === 'rejected' || deal.paymentStatus === 'fully_settled' || (!dealIsDisputed && (invoice.status === 'withdrawn' || isDealExpired)) || isUploading} className="h-10 px-5 shrink-0 bg-primary hover:bg-primary/90 text-white shadow-sm flex items-center justify-center">
                                     {isUploading ? (
                                         <div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin"></div>
                                     ) : (

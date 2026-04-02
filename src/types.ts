@@ -111,4 +111,18 @@ export interface Deal {
     sellerRevealedFields?: Record<string, boolean>;
     buyerRevealedFields?: Record<string, boolean>;
     paymentStatus?: 'pending' | 'buyer_paid' | 'seller_received' | 'seller_repaid' | 'fully_settled';
+    is_disputed?: boolean;
+    isDisputed?: boolean;
+}
+
+export interface Dispute {
+    id: string;
+    deal_id: string;
+    reporter_id: string;
+    dispute_type: string;
+    status: string; // 'open', 'agreed', etc.
+    claim_amount?: number;
+    settlement_amount?: number;
+    installments_count?: number;
+    created_at?: string;
 }
