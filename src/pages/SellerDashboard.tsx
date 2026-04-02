@@ -18,27 +18,37 @@ export const SellerDashboard: React.FC = () => {
     const { user } = useAuth();
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
     // Tab State with sessionStorage persistence
-    const [activeTab, setActiveTabState] = useState<'my' | 'market' | 'sold'>(() => {
+    const [activeTab, setActiveTabState] = useState<'market' | 'negotiating' | 'processing' | 'completed'>(() => {
         const saved = sessionStorage.getItem('sellerDashboardTab');
-        return (saved === 'my' || saved === 'market' || saved === 'sold') ? saved : 'my';
+        return (saved === 'market' || saved === 'negotiating' || saved === 'processing' || saved === 'completed') ? saved : 'negotiating';
     });
 
-    const setActiveTab = (tab: 'my' | 'market' | 'sold') => {
+    const setActiveTab = (tab: 'market' | 'negotiating' | 'processing' | 'completed') => {
         setActiveTabState(tab);
         sessionStorage.setItem('sellerDashboardTab', tab);
     };
 
     const displayInvoices = React.useMemo(() => {
         if (!user) return [];
-        if (activeTab === 'my') {
-            return invoices.filter(inv => inv.sellerId === user.id && inv.status !== 'sold');
-        } else if (activeTab === 'market') {
+        if (activeTab === 'market') {
             return invoices.filter(inv => inv.status !== 'sold');
-        } else if (activeTab === 'sold') {
-            return invoices.filter(inv => inv.sellerId === user.id && inv.status === 'sold');
+        } else if (activeTab === 'negotiating') {
+            return invoices.filter(inv => inv.sellerId === user.id && inv.status !== 'sold');
+        } else if (activeTab === 'processing') {
+            return invoices.filter(inv => {
+                if (inv.sellerId !== user.id || inv.status !== 'sold') return false;
+                const deal = deals.find(d => d.invoiceId === inv.id && d.status === 'concluded');
+                return deal && deal.paymentStatus !== 'fully_settled';
+            });
+        } else if (activeTab === 'completed') {
+            return invoices.filter(inv => {
+                if (inv.sellerId !== user.id || inv.status !== 'sold') return false;
+                const deal = deals.find(d => d.invoiceId === inv.id && d.status === 'concluded');
+                return deal && deal.paymentStatus === 'fully_settled';
+            });
         }
         return [];
-    }, [invoices, user, activeTab]);
+    }, [invoices, deals, user, activeTab]);
 
     const hasUnreadMyInvoices = React.useMemo(() => {
         if (!user) return false;
@@ -88,10 +98,10 @@ export const SellerDashboard: React.FC = () => {
             {/* Tabs */}
             <div className="flex overflow-x-auto no-scrollbar gap-2 max-w-full border-b border-slate-200 mb-6">
                 <button
-                    className={`shrink-0 pb-2 px-3 text-sm font-bold transition-colors border-b-2 relative flex items-center gap-1 ${activeTab === 'my' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                    onClick={() => setActiveTab('my')}
+                    className={`shrink-0 pb-2 px-3 text-sm font-bold transition-colors border-b-2 relative flex items-center gap-1 ${activeTab === 'negotiating' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                    onClick={() => setActiveTab('negotiating')}
                 >
-                    自分の登録案件
+                    交渉中・進行中の案件
                     {hasUnreadMyInvoices && (
                         <span className="flex h-2 w-2 relative ml-1">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -100,16 +110,22 @@ export const SellerDashboard: React.FC = () => {
                     )}
                 </button>
                 <button
+                    className={`shrink-0 pb-2 px-3 text-sm font-bold transition-colors border-b-2 ${activeTab === 'processing' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                    onClick={() => setActiveTab('processing')}
+                >
+                    成約済・手続中の案件
+                </button>
+                <button
+                    className={`shrink-0 pb-2 px-3 text-sm font-bold transition-colors border-b-2 ${activeTab === 'completed' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                    onClick={() => setActiveTab('completed')}
+                >
+                    取引完了の案件
+                </button>
+                <button
                     className={`shrink-0 pb-2 px-3 text-sm font-bold transition-colors border-b-2 ${activeTab === 'market' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                     onClick={() => setActiveTab('market')}
                 >
                     プラットフォーム全体の案件
-                </button>
-                <button
-                    className={`shrink-0 pb-2 px-3 text-sm font-bold transition-colors border-b-2 ${activeTab === 'sold' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                    onClick={() => setActiveTab('sold')}
-                >
-                    成約済みの案件
                 </button>
             </div>
 
@@ -125,7 +141,7 @@ export const SellerDashboard: React.FC = () => {
                     <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-300 col-span-full">
                         <Search className="h-8 w-8 text-slate-400 mx-auto mb-3" />
                         <p className="text-slate-500 font-medium">
-                            {activeTab === 'sold' ? '成約済みの案件はありません。' : activeTab === 'my' ? 'まだ登録された案件はありません。' : '条件に一致する案件は見つかりませんでした。'}
+                            {activeTab === 'completed' ? '取引完了の案件はありません。' : activeTab === 'processing' ? '成約済・手続中の案件はありません。' : activeTab === 'negotiating' ? 'まだ登録された案件はありません。' : '条件に一致する案件は見つかりませんでした。'}
                         </p>
                         {activeTab === 'market' && (
                             <Button variant="ghost" onClick={resetFilters} className="text-primary mt-2">
@@ -145,7 +161,7 @@ export const SellerDashboard: React.FC = () => {
                         let statusColor = inv.status === 'open' || inv.status === 'pending' ? 'text-green-600 bg-green-50' : inv.status === 'negotiating' ? 'text-orange-600 bg-orange-50' : 'text-white bg-slate-500 uppercase tracking-widest';
 
                         // Determine if there are specific negotiation states for MY invoices
-                        if (activeTab === 'my' && inv.status === 'negotiating') {
+                        if (activeTab === 'negotiating' && inv.status === 'negotiating') {
                             // Find active negotiations where buyer price > 0
                             const activeNegotiation = invDeals.find(d => d.status === 'negotiating' && (d.currentBuyerPrice || 0) > 0);
                             if (activeNegotiation) {
@@ -179,7 +195,14 @@ export const SellerDashboard: React.FC = () => {
                             <Card
                                 key={inv.id}
                                 className={`flex flex-col h-full hover:shadow-lg transition-shadow border-slate-200 cursor-pointer ${inv.status === 'sold' && !isUncompleted ? 'opacity-[0.85] grayscale-[20%]' : ''}`}
-                                onClick={() => navigate(activeTab === 'my' ? `/seller/invoices/${inv.id}` : `/market/invoices/${inv.id}`)}
+                                onClick={() => {
+                                    if (activeTab === 'processing') {
+                                        const concludedDeal = deals.find(d => d.invoiceId === inv.id && d.status === 'concluded');
+                                        if (concludedDeal) navigate(`/chat?dealId=${concludedDeal.id}`);
+                                    } else {
+                                        navigate(activeTab !== 'market' ? `/seller/invoices/${inv.id}` : `/market/invoices/${inv.id}`);
+                                    }
+                                }}
                             >
                                 <CardContent className="p-5 flex-1 flex flex-col">
                                     <div className="flex justify-between items-start mb-3">

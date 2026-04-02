@@ -22,11 +22,11 @@ export const TermsModal: React.FC<TermsModalProps> = ({ isOpen, onClose }) => {
 
     return (
         <div
-            className={`fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`}
+            className={`fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`}
             onClick={onClose}
         >
             <div
-                className={`bg-white rounded-xl shadow-2xl w-full max-w-2xl h-[80vh] flex flex-col overflow-hidden transform transition-all duration-300 ${isOpen ? 'scale-100 translate-y-0 opacity-100' : 'scale-95 translate-y-4 opacity-0'}`}
+                className={`bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90dvh] h-[85dvh] md:h-auto flex flex-col overflow-hidden transform transition-all duration-300 relative ${isOpen ? 'scale-100 translate-y-0 opacity-100' : 'scale-95 translate-y-4 opacity-0'}`}
                 onClick={(e) => e.stopPropagation()}
                 onTransitionEnd={handleAnimationEnd}
             >
@@ -42,6 +42,9 @@ export const TermsModal: React.FC<TermsModalProps> = ({ isOpen, onClose }) => {
 
                 <div className="flex-1 overflow-y-auto p-6 text-sm text-slate-600 leading-relaxed bg-white">
                     <div className="prose prose-sm max-w-none">
+                        <div className="bg-red-50 text-red-600 font-bold p-3 rounded border border-red-200 mb-4 shadow-sm">
+                            ⚠️ 確認後、この画面を閉じて契約締結に進んでください。
+                        </div>
                         <h3 className="font-bold text-slate-900 mb-2">第1条（目的）</h3>
                         <p className="mb-4">
                             本サービスは、売掛債権の売却希望者（売り手）と購入希望者（買い手）間の情報交換およびマッチングの機会を提供するプラットフォームです。
@@ -69,9 +72,9 @@ export const TermsModal: React.FC<TermsModalProps> = ({ isOpen, onClose }) => {
                     </div>
                 </div>
 
-                <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
-                    <Button onClick={onClose} className="px-8">
-                        閉じる
+                <div className="p-4 border-t border-slate-100 bg-slate-50 mt-auto sticky bottom-0 z-10 w-full flex justify-center">
+                    <Button onClick={onClose} size="lg" className="w-full md:w-auto px-8 md:px-16 font-bold text-base py-6 shadow-md bg-slate-800 hover:bg-slate-900 text-white">
+                        閉じる（チャット画面へ戻る）
                     </Button>
                 </div>
             </div>

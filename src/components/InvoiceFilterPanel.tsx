@@ -1,7 +1,7 @@
-import React from 'react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Search, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
+import { INDUSTRY_OPTIONS } from '../utils/constants';
 
 interface InvoiceFilterPanelProps {
     minAmount: string;
@@ -66,14 +66,18 @@ export const InvoiceFilterPanel: React.FC<InvoiceFilterPanelProps> = ({
                         <div>
                             <label className="text-xs font-bold text-slate-500 mb-1.5 block">業種で絞り込み</label>
                             <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                <Input
-                                    type="text"
-                                    placeholder="例: IT、建設、飲食..."
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                                <select
                                     value={industryFilter}
                                     onChange={(e) => setIndustryFilter(e.target.value)}
-                                    className="h-9 pl-9"
-                                />
+                                    className="w-full h-9 rounded-md border border-slate-300 bg-white pl-9 pr-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary shadow-sm appearance-none"
+                                >
+                                    <option value="">すべての業種</option>
+                                    {INDUSTRY_OPTIONS.map(opt => (
+                                        <option key={opt} value={opt}>{opt}</option>
+                                    ))}
+                                </select>
+                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                             </div>
                         </div>
                         <div>

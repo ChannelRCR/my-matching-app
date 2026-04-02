@@ -1,0 +1,7 @@
+Initialising login role...
+Connecting to remote database...
+Found local migration files to be inserted before the last migration on remote database.
+
+Rerun the command with --include-all flag to apply these migrations:
+supabase\migrations\006_add_invoice_privacy.sql
+

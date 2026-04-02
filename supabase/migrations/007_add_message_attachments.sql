@@ -11,10 +11,12 @@ VALUES ('chat_attachments', 'chat_attachments', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- 3. Storage Security Policies
+DROP POLICY IF EXISTS "Users can upload chat attachments" ON storage.objects;
 CREATE POLICY "Users can upload chat attachments" ON storage.objects
 FOR INSERT TO authenticated
 WITH CHECK (bucket_id = 'chat_attachments');
 
+DROP POLICY IF EXISTS "Users can view chat attachments" ON storage.objects;
 CREATE POLICY "Users can view chat attachments" ON storage.objects
 FOR SELECT TO authenticated
 USING (bucket_id = 'chat_attachments');

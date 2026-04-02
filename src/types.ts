@@ -85,6 +85,7 @@ export interface Message {
     fileName?: string;
     fileType?: string;
     isRead?: boolean;
+    isSystemMessage?: boolean;
 }
 
 export interface Deal {

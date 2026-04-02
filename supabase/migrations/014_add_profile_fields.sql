@@ -19,8 +19,4 @@ ADD COLUMN IF NOT EXISTS company_name_kana VARCHAR(255),
 ADD COLUMN IF NOT EXISTS representative_name_kana VARCHAR(255),
 ADD COLUMN IF NOT EXISTS appeal_point TEXT;
 
--- Update existing rows to have default values if they are null
-UPDATE sellers SET entity_type = 'corporate' WHERE entity_type IS NULL;
-UPDATE sellers SET has_no_trade_name = false WHERE has_no_trade_name IS NULL;
-UPDATE buyers SET entity_type = 'corporate' WHERE entity_type IS NULL;
-UPDATE buyers SET has_no_trade_name = false WHERE has_no_trade_name IS NULL;
+-- (DML UPDATE statements removed to prevent webhook triggering and OOM)

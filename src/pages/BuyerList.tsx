@@ -57,10 +57,13 @@ export const BuyerList: React.FC = () => {
                                     <p className="font-bold text-slate-900">{buyer.budget || '未公開'}</p>
                                 </div>
                                 <div>
-                                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
-                                        <FileText size={12} /> 実績
-                                    </h4>
-                                    <p className="font-bold text-blue-600">{getUserTrackRecord(buyer.id, 'buyer')} 件</p>
+                                    <div className="font-bold">
+                                        {getUserTrackRecord(buyer.id, 'buyer') === 0 ? (
+                                            <span className="text-blue-600">🔰 初回</span>
+                                        ) : (
+                                            <span className="text-emerald-600">🏆 成約 {getUserTrackRecord(buyer.id, 'buyer')}件</span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -148,8 +151,12 @@ export const BuyerList: React.FC = () => {
                                         </div>
                                         <div>
                                             <div className="text-xs text-slate-500 mb-1">取引実績 (完了)</div>
-                                            <div className="text-sm font-bold text-blue-700 bg-blue-50 inline-flex px-2 py-0.5 rounded border border-blue-100">
-                                                {getUserTrackRecord(selectedBuyer.id, 'buyer')} 件
+                                            <div className="text-sm font-bold bg-slate-50 inline-flex px-2 py-0.5 rounded border border-slate-200">
+                                                {getUserTrackRecord(selectedBuyer.id, 'buyer') === 0 ? (
+                                                    <span className="text-blue-600">🔰 初回</span>
+                                                ) : (
+                                                    <span className="text-emerald-600">🏆 成約 {getUserTrackRecord(selectedBuyer.id, 'buyer')}件</span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

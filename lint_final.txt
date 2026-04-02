@@ -1,0 +1,227 @@
+
+> my-matching-app@0.0.0 lint
+> eslint .
+
+
+C:\Projects\my-matching-app\src\components\DonationModal.tsx
+  14:21  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Projects\my-matching-app\src\components\DonationModal.tsx:14:21
+  12 |
+  13 |     useEffect(() => {
+> 14 |         if (isOpen) setRender(true);
+     |                     ^^^^^^^^^ Avoid calling setState() directly within an effect
+  15 |     }, [isOpen]);
+  16 |
+  17 |     const handleAnimationEnd = () => {  react-hooks/set-state-in-effect
+
+C:\Projects\my-matching-app\src\components\OfferModal.tsx
+  22:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Projects\my-matching-app\src\components\OfferModal.tsx:22:13
+  20 |     useEffect(() => {
+  21 |         if (isOpen && invoice) {
+> 22 |             setRender(true);
+     |             ^^^^^^^^^ Avoid calling setState() directly within an effect
+  23 |             setAmount(invoice.requestedAmount?.toString() || invoice.amount.toString());
+  24 |             setMessage('縺ｯ縺倥ａ縺ｾ縺励※縲よ軸霈画｡井ｻｶ縺ｫ髢｢蠢・′縺ゅｊ縲√＃騾｣邨｡縺・◆縺励∪縺励◆縲・);
+  25 |         }  react-hooks/set-state-in-effect
+  30:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Projects\my-matching-app\src\components\OfferModal.tsx:30:13
+  28 |     useEffect(() => {
+  29 |         if (!invoice || !amount) {
+> 30 |             setDiscountRate(0);
+     |             ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  31 |             return;
+  32 |         }
+  33 |         const offerVal = Number(amount);                                                                           react-hooks/set-state-in-effect
+
+C:\Projects\my-matching-app\src\components\RegisterInvoiceModal.tsx
+  181:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  189:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projects\my-matching-app\src\components\TermsModal.tsx
+  14:21  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Projects\my-matching-app\src\components\TermsModal.tsx:14:21
+  12 |
+  13 |     useEffect(() => {
+> 14 |         if (isOpen) setRender(true);
+     |                     ^^^^^^^^^ Avoid calling setState() directly within an effect
+  15 |     }, [isOpen]);
+  16 |
+  17 |     const handleAnimationEnd = () => {  react-hooks/set-state-in-effect
+
+C:\Projects\my-matching-app\src\contexts\AuthContext.tsx
+   11:63  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+   30:28  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+   31:68  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+   82:30  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  270:31  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  280:33  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  332:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Projects\my-matching-app\src\contexts\DataContext.tsx
+   89:50  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  128:26  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  161:38  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  219:35  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  245:32  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  255:38  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  275:64  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  276:56  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  300:22  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  316:26  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  453:26  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  529:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Projects\my-matching-app\src\contexts\MarketContext.tsx
+  60:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Projects\my-matching-app\src\pages\BuyerDashboard.tsx
+  24:13  error  'filtered' is never reassigned. Use 'const' instead                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          prefer-const
+  52:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Projects\my-matching-app\src\pages\BuyerDashboard.tsx:52:13
+  50 |     useEffect(() => {
+  51 |         if (profile) {
+> 52 |             setProfileData({
+     |             ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  53 |                 budget: profile.budget?.toString() || '',
+  54 |                 appealPoint: profile.appealPoint || ''
+  55 |             });  react-hooks/set-state-in-effect
+
+C:\Projects\my-matching-app\src\pages\BuyerInvoiceDetail.tsx
+  24:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Projects\my-matching-app\src\pages\BuyerInvoiceDetail.tsx:24:13
+  22 |         if (id && invoices.length > 0) {
+  23 |             const foundInvoice = invoices.find(i => i.id === id);
+> 24 |             setInvoice(foundInvoice || null);
+     |             ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  25 |
+  26 |             // Check if this buyer already has a deal for this invoice
+  27 |             if (user) {  react-hooks/set-state-in-effect
+
+C:\Projects\my-matching-app\src\pages\ChatPage.tsx
+   63:11  warning  The 'deal' conditional could make the dependencies of useEffect Hook (at line 193) change on every render. To fix this, wrap the initialization of 'deal' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  119:65  error    Unexpected any. Specify a different type                                                                                                                                             @typescript-eslint/no-explicit-any
+  127:53  error    Unexpected any. Specify a different type                                                                                                                                             @typescript-eslint/no-explicit-any
+  128:55  error    Unexpected any. Specify a different type                                                                                                                                             @typescript-eslint/no-explicit-any
+  129:55  error    Unexpected any. Specify a different type                                                                                                                                             @typescript-eslint/no-explicit-any
+  130:69  error    Unexpected any. Specify a different type                                                                                                                                             @typescript-eslint/no-explicit-any
+  138:72  error    Unexpected any. Specify a different type                                                                                                                                             @typescript-eslint/no-explicit-any
+  168:8   warning  React Hook useEffect has a missing dependency: 'markMessagesAsRead'. Either include it or remove the dependency array                                                                react-hooks/exhaustive-deps
+
+C:\Projects\my-matching-app\src\pages\ContractPrintPage.tsx
+  24:17  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Projects\my-matching-app\src\pages\ContractPrintPage.tsx:24:17
+  22 |             const foundDeal = deals.find(d => d.id === dealId);
+  23 |             if (foundDeal) {
+> 24 |                 setDeal(foundDeal);
+     |                 ^^^^^^^ Avoid calling setState() directly within an effect
+  25 |                 setInvoice(invoices.find(i => i.id === foundDeal.invoiceId) || null);
+  26 |                 setSeller(users.find(u => u.id === foundDeal.sellerId) || null);
+  27 |                 setBuyer(users.find(u => u.id === foundDeal.buyerId) || null);  react-hooks/set-state-in-effect
+
+C:\Projects\my-matching-app\src\pages\ProfilePage.tsx
+  32:60  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  48:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Projects\my-matching-app\src\pages\ProfilePage.tsx:48:13
+  46 |     useEffect(() => {
+  47 |         if (profile) {
+> 48 |             setFormData({
+     |             ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  49 |                 entityType: profile.entityType || 'corporate',
+  50 |                 hasNoTradeName: profile.hasNoTradeName || false,
+  51 |                 postalCode: profile.postalCode || '',  react-hooks/set-state-in-effect
+  67:43  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  92:35  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+
+C:\Projects\my-matching-app\src\pages\RegisterPage.tsx
+   80:9    error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  156:62   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  157:50   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  161:67   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  162:207  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  166:67   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+
+C:\Projects\my-matching-app\src\pages\SellerInvoiceDetail.tsx
+  24:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Projects\my-matching-app\src\pages\SellerInvoiceDetail.tsx:24:13
+  22 |         if (id && invoices.length > 0) {
+  23 |             const foundInvoice = invoices.find(i => i.id === id);
+> 24 |             setInvoice(foundInvoice || null);
+     |             ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  25 |
+  26 |             // Find deals for this invoice and sort properly
+  27 |             const relevantDeals = deals.filter(d => d.invoiceId === id);  react-hooks/set-state-in-effect
+
+C:\Projects\my-matching-app\src\utils\chat.ts
+  7:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  8:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projects\my-matching-app\supabase\functions\send-email\index.ts
+  130:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+笨・52 problems (50 errors, 2 warnings)
+  1 error and 0 warnings potentially fixable with the `--fix` option.
+

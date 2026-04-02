@@ -4,7 +4,7 @@ import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import { ArrowLeft, MessageCircle, FileText, Calendar, CreditCard, DollarSign } from 'lucide-react';
+import { ArrowLeft, MessageCircle, FileText, Calendar, CreditCard, DollarSign, AlertCircle, CheckCircle } from 'lucide-react';
 import type { Invoice, Deal } from '../types';
 import { calculateAnnualYield } from '../utils/calculations';
 import { translateCompanySize } from '../utils/translations';
@@ -12,7 +12,7 @@ import { translateCompanySize } from '../utils/translations';
 export const BuyerInvoiceDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { invoices, deals, createChatRoom } = useData();
+    const { invoices, deals, users, invoiceStats, sellerUncompletedCounts, createChatRoom } = useData();
     const { user } = useAuth();
 
     const [invoice, setInvoice] = useState<Invoice | null>(null);
@@ -36,6 +36,14 @@ export const BuyerInvoiceDetail: React.FC = () => {
         return <div className="p-8 text-center">読み込み中...</div>;
     }
 
+    const seller = users.find(u => u.id === invoice.sellerId);
+    
+    // Use platform-wide stats for accurate representation of competition
+    const stats = invoiceStats[invoice.id] || { offerCount: 0, maxOffer: 0 };
+    const highestOffer = stats.maxOffer;
+    const offerCount = stats.offerCount;
+    const sellerUncompletedCount = sellerUncompletedCounts[invoice.sellerId] || 0;
+
     return (
         <div className="space-y-6 max-w-4xl mx-auto">
             <Button variant="ghost" className="mb-4" onClick={() => navigate('/buyer/dashboard')}>
@@ -44,7 +52,7 @@ export const BuyerInvoiceDetail: React.FC = () => {
             </Button>
 
             <Card>
-                <CardHeader className="bg-slate-50 border-b flex flex-row items-center justify-between">
+                <CardHeader className="bg-slate-50 border-b flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div className="flex flex-wrap gap-2">
                         <span className="bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded font-medium border border-slate-200">{invoice.industry}</span>
                         <span className="bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded font-medium border border-slate-200">{translateCompanySize(invoice.companySize)}</span>
@@ -52,14 +60,16 @@ export const BuyerInvoiceDetail: React.FC = () => {
                             {invoice.sellingAmount && invoice.sellingAmount < invoice.amount ? '一部売却' : '全部売却'}
                         </span>
                     </div>
-                    <div>
-                        <CardTitle className="text-xl">案件 #{invoice.id}</CardTitle>
+                    <div className="flex flex-col items-end gap-2">
+                        <div className="flex items-center gap-2">
+                            <CardTitle className="text-xl">案件 #{invoice.id}</CardTitle>
+                            {invoice.status === 'open' && (
+                                <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-bold">
+                                    募集中
+                                </span>
+                            )}
+                        </div>
                     </div>
-                    {invoice.status === 'open' && (
-                        <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-bold">
-                            募集中
-                        </span>
-                    )}
                 </CardHeader>
                 <CardContent className="p-8 space-y-8">
                     {/* Partial Sale Alert Area (Only shows if partial) */}
@@ -73,8 +83,43 @@ export const BuyerInvoiceDetail: React.FC = () => {
                         </div>
                     )}
 
+                    {/* Additional Info */}
+                    <div className="grid md:grid-cols-3 gap-6 mb-8">
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center gap-2">
+                            <div>
+                                <h3 className="text-xs font-bold text-slate-500 mb-1">売り手企業</h3>
+                                <p className="text-lg font-bold text-slate-800">{seller?.companyName || seller?.name || '不明な売り手'}</p>
+                            </div>
+                            <div>
+                                {sellerUncompletedCount > 1 ? (
+                                    <div className="inline-flex text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap bg-orange-100 text-orange-700 border border-orange-200 items-center gap-1">
+                                        <AlertCircle className="w-3.5 h-3.5" /> ⚠ 未決済の債権が存在します
+                                    </div>
+                                ) : (
+                                    <div className="inline-flex text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap bg-green-50 text-green-700 border border-green-200 items-center gap-1">
+                                        <CheckCircle className="w-3.5 h-3.5" /> その他未決済債権なし
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center">
+                            <h3 className="text-xs font-bold text-slate-500 mb-1">最高買取希望額</h3>
+                            <p className="text-lg font-bold text-green-600">
+                                {highestOffer > 0 ? `¥${highestOffer.toLocaleString()}` : 'まだオファーはありません'}
+                            </p>
+                        </div>
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center">
+                            <h3 className="text-xs font-bold text-slate-500 mb-1 flex items-center gap-1">
+                                <MessageCircle className="w-3.5 h-3.5" />現在のオファー数
+                            </h3>
+                            <span className="text-lg font-bold text-blue-600">
+                                {offerCount} 件
+                            </span>
+                        </div>
+                    </div>
+
                     {/* Key Figures */}
-                    <div className="grid md:grid-cols-2 gap-8">
+                    <div className="grid md:grid-cols-2 gap-8 pb-8 border-b border-slate-100">
                         <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 flex flex-col justify-center space-y-4">
                             <div>
                                 <h3 className="flex items-center text-slate-500 font-medium mb-1">
@@ -119,16 +164,6 @@ export const BuyerInvoiceDetail: React.FC = () => {
                                     {invoice.sellingAmount && invoice.sellingAmount < invoice.amount ? '※売却対象額に対する年率 / ' : ''}期日までの日割り計算
                                 </p>
                             </div>
-                        </div>
-
-                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center md:col-span-2">
-                            <div className="flex items-center gap-2">
-                                <MessageCircle className="w-5 h-5 text-blue-500" />
-                                <span className="font-bold text-slate-700">現在のライバル（オファー数）</span>
-                            </div>
-                            <span className="text-xl font-bold text-blue-600">
-                                {deals ? deals.filter(d => d.invoiceId === invoice.id && ['open', 'pending', 'negotiating'].includes(d.status)).length : 0} 件
-                            </span>
                         </div>
                     </div>
 
@@ -199,17 +234,17 @@ export const BuyerInvoiceDetail: React.FC = () => {
                                         size="lg"
                                         className="w-full md:w-auto px-12 bg-indigo-600 hover:bg-indigo-700"
                                         onClick={async () => {
-                                            if (user && invoice.status === 'open') {
+                                            if (user && ['open', 'pending', 'negotiating'].includes(invoice.status)) {
                                                 const newDeal = await createChatRoom(invoice.id, user.id);
                                                 if (newDeal) {
                                                     navigate(`/chat?dealId=${newDeal.id}`);
                                                 }
                                             }
                                         }}
-                                        disabled={invoice.status !== 'open'}
+                                        disabled={!['open', 'pending', 'negotiating'].includes(invoice.status)}
                                     >
                                         <MessageCircle className="mr-2 h-5 w-5" />
-                                        {invoice.status === 'open' ? '交渉を開始する（チャット画面へ遷移）' : 'この案件は終了しました'}
+                                        {['open', 'pending', 'negotiating'].includes(invoice.status) ? '交渉を開始する（チャット画面へ遷移）' : 'この案件は終了しました'}
                                     </Button>
                                 </div>
                             </div>

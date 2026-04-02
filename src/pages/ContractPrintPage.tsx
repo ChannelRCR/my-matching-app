@@ -114,6 +114,10 @@ export const ContractPrintPage: React.FC = () => {
                             <p className="mb-2">住所: {buyer.address || '（未登録）'}</p>
                             <p className="mb-2">会社名: {buyer.companyName}</p>
                             <p className="mb-2">代表者: {buyer.representativeName || buyer.name}</p>
+                            <div className="mt-4">
+                                <p className="mb-2 font-bold">【振込先情報】</p>
+                                <p className="mb-1">{buyer.bankAccountInfo || '（未登録）'}</p>
+                            </div>
                             <div className="mt-8 border-b border-slate-300 w-32 ml-auto">（印）</div>
                         </div>
                     </div>

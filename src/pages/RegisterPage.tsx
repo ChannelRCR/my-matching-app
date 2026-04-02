@@ -389,26 +389,24 @@ export const RegisterPage: React.FC = () => {
                                     {renderInputWithPrivacy("代表者名（フリガナ）", "representativeNameKana", "例: ヤマダ タロウ")}
                                 </div>
 
-                                {formData.entityType === 'corporate' && (
-                                    <div className="space-y-1">
-                                        <div className="flex justify-between items-end gap-2">
-                                            <div className="flex-1">
-                                                {renderInputWithPrivacy("担当者名", "contactPerson", "例: 佐藤 花子")}
-                                            </div>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                className="mb-[2px]"
-                                                onClick={() => {
-                                                    handleChange('contactPerson', formData.representativeName);
-                                                }}
-                                            >
-                                                代表者と共通
-                                            </Button>
+                                <div className="space-y-1">
+                                    <div className="flex justify-between items-end gap-2">
+                                        <div className="flex-1">
+                                            {renderInputWithPrivacy("担当者名", "contactPerson", "例: 佐藤 花子")}
                                         </div>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="mb-[2px]"
+                                            onClick={() => {
+                                                handleChange('contactPerson', formData.representativeName);
+                                            }}
+                                        >
+                                            代表者名と同じ
+                                        </Button>
                                     </div>
-                                )}
+                                </div>
 
                                 {renderInputWithPrivacy("連絡先電話番号", "phone", "例: 03-1234-5678", "tel")}
                             </div>

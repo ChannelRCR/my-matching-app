@@ -1,0 +1,29 @@
+
+C:\Projects\my-matching-app\src\contexts\DataContext.tsx
+   31:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+   95:50  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  134:26  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  167:38  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  225:35  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  251:32  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  261:38  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  281:64  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  282:56  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  306:22  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  322:26  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  459:26  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  535:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Projects\my-matching-app\src\pages\ChatPage.tsx
+   62:11  warning  The 'deal' conditional could make the dependencies of useEffect Hook (at line 192) change on every render. To fix this, wrap the initialization of 'deal' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  118:65  error    Unexpected any. Specify a different type                                                                                                                                             @typescript-eslint/no-explicit-any
+  126:53  error    Unexpected any. Specify a different type                                                                                                                                             @typescript-eslint/no-explicit-any
+  127:55  error    Unexpected any. Specify a different type                                                                                                                                             @typescript-eslint/no-explicit-any
+  128:55  error    Unexpected any. Specify a different type                                                                                                                                             @typescript-eslint/no-explicit-any
+  129:69  error    Unexpected any. Specify a different type                                                                                                                                             @typescript-eslint/no-explicit-any
+  137:72  error    Unexpected any. Specify a different type                                                                                                                                             @typescript-eslint/no-explicit-any
+  167:8   warning  React Hook useEffect has a missing dependency: 'markMessagesAsRead'. Either include it or remove the dependency array                                                                react-hooks/exhaustive-deps
+  401:30  error    Unexpected any. Specify a different type                                                                                                                                             @typescript-eslint/no-explicit-any
+
+笨・22 problems (20 errors, 2 warnings)
+

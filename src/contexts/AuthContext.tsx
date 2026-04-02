@@ -74,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 .from('users')
                 .select('*')
                 .eq('id', userId)
-                .single();
+                .maybeSingle();
 
             if (userError) throw userError;
             if (!userData) return;
@@ -87,7 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     .from('sellers')
                     .select('*')
                     .eq('id', userId)
-                    .single();
+                    .maybeSingle();
 
                 if (sellerData) {
                     profileData = { ...profileData, ...sellerData };
@@ -99,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     .from('buyers')
                     .select('*')
                     .eq('id', userId)
-                    .single();
+                    .maybeSingle();
 
                 if (buyerData) {
                     profileData = { ...profileData, ...buyerData };
@@ -124,8 +124,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 contactPerson: profileData.contact_person,
                 address: profileData.address,
                 bankAccountInfo: profileData.bank_account_info,
-                phone: profileData.phone,
-                email: profileData.email,
+                phone: profileData.phone_number,
+                email: profileData.email || userData.email, // DB column mappings
                 entityType: profileData.entity_type,
                 hasNoTradeName: profileData.has_no_trade_name,
                 postalCode: profileData.postal_code,
@@ -193,6 +193,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             name: extraData.name,
             company_name: extraData.companyName,
             role: role,
+            email: email, // Fix email missing
             status: 'active',
             registered_at: new Date().toISOString(),
         };
@@ -237,6 +238,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 representative_name: extraData.representativeName,
                 contact_person: extraData.contactPerson,
                 address: extraData.address,
+                bank_account_info: extraData.bankAccountInfo, // Fix bank account missing
                 phone_number: extraData.phone,
                 entity_type: extraData.entityType,
                 has_no_trade_name: extraData.hasNoTradeName,
@@ -247,9 +249,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 industry_other: extraData.industryOther,
                 appeal_point: extraData.appealPoint,
                 privacy_settings: extraData.privacySettings,
-                // Buyers don't have bank_account_info in the form usually, but if they did...
-                // Assuming buyers form doesn't strictly require bank info yet or we add it if needed.
-                // Based on types, we have it in extraData.
             };
             const { error } = await supabase.from('buyers').insert([buyerProfile]);
             profileError = error;
@@ -301,6 +300,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     if (error) throw error;
                 }
             } else if (profile.role === 'buyer') {
+                if (data.bankAccountInfo !== undefined) specificData.bank_account_info = data.bankAccountInfo;
                 if (Object.keys(specificData).length > 0) {
                     const { error } = await supabase.from('buyers').update(specificData).eq('id', user.id);
                     if (error) throw error;

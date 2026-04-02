@@ -6,11 +6,14 @@ import { Send, User, ChevronLeft, DollarSign, ChevronDown, ChevronUp, Paperclip,
 import { supabase } from '../lib/supabase';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
+import { setTransitioning } from '../utils/transitionState';
 import { useAuth } from '../contexts/AuthContext';
 import { useMarket } from '../contexts/MarketContext';
-import { Handshake, FileText } from 'lucide-react';
 import { getDisplayName } from '../utils/displayName';
+import { translateCompanySize } from '../utils/translations';
 import type { Deal, Invoice, User as UserType } from '../types';
+import { Download, Handshake } from 'lucide-react';
+
 interface ChatMessage {
     id: string;
     sender: 'me' | 'other';
@@ -19,26 +22,35 @@ interface ChatMessage {
     fileUrl?: string;
     fileName?: string;
     fileType?: string;
+    isSystemMessage?: boolean;
 }
 
 export const ChatPage: React.FC = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const dealId = searchParams.get('dealId');
-    const { deals, invoices, messages: allMessages, users, addMessage, updateDeal, agreeToDeal, markMessagesAsRead } = useData();
+    const { deals, invoices, messages: allMessages, users, addMessage, updateDeal, markMessagesAsRead, getUserTrackRecord } = useData();
     const { completeDeal } = useMarket();
     const { user } = useAuth(); // Use real auth user
 
-    const [deal, setDeal] = useState<Deal | null>(null);
+    const [baseDeal, setBaseDeal] = useState<Deal | null>(null);
     const [invoice, setInvoice] = useState<Invoice | null>(null);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [inputText, setInputText] = useState('');
     const [proposedPrice, setProposedPrice] = useState('');
     const [counterpartName, setCounterpartName] = useState('');
+    const [hasViewedTerms, setHasViewedTerms] = useState(false);
     const [isTermsAgreed, setIsTermsAgreed] = useState(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    
     const fileInputRef = React.useRef<HTMLInputElement>(null);
+    const hasSentMatchMessageRef = React.useRef(false);
+
+    // --- CRITICAL FIX: Local Override State ---
+    // This state forcibly overrides the deal state from DataContext to prevent WebSocket
+    // lag from resetting the UI back to "Terms Approval" phase after clicking Agree.
+    const [localDealOverride, setLocalDealOverride] = useState<Partial<Deal> | null>(null);
 
     // For mobile responsive accordion
     const [expandedPanels, setExpandedPanels] = useState<Record<string, boolean>>({
@@ -46,6 +58,9 @@ export const ChatPage: React.FC = () => {
         opponent: false,
         mine: false,
     });
+
+    // Compute effective deal state combining global context and local overrides
+    const deal = baseDeal ? { ...baseDeal, ...localDealOverride } as Deal : null;
 
     const isBuyer = user && deal ? user.id === deal.buyerId : false;
     const isPriceMatched = deal ? (deal.currentBuyerPrice || 0) > 0 && deal.currentBuyerPrice === deal.currentSellerPrice : false;
@@ -70,7 +85,26 @@ export const ChatPage: React.FC = () => {
         if (dealId && user) {
             const foundDeal = deals.find(d => d.id === dealId);
             if (foundDeal) {
-                setDeal(foundDeal);
+                // If we have a local override that says we are agreed, but the incoming foundDeal
+                // says we are NOT agreed yet, DO NOT accept the incoming state. It's stale.
+                setLocalDealOverride(prev => {
+                    if (!prev) return null; // No override active
+                    
+                    const isIncomingStale = 
+                        (prev.buyerAgreedAt && !foundDeal.buyerAgreedAt) ||
+                        (prev.sellerAgreedAt && !foundDeal.sellerAgreedAt) ||
+                        (prev.status === 'concluded' && foundDeal.status !== 'concluded') ||
+                        (prev.status === 'agreed' && foundDeal.status !== 'agreed');
+
+                    if (isIncomingStale) {
+                        console.log("ChatPage: Rejected stale deal update to prevent UI rollback.");
+                        return prev; // Keep the strict local override
+                    } else {
+                        return null; // The incoming deal caught up to our override! Clear it.
+                    }
+                });
+
+                setBaseDeal(foundDeal);
                 const foundInvoice = invoices.find(i => i.id === foundDeal.invoiceId);
                 setInvoice(foundInvoice || null);
 
@@ -93,6 +127,7 @@ export const ChatPage: React.FC = () => {
                         fileUrl: m.fileUrl || (m as any).file_url,
                         fileName: m.fileName || (m as any).file_name,
                         fileType: m.fileType || (m as any).file_type,
+                        isSystemMessage: m.isSystemMessage || (m as any).is_system_message
                     };
                 });
 
@@ -132,9 +167,51 @@ export const ChatPage: React.FC = () => {
         }
     }, [dealId, deals, invoices, allMessages, users, user]);
 
+    // 1. 金額合致時の自動メッセージ
+    useEffect(() => {
+        if (!deal || !user || !isPriceMatched || deal.status === 'concluded') return;
+
+        const matchedPriceMsg = `【システム通知】\n金額が ¥${deal.currentBuyerPrice?.toLocaleString()} で合致しました。`;
+        const hasMatchedMsg = messages.some(m => m.text === matchedPriceMsg && m.isSystemMessage);
+
+        if (!hasMatchedMsg && !hasSentMatchMessageRef.current) {
+            hasSentMatchMessageRef.current = true;
+            const receiverId = isBuyer ? deal.sellerId : deal.buyerId;
+            addMessage({
+                id: `sys_match_${Date.now()}`,
+                dealId: deal.id,
+                senderId: user.id,
+                receiverId: receiverId,
+                content: matchedPriceMsg,
+                timestamp: new Date().toISOString(),
+                isSystemMessage: true
+            }).catch(err => {
+                hasSentMatchMessageRef.current = false;
+                console.error("Error sending match message:", err);
+            });
+        }
+    }, [isPriceMatched, deal, messages, user, isBuyer, addMessage]);
+
+    const handleTermsClick = async () => {
+        if (!hasViewedTerms && deal && user) {
+            setHasViewedTerms(true);
+            const roleName = isBuyer ? '買い手' : '売り手';
+            const receiverId = isBuyer ? deal.sellerId : deal.buyerId;
+            await addMessage({
+                id: `sys_terms_${Date.now()}`,
+                dealId: deal.id,
+                senderId: user.id,
+                receiverId: receiverId,
+                content: `【システム通知】\n${roleName}が、約款および債権譲渡契約条項を確認しました。`,
+                timestamp: new Date().toISOString(),
+                isSystemMessage: true
+            });
+        }
+    };
+
     const handleSend = async () => {
         if (!inputText.trim() || !deal || !user) return;
-        if (!['open', 'pending', 'negotiating'].includes(deal.status)) return;
+        if (deal.status === 'rejected' || deal.paymentStatus === 'fully_settled') return;
 
         const myId = user.id;
         // Identify receiver: if I am buyer, receiver is seller, else buyer
@@ -227,6 +304,8 @@ export const ChatPage: React.FC = () => {
             return;
         }
 
+        if (!window.confirm(`金額 ${numPrice.toLocaleString()}円 で提示しますか？`)) return;
+
         if (isBuyer) {
             await updateDeal(deal.id, { currentBuyerPrice: numPrice });
         } else {
@@ -243,12 +322,14 @@ export const ChatPage: React.FC = () => {
             senderId: user.id, // technically it's me sending the system prop
             receiverId: receiverId,
             content: `【システム通知】\n新しい提示金額: ¥${numPrice.toLocaleString()}`,
-            timestamp: now.toISOString()
+            timestamp: now.toISOString(),
+            isSystemMessage: true
         });
     };
 
     const handleRevealField = async (fieldKey: string, fieldLabel: string) => {
         if (!deal || !user) return;
+        if (!window.confirm("債権の情報を公開しますか？")) return;
 
         const updates: Partial<Deal> = {};
         if (isBuyer) {
@@ -269,25 +350,133 @@ export const ChatPage: React.FC = () => {
             senderId: user.id,
             receiverId: receiverId,
             content: `【システム通知】\n${myName}がプロフィール項目「${fieldLabel}」を開示しました。`,
-            timestamp: now.toISOString()
+            timestamp: now.toISOString(),
+            isSystemMessage: true
         });
     };
 
     const handleAgree = async () => {
         if (!deal || !invoice || !user) return;
 
+        // --- 1. DBからの最新状態の直接取得 ---
+        // WebSocket同期漏れ（切断）を防ぐため、合意ボタン押下時に確実に最新のDB状態を取得
+        const { data: latestDeal, error: fetchError } = await supabase
+            .from('deals')
+            .select('buyer_agreed_at, seller_agreed_at, current_buyer_price, current_seller_price, current_amount')
+            .eq('id', deal.id)
+            .single();
+
+        if (fetchError || !latestDeal) {
+            console.error('Failed to fetch latest deal state:', fetchError);
+            alert('最新の取引状態の取得に失敗しました。ネットワークを確認し、再度お試しください。');
+            return;
+        }
+
         const isBuyer = user.id === deal.buyerId;
-        const willBeConcluded = (isBuyer && deal.sellerAgreedAt) || (!isBuyer && deal.buyerAgreedAt);
+        
+        // --- 2. 遷移条件の確実な評価 ---
+        // ローカルステートではなく、確実なDBのデータをもとに相手が合意済みかを判定
+        const willBeConcluded = (isBuyer && latestDeal.seller_agreed_at) || (!isBuyer && latestDeal.buyer_agreed_at);
 
         const confirmMsg = willBeConcluded
             ? '相手も合意済みのため、この操作で契約が成立します。よろしいですか？'
             : '契約内容に合意しますか？相手の合意をもって契約成立となります。';
 
         if (window.confirm(confirmMsg)) {
-            await agreeToDeal(deal.id, isBuyer);
-            if (willBeConcluded) {
-                // Update market stats only if the deal becomes concluded here
-                completeDeal(invoice.amount, deal.currentAmount);
+            const roleName = isBuyer ? '買い手' : '売り手';
+            const now = new Date().toISOString();
+            
+            // --- ULTIMATE ESCAPE: 1. Block Realtime ---
+            setTransitioning(true);
+
+            // --- ULTIMATE ESCAPE: 2. Pure DOM Overlay (unaffected by React lifecycles) ---
+            const overlay = document.createElement('div');
+            overlay.id = 'ultimate-escape-overlay';
+            overlay.innerHTML = `
+                <div style="position: fixed; inset: 0; z-index: 99999; background: rgba(255,255,255,0.85); backdrop-filter: blur(4px); display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <div style="width: 48px; height: 48px; border-radius: 50%; border: 4px solid #3b82f6; border-top-color: transparent; animation: ultimate-spin 1s linear infinite; margin-bottom: 16px;"></div>
+                    <h2 style="font-size: 1.25rem; font-weight: bold; color: #1e293b; font-family: sans-serif;">契約処理中...</h2>
+                    <p style="font-size: 0.875rem; color: #64748b; margin-top: 8px; font-family: sans-serif;">このまま画面を閉じずにお待ちください。</p>
+                    <style>@keyframes ultimate-spin { 100% { transform: rotate(360deg); } }</style>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            // --- STRICT LOCAL STATE OVERRIDE ---
+            setLocalDealOverride({
+                buyerAgreedAt: isBuyer ? now : latestDeal.buyer_agreed_at,
+                sellerAgreedAt: !isBuyer ? now : latestDeal.seller_agreed_at,
+                status: willBeConcluded ? 'concluded' : 'agreed' // or contracting based on your flow
+            });
+
+            try {
+                await addMessage({
+                    id: `sys_agree_${Date.now()}`,
+                    dealId: deal.id,
+                    senderId: user.id,
+                    receiverId: isBuyer ? deal.sellerId : deal.buyerId,
+                    content: `【システム通知】\n${roleName}が契約締結の意思表示を行いました。`,
+                    timestamp: now,
+                    isSystemMessage: true
+                });
+                
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const dbUpdates: any = {};
+                if (isBuyer) {
+                    dbUpdates.buyer_agreed_at = now;
+                } else {
+                    dbUpdates.seller_agreed_at = now;
+                }
+                if (willBeConcluded) {
+                    const finalAmount = latestDeal.current_buyer_price || latestDeal.current_seller_price || latestDeal.current_amount || deal.currentBuyerPrice || deal.currentSellerPrice || deal.currentAmount || 0;
+                    dbUpdates.status = 'concluded';
+                    dbUpdates.contract_date = now;
+                    dbUpdates.current_amount = finalAmount;
+                }
+                
+                // デバッグ用ログ: DB更新直前のペイロード
+                console.log('Update Payload Deals:', dbUpdates);
+
+                // Bypass DataContext and execute direct DB update to have absolute control of timing
+                const { error: updateError } = await supabase.from('deals').update(dbUpdates).eq('id', deal.id);
+                if (updateError) throw updateError;
+                
+                if (willBeConcluded) {
+                    // Determine the correct receiver ID correctly based on deal
+                    const systemMsg = {
+                        deal_id: deal.id,
+                        sender_id: user.id,
+                        receiver_id: isBuyer ? deal.sellerId : deal.buyerId,
+                        content: "【システム】双方が合意し、契約が成立しました🎉",
+                        is_system_message: true,
+                        timestamp: now
+                    };
+                    const { error: msgInsertError } = await supabase.from('messages').insert([systemMsg]);
+                    if (msgInsertError) throw msgInsertError;
+                    
+                    const { error: invoiceUpdateError } = await supabase.from('invoices').update({ status: 'sold' }).eq('id', deal.invoiceId);
+                    if (invoiceUpdateError) throw invoiceUpdateError;
+                    
+                    completeDeal(invoice.amount, deal.currentAmount);
+                }
+                
+                // 1. 強制遷移前のDBコミット待機（スリープ）
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // --- ULTIMATE ESCAPE: 3. Browser-level hard navigation ---
+                // Navigating to the same url physically triggers a complete lifecycle destruction and pure page load, 
+                // jumping directly to the correct concluded phase inside ChatPage on mount.
+                window.location.href = window.location.pathname + window.location.search;
+
+            } catch (error: any) {
+                console.error('Supabase Error Details:', error);
+                alert('合意処理に失敗しました: ' + (error.message || '不明なエラー'));
+                
+                // 失敗時はオーバーレイを削除し、遷移状態を解除
+                const overlayElement = document.getElementById('ultimate-escape-overlay');
+                if (overlayElement) overlayElement.remove();
+                setTransitioning(false);
+                setLocalDealOverride(null); // ローカルのオーバーライドも解除
             }
         }
     };
@@ -301,8 +490,9 @@ export const ChatPage: React.FC = () => {
                 dealId: deal.id,
                 senderId: user.id,
                 receiverId: deal.sellerId,
-                content: "【システム通知】買い手が振込完了を報告しました。",
-                timestamp: new Date().toISOString()
+                content: "【システム通知】買い手が譲渡代金の振込完了を報告しました。",
+                timestamp: new Date().toISOString(),
+                isSystemMessage: true
             });
         }
     };
@@ -316,8 +506,9 @@ export const ChatPage: React.FC = () => {
                 dealId: deal.id,
                 senderId: user.id,
                 receiverId: deal.buyerId,
-                content: "【システム通知】売り手が着金を確認しました。期日後の「回収・送金報告」をお待ちください。",
-                timestamp: new Date().toISOString()
+                content: "【システム通知】売り手が譲渡代金の着金を確認しました。期日後の「回収・送金報告」をお待ちください。",
+                timestamp: new Date().toISOString(),
+                isSystemMessage: true
             });
         }
     };
@@ -332,7 +523,8 @@ export const ChatPage: React.FC = () => {
                 senderId: user.id,
                 receiverId: deal.buyerId,
                 content: "【システム通知】売り手が回収および買い手への送金完了を報告しました。着金をご確認ください。",
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                isSystemMessage: true
             });
         }
     };
@@ -347,7 +539,8 @@ export const ChatPage: React.FC = () => {
                 senderId: user.id,
                 receiverId: deal.sellerId,
                 content: "【システム通知】買い手が着金を確認しました。これにて本取引は全て完了となります。",
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                isSystemMessage: true
             });
         }
     };
@@ -373,6 +566,46 @@ export const ChatPage: React.FC = () => {
         }
     };
 
+    const handleDownloadChatHistory = () => {
+        if (!deal || !invoice || !counterpartName || !user || messages.length === 0) return;
+
+        let txtContent = `取引チャット履歴\n`;
+        txtContent += `===================================\n`;
+        
+        const myProfile = users.find(u => u.id === user.id);
+        const myName = myProfile ? (myProfile.companyName || myProfile.contactPerson || '名称未設定') : '名称未設定';
+        
+        txtContent += `ダウンロード実行者: ${myName}\n`;
+        txtContent += `案件ID: ${invoice.id}\n`;
+        txtContent += `取引相手: ${counterpartName}\n`;
+        txtContent += `ダウンロード日時: ${new Date().toLocaleString()}\n`;
+        txtContent += `===================================\n\n`;
+
+        messages.forEach(msg => {
+            const senderName = msg.isSystemMessage ? 'システム通知' : (msg.sender === 'me' ? 'あなた' : counterpartName);
+            const time = msg.timestamp;
+            
+            txtContent += `[${time}] ${senderName}:\n`;
+            if (msg.text) {
+                txtContent += `${msg.text}\n`;
+            }
+            if (msg.fileName) {
+                txtContent += `[添付ファイル: ${msg.fileName}]\n`;
+            }
+            txtContent += `\n`;
+        });
+
+        const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `チャット履歴_案件${invoice.id}_${new Date().toISOString().slice(0, 10)}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
     const togglePanel = (key: string) => {
         setExpandedPanels(prev => ({ ...prev, [key]: !prev[key] }));
     };
@@ -382,16 +615,15 @@ export const ChatPage: React.FC = () => {
         return (
             <div className="bg-white rounded-md border border-slate-200 shadow-sm flex flex-col">
                 <div
-                    className="flex justify-between items-center p-3 cursor-pointer md:cursor-default md:pointer-events-none sticky top-0 bg-white z-10"
-                    onClick={() => { if (window.innerWidth < 768) togglePanel(key); }}
+                    className={`flex justify-between items-center p-3 cursor-pointer sticky top-0 bg-white z-10 transition-colors hover:bg-slate-50`}
+                    onClick={() => togglePanel(key)}
                 >
                     <div className="text-sm font-bold text-slate-700">{title}</div>
-                    <div className="md:hidden text-slate-400 pointer-events-auto">
+                    <div className="text-slate-400">
                         {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </div>
                 </div>
-                {/* On mobile: explicitly hidden if not expanded. On md/desktop: explicitly always block. */}
-                <div className={`${isExpanded ? 'block' : 'hidden'} md:block px-3 pb-3 border-t border-slate-100 max-h-[250px] overflow-y-auto`}>
+                <div className={`${isExpanded ? 'block' : 'hidden'} px-3 pb-3 border-t border-slate-100 max-h-[300px] overflow-y-auto`}>
                     <div className="flex flex-col pt-2">
                         {content}
                     </div>
@@ -408,6 +640,7 @@ export const ChatPage: React.FC = () => {
         { key: 'phone', label: '電話番号' },
         { key: 'email', label: 'メールアドレス' },
         { key: 'bankAccountInfo', label: '口座情報' },
+        { key: 'appealPoint', label: 'アピールポイント' },
     ];
 
     const renderProfileField = (
@@ -488,41 +721,52 @@ export const ChatPage: React.FC = () => {
 
     const renderMessages = () => (
         <div className="flex flex-col space-y-4 p-4">
-            {messages.map((msg) => (
-                <div
-                    key={msg.id}
-                    className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}
-                    translate="no"
-                >
-                    <div className={`flex flex-col ${msg.sender === 'me' ? 'items-end' : 'items-start'} max-w-[70%]`}>
-                        <div
-                            className={`rounded-2xl px-4 py-2 shadow-sm whitespace-pre-wrap text-sm md:text-base ${msg.sender === 'me'
-                                ? 'bg-green-500 text-white rounded-tr-none'
-                                : 'bg-slate-200 text-slate-800 rounded-tl-none'
-                                }`}
-                        >
-                            {msg.fileUrl && (
-                                <div className="mb-2">
-                                    {msg.fileType?.startsWith('image/') ? (
-                                        <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="block outline-none">
-                                            <img src={msg.fileUrl} alt={msg.fileName || '添付画像'} className="max-w-full max-h-48 rounded-md object-cover hover:opacity-90 transition-opacity border border-white/20 shadow-sm" />
-                                        </a>
-                                    ) : (
-                                        <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-md bg-white/20 hover:bg-white/30 transition-colors border border-white/30 text-current no-underline group block max-w-sm">
-                                            <FileTextIcon className="w-5 h-5 opacity-80 shrink-0" />
-                                            <span className="truncate text-xs font-medium">{msg.fileName || '添付ファイル'}</span>
-                                        </a>
-                                    )}
-                                </div>
-                            )}
-                            {msg.text}
+            {messages.map((msg) => {
+                if (msg.isSystemMessage) {
+                    return (
+                        <div key={msg.id} className="flex justify-center my-4" translate="no">
+                            <div className="bg-pink-50 text-pink-800 text-xs sm:text-sm px-4 py-2 rounded-lg text-center max-w-[90%] md:max-w-[70%] border border-pink-200 shadow-sm whitespace-pre-wrap font-medium">
+                                {msg.text}
+                            </div>
                         </div>
-                        <span className="text-[10px] text-slate-400 mt-1 px-1">
-                            {msg.timestamp}
-                        </span>
+                    );
+                }
+                return (
+                    <div
+                        key={msg.id}
+                        className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}
+                        translate="no"
+                    >
+                        <div className={`flex flex-col ${msg.sender === 'me' ? 'items-end' : 'items-start'} max-w-[85%] md:max-w-[70%]`}>
+                            <div
+                                className={`rounded-2xl px-4 py-2 shadow-sm whitespace-pre-wrap text-sm md:text-base break-words ${msg.sender === 'me'
+                                    ? 'bg-green-500 text-white rounded-tr-none'
+                                    : 'bg-slate-200 text-slate-800 rounded-tl-none'
+                                    }`}
+                            >
+                                {msg.fileUrl && (
+                                    <div className="mb-2">
+                                        {msg.fileType?.startsWith('image/') ? (
+                                            <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="block outline-none">
+                                                <img src={msg.fileUrl} alt={msg.fileName || '添付画像'} className="max-w-full max-h-48 rounded-md object-cover hover:opacity-90 transition-opacity border border-white/20 shadow-sm" />
+                                            </a>
+                                        ) : (
+                                            <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-md bg-white/20 hover:bg-white/30 transition-colors border border-white/30 text-current no-underline group block max-w-sm">
+                                                <FileTextIcon className="w-5 h-5 opacity-80 shrink-0" />
+                                                <span className="truncate text-xs font-medium">{msg.fileName || '添付ファイル'}</span>
+                                            </a>
+                                        )}
+                                    </div>
+                                )}
+                                {msg.text}
+                            </div>
+                            <span className="text-[10px] text-slate-400 mt-1 px-1">
+                                {msg.timestamp}
+                            </span>
+                        </div>
                     </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 
@@ -536,7 +780,7 @@ export const ChatPage: React.FC = () => {
     }
 
     return (
-        <div className="max-w-4xl mx-auto min-h-[calc(100dvh-5rem)] md:h-[calc(100vh-8rem)] flex flex-col">
+        <div className="max-w-4xl mx-auto min-h-[calc(100dvh-5rem)] md:h-[calc(100vh-8rem)] flex flex-col relative">
             <div className="mb-1 md:mb-2">
                 <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="text-slate-500 p-0 md:px-4 md:py-2">
                     <ChevronLeft className="w-4 h-4 mr-1" />
@@ -548,11 +792,22 @@ export const ChatPage: React.FC = () => {
                 <CardHeader className="border-b bg-white z-10 py-3">
                     <div className="flex justify-between items-start">
                         <CardTitle className="flex items-center gap-3">
-                            <div className="bg-blue-100 p-2 rounded-full">
+                            <div className="bg-blue-100 p-2 rounded-full relative">
                                 <User className="h-6 w-6 text-primary" />
                             </div>
                             <div>
-                                <div className="text-lg">{counterpartName}</div>
+                                <div className="text-lg flex items-center gap-2">
+                                    {counterpartName}
+                                    {opponentProfile && (
+                                        <div className="text-xs font-bold bg-slate-100 inline-flex px-2 py-0.5 rounded-full border border-slate-200 ml-2">
+                                            {getUserTrackRecord(opponentProfile.id, opponentProfile.role === 'buyer' ? 'buyer' : 'seller') === 0 ? (
+                                                <span className="text-blue-600">🔰 初回</span>
+                                            ) : (
+                                                <span className="text-emerald-600">🏆 成約 {getUserTrackRecord(opponentProfile.id, opponentProfile.role === 'buyer' ? 'buyer' : 'seller')}件</span>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                                 <div className="text-sm font-normal text-slate-500 flex flex-wrap gap-2 items-center mt-1">
                                     <span className="bg-slate-100 px-2 py-0.5 rounded text-xs text-slate-600 border border-slate-200">ID: {invoice.id}</span>
                                     <span>額面: ¥{invoice.amount.toLocaleString()}</span>
@@ -568,6 +823,14 @@ export const ChatPage: React.FC = () => {
                             <div className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded font-bold text-sm border border-indigo-100 shadow-sm">
                                 希望買取額: ¥{invoice.requestedAmount?.toLocaleString() || '未設定'}
                             </div>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs px-2 border-slate-300 text-slate-600 hover:bg-slate-50 flex items-center shadow-sm"
+                                onClick={handleDownloadChatHistory}
+                            >
+                                <Download className="w-3 h-3 mr-1" /> チャット履歴
+                            </Button>
                         </div>
                     </div>
                 </CardHeader>
@@ -634,16 +897,34 @@ export const ChatPage: React.FC = () => {
                                         </div>
                                         <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
                                             <span className="text-slate-500 shrink-0 mr-2">企業名</span>
-                                            <div className="flex-1 text-right font-medium text-slate-800">{invoice.isClientNamePublic ? (invoice.debtorName || '未設定') : '*** (非公開)'}</div>
+                                            <div className="flex-1 text-right font-medium text-slate-800">
+                                                {invoice.isClientNamePublic || deal.sellerRevealedFields?.invoiceDetails ? (invoice.debtorName || '未設定') : '*** (非公開)'}
+                                            </div>
                                         </div>
                                         <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
                                             <span className="text-slate-500 shrink-0 mr-2">所在地</span>
-                                            <div className="flex-1 text-right font-medium text-slate-800">{invoice.isClientAddressPublic ? (invoice.debtorAddress || '未設定') : '*** (非公開)'}</div>
+                                            <div className="flex-1 text-right font-medium text-slate-800">
+                                                {invoice.isClientAddressPublic || deal.sellerRevealedFields?.invoiceDetails ? (invoice.debtorAddress || '未設定') : '*** (非公開)'}
+                                            </div>
                                         </div>
                                         <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
                                             <span className="text-slate-500 shrink-0 mr-2">業種 / 規模</span>
-                                            <div className="flex-1 text-right font-medium text-slate-800">{invoice.industry} / {invoice.companySize ? invoice.companySize : '未設定'}</div>
+                                            <div className="flex-1 text-right font-medium text-slate-800">{invoice.industry} / {invoice.companySize ? translateCompanySize(invoice.companySize) : '未設定'}</div>
                                         </div>
+                                        
+                                        {!isBuyer && ['open', 'pending', 'negotiating'].includes(deal.status) && (
+                                            <div className="mt-4 flex justify-end">
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className={`h-7 text-xs px-3 shadow-sm ${deal.sellerRevealedFields?.invoiceDetails ? 'border-green-200 text-green-700 bg-green-50 pointer-events-none' : 'border-blue-200 text-blue-600 hover:bg-blue-50 cursor-pointer'}`}
+                                                    onClick={() => !deal.sellerRevealedFields?.invoiceDetails && handleRevealField('invoiceDetails', '対象債権情報（企業名・所在地）')}
+                                                    disabled={deal.sellerRevealedFields?.invoiceDetails}
+                                                >
+                                                    {deal.sellerRevealedFields?.invoiceDetails ? '開示済み ✓' : '対象債権情報を開示する'}
+                                                </Button>
+                                            </div>
+                                        )}
                                     </>
                                 ))}
                                 {renderAccordionPanel('opponent', '相手のプロフィール', (
@@ -674,20 +955,38 @@ export const ChatPage: React.FC = () => {
                                                 </Button>
                                             ) : (
                                                 <div className="flex flex-col gap-3">
-                                                    <label className="flex items-start gap-2 text-sm text-slate-700 cursor-pointer p-2 rounded hover:bg-slate-50 border border-transparent hover:border-slate-200 bg-white shadow-sm">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={isTermsAgreed}
-                                                            onChange={(e) => setIsTermsAgreed(e.target.checked)}
-                                                            className="mt-1 w-4 h-4 text-green-600 rounded border-slate-300 focus:ring-green-500 shrink-0"
-                                                        />
-                                                        <span className="leading-snug">
-                                                            <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline">
-                                                                [プラットフォーム利用約款および債権譲渡契約条項]
+                                                    {!hasViewedTerms ? (
+                                                        <div className="bg-blue-50 p-4 rounded text-center border border-blue-100">
+                                                            <p className="text-sm tracking-tight text-blue-800 mb-2 font-bold">
+                                                                「約款および債権譲渡契約条項」を確認願います
+                                                            </p>
+                                                            <Link
+                                                                to="/terms"
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                onClick={handleTermsClick}
+                                                                className="text-blue-600 hover:text-blue-800 underline font-bold"
+                                                            >
+                                                                約款および債権譲渡契約条項を読む
                                                             </Link>
-                                                            に同意する
-                                                        </span>
-                                                    </label>
+                                                        </div>
+                                                    ) : (
+                                                        <label className="flex items-start gap-2 text-sm text-slate-700 cursor-pointer p-2 rounded hover:bg-slate-50 border border-transparent hover:border-slate-200 bg-white shadow-sm">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isTermsAgreed}
+                                                                onChange={(e) => setIsTermsAgreed(e.target.checked)}
+                                                                className="mt-1 w-4 h-4 text-green-600 rounded border-slate-300 focus:ring-green-500 shrink-0 cursor-pointer"
+                                                            />
+                                                            <span className="leading-snug select-none">
+                                                                <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline inline-block mr-1">
+                                                                    約款および債権譲渡契約条項
+                                                                </Link>
+                                                                を確認しました
+                                                            </span>
+                                                        </label>
+                                                    )}
+
                                                     <Button
                                                         size="sm"
                                                         className={`w-full font-bold shadow-md transition-transform ${isTermsAgreed ? 'bg-green-600 hover:bg-green-700 hover:scale-[1.02] text-white' : 'bg-slate-300 text-slate-500 cursor-not-allowed'}`}
@@ -698,7 +997,7 @@ export const ChatPage: React.FC = () => {
                                                         disabled={!isTermsAgreed}
                                                     >
                                                         <Handshake className="w-5 h-5 mr-2" />
-                                                        この条件で契約に合意する
+                                                        契約手続に進む（合意する）
                                                     </Button>
                                                 </div>
                                             )}
@@ -720,6 +1019,32 @@ export const ChatPage: React.FC = () => {
                                             <span className="bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-bold border border-green-200">
                                                 契約成立🎉
                                             </span>
+
+                                            <div className="w-full bg-white border border-slate-200 p-4 rounded-lg shadow-sm flex flex-col items-center gap-3">
+                                                <p className="text-sm text-slate-600 font-bold mb-1">契約書（PDF）の確認・保存</p>
+                                                <div className="flex gap-2 w-full max-w-sm">
+                                                    <Button
+                                                        variant="outline"
+                                                        className="flex-1 flex items-center justify-center border-slate-300 hover:bg-slate-50 text-slate-700 font-bold shadow-sm"
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            const url = `/contract-print?dealId=${deal.id}`;
+                                                            window.open(url, '_blank', 'noopener,noreferrer');
+                                                        }}
+                                                    >
+                                                        <FileTextIcon className="w-4 h-4 mr-2" /> Webで確認
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        className="flex-1 border-slate-300 hover:bg-slate-50 text-slate-700 font-bold shadow-sm"
+                                                        onClick={handlePrintContract}
+                                                        disabled={isGeneratingPdf}
+                                                    >
+                                                        <FileTextIcon className="w-4 h-4 mr-2" /> {isGeneratingPdf ? '生成中...' : 'PDF保存'}
+                                                    </Button>
+                                                </div>
+                                            </div>
 
                                             {/* --- PAYMENT & PROCEDURE PANEL --- */}
                                             {isBuyer ? (
@@ -791,18 +1116,7 @@ export const ChatPage: React.FC = () => {
                                                 </div>
                                             )}
 
-                                            <div className="w-full mt-2 border-t border-slate-200 pt-3">
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    className="border-green-600 text-green-700 hover:bg-green-50 w-full shadow-sm"
-                                                    onClick={handlePrintContract}
-                                                    disabled={isGeneratingPdf}
-                                                >
-                                                    <FileText className="w-4 h-4 mr-2" />
-                                                    {isGeneratingPdf ? "PDF生成中..." : "契約書（PDF）を保存"}
-                                                </Button>
-                                            </div>
+                                            {/* (Duplicate specific contract button removed to consolidate UI above) */}
                                         </div>
                                     ) : (
                                         <span className="bg-slate-100 text-slate-600 px-4 py-2 rounded-full text-sm font-bold border border-slate-200">
@@ -815,9 +1129,16 @@ export const ChatPage: React.FC = () => {
                     </Card>
 
                     {/* Chat Panel (Right Panel) */}
-                    <Card className="flex-1 flex flex-col shadow-sm border-slate-200 md:h-full md:overflow-hidden">
-                        <CardContent className="flex-1 md:overflow-y-auto p-0 bg-white min-h-[300px] md:min-h-0">
-                            {renderMessages()}
+                    <Card className="flex-1 flex flex-col shadow-sm border-slate-200 md:h-full md:overflow-hidden relative">
+                        {deal.status === 'rejected' && (
+                            <div className="absolute top-0 left-0 right-0 z-20 bg-red-50 text-red-700 px-4 py-3 flex text-center justify-center items-center text-sm font-bold border-b border-red-200 shadow-sm">
+                                ⚠️ この案件は他のお客様と成約したため、募集・交渉が終了しました。
+                            </div>
+                        )}
+                        <CardContent className={`flex-1 md:overflow-y-auto p-0 bg-white min-h-[300px] md:min-h-0 relative ${deal.status === 'rejected' ? 'mt-12' : ''}`}>
+                            <div className={deal.status === 'rejected' ? 'pt-12' : ''}>
+                                {renderMessages()}
+                            </div>
                         </CardContent>
 
                         <CardFooter className="bg-slate-50 border-t p-3 border-slate-200 sticky bottom-0 z-10 flex flex-col items-stretch gap-2">

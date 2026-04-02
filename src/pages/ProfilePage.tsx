@@ -368,9 +368,7 @@ export const ProfilePage: React.FC = () => {
                         true
                     )}
 
-                    {profile.role === 'seller' && (
-                        renderField('bankAccountInfo', '振込先口座情報', <CreditCard size={18} className="text-slate-400" />, 'text', true)
-                    )}
+                    {renderField('bankAccountInfo', '振込先口座情報', <CreditCard size={18} className="text-slate-400" />, 'text', true)}
 
                     <div className="p-6 bg-slate-50/50 flex flex-col items-end gap-3">
                         {saveMessage.text && (

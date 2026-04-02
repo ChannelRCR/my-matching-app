@@ -1,3 +1,18 @@
+import type { Invoice, Deal } from '../types';
+
+export const getSellerUncompletedCount = (sellerId: string, invoices: Invoice[], deals: Deal[]): number => {
+    const uncompletedInvoices = invoices.filter(inv => {
+        if (inv.sellerId !== sellerId) return false;
+        if (inv.status !== 'sold') return true;
+        
+        const associatedDeal = deals.find(d => d.invoiceId === inv.id && d.status === 'concluded');
+        if (associatedDeal && associatedDeal.paymentStatus !== 'fully_settled') return true;
+        
+        return false;
+    });
+    return uncompletedInvoices.length;
+};
+
 export const calculateAnnualYield = (sellingAmount: number, requestedAmount: number, dueDate: string): number => {
     if (!sellingAmount || !requestedAmount || !dueDate) return 0;
 

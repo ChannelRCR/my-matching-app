@@ -2,12 +2,17 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Invoice, Deal, User, Message } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
+import { isTransitioning } from '../utils/transitionState';
 
 interface DataContextType {
     invoices: Invoice[];
     deals: Deal[];
     messages: Message[];
     users: User[];
+    buyers: User[];
+    sellers: User[];
+    invoiceStats: Record<string, {offerCount: number, maxOffer: number}>;
+    sellerUncompletedCounts: Record<string, number>;
     loading: boolean;
     addInvoice: (invoice: Invoice) => Promise<boolean>;
     addMessage: (message: Message) => Promise<void>;
@@ -27,15 +32,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { user: authUser } = useAuth();
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [users, setUsers] = useState<User[]>([]);
+    const [buyers, setBuyers] = useState<User[]>([]);
+    const [sellers, setSellers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [deals, setDeals] = useState<Deal[]>([]);
     const [messages, setMessages] = useState<Message[]>([]);
+    const [invoiceStats, setInvoiceStats] = useState<Record<string, {offerCount: number, maxOffer: number}>>({});
+    const [sellerUncompletedCounts, setSellerUncompletedCounts] = useState<Record<string, number>>({});
 
     useEffect(() => {
         const initialize = async () => {
             setLoading(true);
             try {
-                await Promise.all([fetchUsers(), fetchInvoices(), fetchDeals(), fetchMessages()]);
+                await Promise.all([fetchUsers(), fetchInvoices(), fetchDeals(), fetchMessages(), fetchInvoiceStats(), fetchSellerStats()]);
             } catch (error) {
                 console.error('Error initializing data:', error);
             } finally {
@@ -46,11 +55,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const dealsSub = supabase.channel('deals_channel')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'deals' }, () => {
-                fetchDeals(); // Simplest way to keep sync without manual merging
+                if (isTransitioning) {
+                    console.log("Ultimate Escape: Blocked realtime deal update.");
+                    return;
+                }
+                fetchDeals(); fetchInvoiceStats(); fetchSellerStats();
             }).subscribe();
 
         const msgsSub = supabase.channel('msgs_channel')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
+                if (isTransitioning) {
+                    console.log("Ultimate Escape: Blocked realtime message update.");
+                    return;
+                }
                 fetchMessages();
             }).subscribe();
 
@@ -71,7 +88,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const sellersMap = new Map((sellersData || []).map(s => [s.id, s]));
         const buyersMap = new Map((buyersData || []).map(b => [b.id, b]));
 
-        setUsers(usersData.map((u: any) => {
+        const processedUsers = usersData.map((u: any) => {
             const roleData = u.role === 'seller' ? sellersMap.get(u.id) : buyersMap.get(u.id);
             // Fallback to empty object if no role data found yet
             const profile = roleData || {};
@@ -98,11 +115,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     email: true
                 },
             };
-        }));
+        });
+
+        setUsers(processedUsers);
+        setSellers(processedUsers.filter((u: User) => u.role === 'seller'));
+        setBuyers(processedUsers.filter((u: User) => u.role === 'buyer'));
     };
 
     const updateUser = async (userId: string, updates: Partial<User>) => {
         setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...updates } : u));
+        setSellers(prev => prev.map(u => u.id === userId ? { ...u, ...updates } : u));
+        setBuyers(prev => prev.map(u => u.id === userId ? { ...u, ...updates } : u));
+
         const dbUpdates: any = {};
         if (updates.name) dbUpdates.name = updates.name;
         if (updates.companyName) dbUpdates.company_name = updates.companyName;
@@ -180,10 +204,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         const { error } = await supabase.from('invoices').insert([dbInvoice]).select();
         if (error) {
-            alert(`案件登録に失敗しました: ${error.message}`);
+            console.error('addInvoice Error:', error);
+            console.error('dbInvoice Data:', dbInvoice);
+            alert(`案件登録に失敗しました: ${error.message} \n詳細はコンソールを確認してください。`);
             return false;
         } else {
-            fetchInvoices();
+            await fetchInvoices();
+            await fetchSellerStats();
             return true;
         }
     };
@@ -214,6 +241,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const fetchSellerStats = async () => {
+        const { data } = await supabase.from('seller_uncompleted_stats').select('*');
+        if (data) {
+            const stats: Record<string, number> = {};
+            data.forEach((row: any) => {
+                stats[row.seller_id] = Number(row.uncompleted_count);
+            });
+            setSellerUncompletedCounts(stats);
+        }
+    };
+
+    const fetchInvoiceStats = async () => {
+        const { data } = await supabase.from('invoice_offer_stats').select('*');
+        if (data) {
+            const stats: Record<string, {offerCount: number, maxOffer: number}> = {};
+            data.forEach((row: any) => {
+                stats[row.invoice_id] = { offerCount: Number(row.offer_count), maxOffer: Number(row.max_offer) };
+            });
+            setInvoiceStats(stats);
+        }
+    };
+
     const fetchMessages = async () => {
         const { data } = await supabase.from('messages').select('*').order('timestamp', { ascending: true });
         if (data) {
@@ -227,7 +276,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 fileUrl: m.file_url,
                 fileName: m.file_name,
                 fileType: m.file_type,
-                isRead: m.is_read
+                isRead: m.is_read,
+                isSystemMessage: m.is_system_message
             })));
         }
     };
@@ -265,7 +315,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             deal_id: message.dealId,
             sender_id: message.senderId,
             receiver_id: message.receiverId,
-            content: message.content
+            content: message.content,
+            is_system_message: message.isSystemMessage || false
         };
         if (message.fileUrl) dbMsg.file_url = message.fileUrl;
         if (message.fileName) dbMsg.file_name = message.fileName;
@@ -290,7 +341,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (updates.paymentStatus !== undefined) dbUpdates.payment_status = updates.paymentStatus;
 
         await supabase.from('deals').update(dbUpdates).eq('id', dealId);
+        
+        // Optimistic UI Update
+        setDeals(prev => prev.map(d => d.id === dealId ? { ...d, ...updates } : d));
+        
+        // Background sync
         fetchDeals();
+        fetchSellerStats();
     };
 
     const createChatRoom = async (invoiceId: string, buyerId: string): Promise<Deal | null> => {
@@ -335,7 +392,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             deal_id: data.id,
             sender_id: buyerId,
             receiver_id: sellerId,
-            content: "【システム】この案件について質問・交渉が開始されました。"
+            content: "【システム】この案件について質問・交渉が開始されました。",
+            is_system_message: true
         };
         await supabase.from('messages').insert([dbMsg]);
 
@@ -385,7 +443,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             deal_id: data.id,
             sender_id: buyerId,
             receiver_id: sellerId,
-            content: message
+            content: message,
+            is_system_message: true
         };
         await supabase.from('messages').insert([dbMsg]);
 
@@ -395,53 +454,84 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const acceptDeal = async (deal: Deal) => {
         await supabase.from('deals').update({ status: 'negotiating' }).eq('id', deal.id);
-        await supabase.from('deals').update({ status: 'rejected' }).eq('invoice_id', deal.invoiceId).neq('id', deal.id);
         await supabase.from('invoices').update({ status: 'negotiating' }).eq('id', deal.invoiceId);
 
-        fetchDeals(); fetchInvoices();
+        await fetchDeals(); await fetchInvoices();
     };
 
     const agreeToDeal = async (dealId: string, isBuyer: boolean) => {
-        const deal = deals.find(d => d.id === dealId);
-        if (!deal || !authUser) return;
+        // Fetch fresh deal from DB to avoid race conditions!
+        const { data: dbDeal, error } = await supabase.from('deals').select('*').eq('id', dealId).single();
+        if (error || !dbDeal || !authUser) return;
 
         const now = new Date().toISOString();
-        const updates: Partial<Deal> = {};
+        const dbUpdates: any = {};
+        const stateUpdates: Partial<Deal> = {};
 
         if (isBuyer) {
-            updates.buyerAgreedAt = now;
+            dbUpdates.buyer_agreed_at = now;
+            stateUpdates.buyerAgreedAt = now;
         } else {
-            updates.sellerAgreedAt = now;
+            dbUpdates.seller_agreed_at = now;
+            stateUpdates.sellerAgreedAt = now;
         }
 
-        // Check if the other party has already agreed
-        const willBeConcluded = (isBuyer && deal.sellerAgreedAt) || (!isBuyer && deal.buyerAgreedAt);
+        // Check if the other party has already agreed using fresh DB data
+        const willBeConcluded = (isBuyer && dbDeal.seller_agreed_at) || (!isBuyer && dbDeal.buyer_agreed_at);
 
         if (willBeConcluded) {
-            updates.status = 'concluded';
-            updates.contractDate = now;
-            updates.currentAmount = deal.currentBuyerPrice || deal.currentSellerPrice || deal.currentAmount;
+            const finalAmount = dbDeal.current_buyer_price || dbDeal.current_seller_price || dbDeal.current_amount;
+            dbUpdates.status = 'concluded';
+            dbUpdates.contract_date = now;
+            dbUpdates.current_amount = finalAmount;
+
+            stateUpdates.status = 'concluded';
+            stateUpdates.contractDate = now;
+            stateUpdates.currentAmount = finalAmount;
 
             // Add a system message for contract conclusion
             const dbMsg = {
-                deal_id: deal.id,
-                sender_id: authUser.id, // Or use a system UUID if you have one
-                receiver_id: isBuyer ? deal.sellerId : deal.buyerId,
-                content: "【システム】双方が合意し、契約が成立しました🎉"
+                deal_id: dealId,
+                sender_id: authUser.id,
+                receiver_id: isBuyer ? dbDeal.seller_id : dbDeal.buyer_id,
+                content: "【システム】双方が合意し、契約が成立しました🎉",
+                is_system_message: true
             };
             await supabase.from('messages').insert([dbMsg]);
 
             // Target Receivable becomes 'sold'
-            await supabase.from('invoices').update({ status: 'sold' }).eq('id', deal.invoiceId);
-            fetchInvoices();
+            await supabase.from('invoices').update({ status: 'sold' }).eq('id', dbDeal.invoice_id);
+            setInvoices(prev => prev.map(inv => inv.id === dbDeal.invoice_id ? { ...inv, status: 'sold' } : inv));
         }
 
-        await updateDeal(dealId, updates);
+        // Ensure database is updated immediately
+        await supabase.from('deals').update(dbUpdates).eq('id', dealId);
+        
+        // INSTANT UI UPDATE (Optimistic / Manual state override with complete reconstruction)
+        setDeals(prev => prev.map(d => {
+            if (d.id === dealId) {
+                return {
+                    ...d,
+                    ...stateUpdates,
+                    buyerAgreedAt: isBuyer ? now : dbDeal.buyer_agreed_at,
+                    sellerAgreedAt: !isBuyer ? now : dbDeal.seller_agreed_at,
+                    status: willBeConcluded ? 'concluded' : dbDeal.status,
+                    contractDate: willBeConcluded ? now : dbDeal.contract_date
+                };
+            }
+            return d;
+        }));
+
+        // Re-fetch in background to ensure sync (does not block UI transition)
+        fetchDeals();
+        if (willBeConcluded) {
+            fetchInvoices();
+        }
     };
 
     return (
         <DataContext.Provider value={{
-            invoices, deals, messages, users, loading,
+            invoices, deals, messages, users, buyers, sellers, invoiceStats, sellerUncompletedCounts, loading,
             addInvoice, addMessage, updateDeal, updateUser,
             createDeal, createChatRoom, acceptDeal, agreeToDeal,
             markMessagesAsRead, getUserTrackRecord

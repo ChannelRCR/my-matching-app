@@ -1,299 +1,307 @@
 import React from 'react';
-import { TrendingUp, Wallet, Scale, LineChart, Handshake, DollarSign, Clock, ShieldCheck, CreditCard } from 'lucide-react';
+import {
+    TrendingUp, LineChart, DollarSign, Clock, ShieldCheck,
+    Zap, Layers, ArrowRight, UserPlus, Search,
+    Handshake, CheckCircle2, Building2, Briefcase
+} from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useMarket } from '../contexts/MarketContext';
-import { useData } from '../contexts/DataContext';
 import { useNavigate } from 'react-router-dom';
-import { useInvoiceFilter } from '../hooks/useInvoiceFilter';
-import { InvoiceFilterPanel } from '../components/InvoiceFilterPanel';
-import { translateCompanySize } from '../utils/translations';
-import { Card, CardContent } from '../components/ui/Card';
+import { PublicDealsBoard } from '../components/PublicDealsBoard';
 
 export const LandingPage: React.FC = () => {
     const { stats } = useMarket();
-    const { invoices } = useData();
     const navigate = useNavigate();
 
-    const activeOpenInvoices = React.useMemo(() => {
-        return invoices.filter(inv => ['open', 'pending', 'negotiating', 'sold'].includes(inv.status));
-    }, [invoices]);
-
-    const filterProps = useInvoiceFilter(activeOpenInvoices);
-    const { filteredAndSortedInvoices, resetFilters } = filterProps;
-
     return (
-        <div className="flex flex-col min-h-screen">
-            {/* Market Statistics Ticker */}
-            <div className="bg-slate-900 text-white py-3 overflow-hidden border-b border-slate-700">
-                <div className="container mx-auto px-4 flex flex-wrap justify-center gap-6 md:gap-12 text-sm font-mono tracking-wide">
-                    <div className="flex items-center gap-2 text-green-400">
-                        <TrendingUp size={16} />
-                        <span className="text-slate-400">平均割引率:</span>
-                        <span className="font-bold text-lg">{stats.averageDiscountRate}%</span>
+        <div className="flex flex-col min-h-screen bg-slate-50 font-sans">
+            {/* Market Statistics Ticker (Refined) */}
+            <div className="bg-slate-900 text-slate-300 py-2.5 overflow-hidden border-b border-slate-800 text-xs sm:text-sm">
+                <div className="container mx-auto px-4 flex flex-wrap justify-center gap-6 md:gap-12 font-medium tracking-wide">
+                    <div className="flex items-center gap-2">
+                        <TrendingUp size={14} className="text-emerald-400" />
+                        <span>平均割引率:</span>
+                        <span className="text-white font-bold">{stats.averageDiscountRate}%</span>
                     </div>
-                    <div className="flex items-center gap-2 text-blue-400">
-                        <DollarSign size={16} />
-                        <span className="text-slate-400">今月の取引総額:</span>
-                        <span className="font-bold text-lg">¥{stats.totalVolume.toLocaleString()}</span>
+                    <div className="flex items-center gap-2">
+                        <DollarSign size={14} className="text-blue-400" />
+                        <span>今月の取引総額:</span>
+                        <span className="text-white font-bold">¥{stats.totalVolume.toLocaleString()}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-yellow-400">
-                        <Clock size={16} />
-                        <span className="text-slate-400">平均資金化スピード:</span>
-                        <span className="font-bold text-lg">{stats.avgFundingDays}日</span>
+                    <div className="flex items-center gap-2">
+                        <Clock size={14} className="text-amber-400" />
+                        <span>平均資金化スピード:</span>
+                        <span className="text-white font-bold">{stats.avgFundingDays}日</span>
                     </div>
                 </div>
             </div>
 
-            {/* Hero Section */}
-            <section className="bg-gradient-to-br from-primary to-accent text-white py-24 px-4 relative overflow-hidden">
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-10"></div>
-                <div className="container mx-auto text-center relative z-10">
-                    <h1 className="text-4xl md:text-6xl font-extrabold mb-6 leading-tight">
-                        ビジネスの資金と投資家をつなぐ、<br />
-                        <span className="text-[var(--color-gold)]">完全自由な債権流動化市場</span>
-                    </h1>
-                    <p className="text-xl md:text-2xl mb-10 opacity-90 max-w-3xl mx-auto">
-                        管理者は介入しない。手数料はゼロ。<br />
-                        透明な情報と規律ある参加者によって作られる、次世代のエコシステム。
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-                        <Button
-                            size="lg"
-                            className="bg-white text-primary hover:bg-slate-100 font-bold w-full sm:w-auto h-14 px-8 text-lg shadow-lg hover:shadow-xl transition-all"
-                            onClick={() => navigate('/register?role=seller')}
-                        >
-                            売り手として登録（資金調達）
-                        </Button>
-                        <Button
-                            size="lg"
-                            className="bg-[var(--color-gold)] text-white hover:bg-amber-600 font-bold w-full sm:w-auto h-14 px-8 text-lg shadow-lg hover:shadow-xl transition-all border-none"
-                            onClick={() => navigate('/register?role=buyer')}
-                        >
-                            買い手として登録（投資）
-                        </Button>
+            {/* 1. Hero Section */}
+            <section className="relative bg-slate-900 text-white py-24 lg:py-32 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 via-slate-900 to-slate-900/90 z-0"></div>
+                <div className="absolute top-0 right-0 -translate-y-12 translate-x-1/3 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl z-0 pointer-events-none"></div>
+                <div className="absolute bottom-0 left-0 translate-y-1/3 -translate-x-1/4 w-[30rem] h-[30rem] bg-indigo-600/10 rounded-full blur-3xl z-0 pointer-events-none"></div>
+
+                <div className="container mx-auto px-4 relative z-10">
+                    <div className="max-w-4xl mx-auto text-center">
+                        <span className="inline-block py-1.5 px-3 rounded-full bg-blue-500/10 text-blue-300 border border-blue-500/20 text-sm font-semibold tracking-wider mb-6">
+                            次世代の債権流動化プラットフォーム
+                        </span>
+                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-8 leading-tight tracking-tight text-white drop-shadow-sm">
+                            2者間ファクタリングに、<br className="hidden md:block" />
+                            透明な市場原理を。
+                        </h1>
+                        <p className="text-lg md:text-xl mb-12 text-slate-300 max-w-2xl mx-auto leading-relaxed font-light">
+                            取引先に知られない隠密性はそのままに。<br />
+                            全国の優良な買い手との自由競争により、事業の粗利を圧迫しない『適正な割引率』での資金調達を実現します。
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
+                            <Button
+                                size="lg"
+                                className="bg-blue-600 hover:bg-blue-500 text-white font-bold w-full sm:w-auto h-14 px-8 text-base shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_30px_rgba(37,99,235,0.5)] transition-all rounded-xl"
+                                onClick={() => navigate('/register?role=seller')}
+                            >
+                                売り手として無料登録
+                                <ArrowRight className="ml-2 w-5 h-5" />
+                            </Button>
+                            <Button
+                                size="lg"
+                                className="bg-white hover:bg-slate-100 text-slate-900 font-bold w-full sm:w-auto h-14 px-8 text-base shadow-lg hover:shadow-xl transition-all rounded-xl border border-slate-200"
+                                onClick={() => navigate('/register?role=buyer')}
+                            >
+                                買い手として無料登録
+                                <Briefcase className="ml-2 w-5 h-5 text-slate-500" />
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            {/* Compliance & Enlightenment Section */}
-            <section className="py-20 bg-slate-50 border-b border-slate-200">
+            {/* 2. Features */}
+            <section className="py-24 bg-white relative">
                 <div className="container mx-auto px-4">
-                    <div className="max-w-4xl mx-auto bg-white rounded-2xl p-8 md:p-12 shadow-sm border border-slate-100">
-                        <div className="flex items-center justify-center mb-6">
-                            <Scale size={48} className="text-primary" />
-                        </div>
-                        <h2 className="text-3xl font-bold text-center mb-8 text-slate-800">
-                            健全な市場のための「自律」と「責任」
+                    <div className="text-center mb-16 max-w-3xl mx-auto">
+                        <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6 tracking-tight">
+                            プラットフォームの3つの特徴
                         </h2>
-                        <div className="space-y-6 text-slate-700 leading-relaxed">
-                            <p className="text-lg text-center font-medium">
-                                当プラットフォームは、すべての参加者に<span className="text-primary font-bold">「法令遵守」</span>と<span className="text-primary font-bold">「自己責任」</span>を求めます。
-                                運営者は取引に介入しません。
-                            </p>
-                            <div className="grid md:grid-cols-2 gap-8 mt-8">
-                                <div className="bg-slate-50 p-6 rounded-lg">
-                                    <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
-                                        <ShieldCheck className="text-primary" size={24} />
-                                        売り手・買い手双方の義務
-                                    </h3>
-                                    <ul className="list-disc list-inside space-y-2 text-sm">
-                                        <li>正確かつ最新の情報を提供すること</li>
-                                        <li>契約に基づく義務を誠実に履行すること</li>
-                                        <li>関係法令および利用規約を遵守すること</li>
-                                    </ul>
-                                </div>
-                                <div className="bg-slate-50 p-6 rounded-lg">
-                                    <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
-                                        <Handshake className="text-primary" size={24} />
-                                        自由で公平な取引環境
-                                    </h3>
-                                    <ul className="list-disc list-inside space-y-2 text-sm">
-                                        <li>取引手数料は原則無料（寄付制）</li>
-                                        <li>市場統計（平均割引率など）の完全公開</li>
-                                        <li>透明性の高い直接取引</li>
-                                    </ul>
-                                </div>
+                        <p className="text-lg text-slate-600">
+                            テクノロジーと透明性が、B2B金融のこれまでの常識を変えます。
+                        </p>
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                        {/* Feature 1 */}
+                        <div className="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:shadow-xl transition-shadow duration-300 group">
+                            <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                                <ShieldCheck size={28} />
                             </div>
+                            <h3 className="text-xl font-bold text-slate-900 mb-4 tracking-tight">実績ベースの強固な信用モデル</h3>
+                            <p className="text-slate-600 leading-relaxed text-sm">
+                                従来の「足元を見る取引」を排除。プラットフォーム上での完遂履歴が強固な「信用（Track Record）」となり、システムがあなたを証明します。
+                            </p>
+                        </div>
+                        {/* Feature 2 */}
+                        <div className="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:shadow-xl transition-shadow duration-300 group">
+                            <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                                <Zap size={28} />
+                            </div>
+                            <h3 className="text-xl font-bold text-slate-900 mb-4 tracking-tight">柔軟で迅速な直接取引</h3>
+                            <p className="text-slate-600 leading-relaxed text-sm">
+                                当事者間での直接交渉や、取引先に知られない二社間ファクタリングを活用し、中間マージンを省いたスピーディな資金調達を実現します。
+                            </p>
+                        </div>
+                        {/* Feature 3 */}
+                        <div className="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:shadow-xl transition-shadow duration-300 group">
+                            <div className="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                                <Layers size={28} />
+                            </div>
+                            <h3 className="text-xl font-bold text-slate-900 mb-4 tracking-tight">多様な債権フォーマットに対応</h3>
+                            <p className="text-slate-600 leading-relaxed text-sm">
+                                一般的な売掛金から貸付金まで、幅広いアセットクラスの流動化をサポート。ビジネスの状況に応じた最適な資金化アプローチを選択できます。
+                            </p>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* Benefits Comparison Section */}
-            <section className="py-20 bg-white">
+            {/* 3. Benefits */}
+            <section className="py-24 bg-slate-50 border-t border-slate-200">
                 <div className="container mx-auto px-4">
-                    <h2 className="text-3xl md:text-4xl font-bold text-center mb-16 text-slate-900">
-                        プラットフォームを利用するメリット
-                    </h2>
+                    <div className="text-center mb-16 max-w-3xl mx-auto">
+                        <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6 tracking-tight">
+                            参加者それぞれのメリット
+                        </h2>
+                        <p className="text-lg text-slate-600">
+                            売り手と買い手、双方がWin-Winとなるエコシステムを提供します。
+                        </p>
+                    </div>
 
-                    <div className="grid md:grid-cols-2 gap-12 max-w-6xl mx-auto">
+                    <div className="grid lg:grid-cols-2 gap-10 max-w-6xl mx-auto">
                         {/* Seller Benefits */}
-                        <div className="bg-blue-50/50 rounded-2xl p-8 border border-blue-100">
-                            <div className="flex items-center gap-4 mb-6">
-                                <div className="bg-blue-100 p-3 rounded-full">
-                                    <Wallet size={32} className="text-primary" />
-                                </div>
-                                <div>
-                                    <h3 className="text-2xl font-bold text-slate-900">売り手（資金調達者）</h3>
-                                    <p className="text-slate-500 font-medium">資金繰りを改善したい経営者様</p>
-                                </div>
-                            </div>
-                            <ul className="space-y-6">
-                                <li className="flex gap-4">
-                                    <div className="bg-white p-2 h-fit rounded-lg shadow-sm text-primary font-bold min-w-[3rem] text-center">01</div>
-                                    <div>
-                                        <h4 className="font-bold text-lg mb-1">手数料無料・低コスト</h4>
-                                        <p className="text-slate-600">運営手数料は0円。かかるコストは投資家への割引料のみ。圧倒的な低コストで資金調達が可能です。</p>
+                        <div className="bg-white rounded-2xl p-10 border border-slate-200 shadow-sm relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -z-0"></div>
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-4 mb-8">
+                                    <div className="p-3 bg-blue-600 text-white rounded-xl shadow-md">
+                                        <Building2 size={28} />
                                     </div>
-                                </li>
-                                <li className="flex gap-4">
-                                    <div className="bg-white p-2 h-fit rounded-lg shadow-sm text-primary font-bold min-w-[3rem] text-center">02</div>
-                                    <div>
-                                        <h4 className="font-bold text-lg mb-1">迅速な資金調達</h4>
-                                        <p className="text-slate-600">オンライン完結のため、最短即日から数日でのスピーディーな資金化が可能です。</p>
-                                    </div>
-                                </li>
-                            </ul>
-                            <div className="mt-8 text-center">
-                                <Button className="w-full bg-primary hover:bg-blue-700" onClick={() => navigate('/register?role=seller')}>売り手として登録する</Button>
+                                    <h3 className="text-2xl font-bold text-slate-900 tracking-tight">売り手 (Seller) のメリット</h3>
+                                </div>
+                                <ul className="space-y-6">
+                                    <li className="flex gap-4 items-start">
+                                        <CheckCircle2 className="w-6 h-6 text-blue-500 shrink-0 mt-0.5" />
+                                        <div>
+                                            <h4 className="font-bold text-slate-900 text-lg mb-1">最短即日の資金化</h4>
+                                            <p className="text-slate-600 text-sm leading-relaxed">煩雑な手続きをシステム化し、マッチング後すぐに資金を調達可能。</p>
+                                        </div>
+                                    </li>
+                                    <li className="flex gap-4 items-start">
+                                        <CheckCircle2 className="w-6 h-6 text-blue-500 shrink-0 mt-0.5" />
+                                        <div>
+                                            <h4 className="font-bold text-slate-900 text-lg mb-1">取引先に知られない二社間契約</h4>
+                                            <p className="text-slate-600 text-sm leading-relaxed">売却の事実を取引先に通知しない二社間ファクタリングで、信用不安を防ぎます。</p>
+                                        </div>
+                                    </li>
+                                    <li className="flex gap-4 items-start">
+                                        <CheckCircle2 className="w-6 h-6 text-blue-500 shrink-0 mt-0.5" />
+                                        <div>
+                                            <h4 className="font-bold text-slate-900 text-lg mb-1">透明性の高い手数料</h4>
+                                            <p className="text-slate-600 text-sm leading-relaxed">運営手数料はゼロ。投資家との直接交渉による割引料のみがコストとなり、非常に透明です。</p>
+                                        </div>
+                                    </li>
+                                </ul>
                             </div>
                         </div>
 
                         {/* Buyer Benefits */}
-                        <div className="bg-amber-50/50 rounded-2xl p-8 border border-amber-100">
-                            <div className="flex items-center gap-4 mb-6">
-                                <div className="bg-amber-100 p-3 rounded-full">
-                                    <LineChart size={32} className="text-[var(--color-gold)]" />
-                                </div>
-                                <div>
-                                    <h3 className="text-2xl font-bold text-slate-900">買い手（投資家）</h3>
-                                    <p className="text-slate-500 font-medium">新しい投資先をお探しの皆様</p>
-                                </div>
-                            </div>
-                            <ul className="space-y-6">
-                                <li className="flex gap-4">
-                                    <div className="bg-white p-2 h-fit rounded-lg shadow-sm text-[var(--color-gold)] font-bold min-w-[3rem] text-center">01</div>
-                                    <div>
-                                        <h4 className="font-bold text-lg mb-1">高い収益性</h4>
-                                        <p className="text-slate-600">従来の金融商品とは異なる、魅力的な利回り（割引率）での運用が可能です。</p>
+                        <div className="bg-white rounded-2xl p-10 border border-slate-200 shadow-sm relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-full -z-0"></div>
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-4 mb-8">
+                                    <div className="p-3 bg-emerald-600 text-white rounded-xl shadow-md">
+                                        <LineChart size={28} />
                                     </div>
-                                </li>
-                                <li className="flex gap-4">
-                                    <div className="bg-white p-2 h-fit rounded-lg shadow-sm text-[var(--color-gold)] font-bold min-w-[3rem] text-center">02</div>
-                                    <div>
-                                        <h4 className="font-bold text-lg mb-1">短期・低ボラティリティ</h4>
-                                        <p className="text-slate-600">原則1〜2ヶ月の短期運用。市場価格の変動がなく、債権回収リスクの管理に集中できます。</p>
-                                    </div>
-                                </li>
-                            </ul>
-                            <div className="mt-8 text-center">
-                                <Button className="w-full bg-[var(--color-gold)] hover:bg-amber-600 border-none text-white" onClick={() => navigate('/register?role=buyer')}>買い手として登録する</Button>
+                                    <h3 className="text-2xl font-bold text-slate-900 tracking-tight">買い手 (Buyer) のメリット</h3>
+                                </div>
+                                <ul className="space-y-6">
+                                    <li className="flex gap-4 items-start">
+                                        <CheckCircle2 className="w-6 h-6 text-emerald-500 shrink-0 mt-0.5" />
+                                        <div>
+                                            <h4 className="font-bold text-slate-900 text-lg mb-1">優良な債権への直接投資</h4>
+                                            <p className="text-slate-600 text-sm leading-relaxed">従来は金融機関に限られていた魅力的なアセットに、法人・個人問わず直接投資できます。</p>
+                                        </div>
+                                    </li>
+                                    <li className="flex gap-4 items-start">
+                                        <CheckCircle2 className="w-6 h-6 text-emerald-500 shrink-0 mt-0.5" />
+                                        <div>
+                                            <h4 className="font-bold text-slate-900 text-lg mb-1">システムが証明する確かな取引実績</h4>
+                                            <p className="text-slate-600 text-sm leading-relaxed">売り手の過去の完済履歴や遅延スコアがシステムに刻まれるため、信用度を客観的に判断できます。</p>
+                                        </div>
+                                    </li>
+                                    <li className="flex gap-4 items-start">
+                                        <CheckCircle2 className="w-6 h-6 text-emerald-500 shrink-0 mt-0.5" />
+                                        <div>
+                                            <h4 className="font-bold text-slate-900 text-lg mb-1">短い運用期間での資産運用</h4>
+                                            <p className="text-slate-600 text-sm leading-relaxed">売掛金は通常1〜2ヶ月で決済されるため、短期で資金を回転させることが可能です。</p>
+                                        </div>
+                                    </li>
+                                </ul>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* Public Invoices List Section */}
-            <section className="py-20 bg-slate-50 border-t border-slate-200">
+            {/* 4. How it works */}
+            <section className="py-24 bg-white border-t border-slate-200 overflow-hidden">
+                <div className="container mx-auto px-4 max-w-5xl">
+                    <div className="text-center mb-16">
+                        <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6 tracking-tight">
+                            簡単な利用の流れ
+                        </h2>
+                        <p className="text-lg text-slate-600">
+                            登録から取引完了まで、セキュアでスムーズなプロセス。
+                        </p>
+                    </div>
+
+                    <div className="relative">
+                        {/* Connecting Line (Hidden on mobile) */}
+                        <div className="hidden md:block absolute top-1/2 left-0 w-full h-0.5 bg-slate-100 -translate-y-1/2 z-0"></div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-8 relative z-10">
+                            {/* Step 1 */}
+                            <div className="flex flex-col items-center text-center group">
+                                <div className="w-16 h-16 bg-white border-2 border-slate-200 rounded-full flex items-center justify-center mb-4 shadow-sm group-hover:border-blue-500 group-hover:shadow-md transition-all duration-300">
+                                    <UserPlus className="w-6 h-6 text-slate-600 group-hover:text-blue-600 transition-colors" />
+                                </div>
+                                <h4 className="font-bold text-slate-900 mb-2">1. 会員登録</h4>
+                                <p className="text-sm text-slate-500 px-2">簡単なフォーム入力でアカウントを作成</p>
+                            </div>
+
+                            {/* Step 2 */}
+                            <div className="flex flex-col items-center text-center group">
+                                <div className="w-16 h-16 bg-white border-2 border-slate-200 rounded-full flex items-center justify-center mb-4 shadow-sm group-hover:border-blue-500 group-hover:shadow-md transition-all duration-300">
+                                    <Search className="w-6 h-6 text-slate-600 group-hover:text-blue-600 transition-colors" />
+                                </div>
+                                <h4 className="font-bold text-slate-900 mb-2">2. 案件の登録・検索</h4>
+                                <p className="text-sm text-slate-500 px-2">債権の出品、または投資したい案件を探索</p>
+                            </div>
+
+                            {/* Step 3 */}
+                            <div className="flex flex-col items-center text-center group">
+                                <div className="w-16 h-16 bg-white border-2 border-slate-200 rounded-full flex items-center justify-center mb-4 shadow-sm group-hover:border-blue-500 group-hover:shadow-md transition-all duration-300">
+                                    <Handshake className="w-6 h-6 text-slate-600 group-hover:text-blue-600 transition-colors" />
+                                </div>
+                                <h4 className="font-bold text-slate-900 mb-2">3. 条件交渉</h4>
+                                <p className="text-sm text-slate-500 px-2">専用チャットで買取条件や日程を調整</p>
+                            </div>
+
+                            {/* Step 4 */}
+                            <div className="flex flex-col items-center text-center group">
+                                <div className="w-16 h-16 bg-white border-2 border-slate-200 rounded-full flex items-center justify-center mb-4 shadow-sm group-hover:border-blue-500 group-hover:shadow-md transition-all duration-300">
+                                    <ShieldCheck className="w-6 h-6 text-slate-600 group-hover:text-blue-600 transition-colors" />
+                                </div>
+                                <h4 className="font-bold text-slate-900 mb-2">4. マッチング</h4>
+                                <p className="text-sm text-slate-500 px-2">条件合意後、オンラインで契約締結</p>
+                            </div>
+
+                            {/* Step 5 */}
+                            <div className="flex flex-col items-center text-center group">
+                                <div className="w-16 h-16 bg-blue-600 border-2 border-blue-600 rounded-full flex items-center justify-center mb-4 shadow-md group-hover:scale-105 transition-transform duration-300">
+                                    <TrendingUp className="w-6 h-6 text-white" />
+                                </div>
+                                <h4 className="font-bold text-blue-700 mb-2">5. 決済・実績獲得</h4>
+                                <p className="text-sm text-slate-500 px-2">資金移動と同時に、プラットフォーム上の実績として蓄積</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Public Deals Board Section */}
+            <section className="py-24 bg-slate-50 border-t border-slate-200">
                 <div className="container mx-auto px-4 max-w-6xl">
-                    <h2 className="text-3xl font-bold text-center mb-12 text-slate-900">
-                        現在募集中の案件（一部公開）
-                    </h2>
-
-                    <InvoiceFilterPanel {...filterProps} />
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-                        {filteredAndSortedInvoices.length === 0 ? (
-                            <div className="text-center py-12 bg-white rounded-xl border border-dashed border-slate-300 col-span-full">
-                                <p className="text-slate-500 font-medium">条件に一致する案件は見つかりませんでした。</p>
-                                <Button variant="ghost" onClick={resetFilters} className="text-primary mt-2">
-                                    検索条件をクリアする
-                                </Button>
-                            </div>
-                        ) : (
-                            // Limit to 6 items to not overwhelm the public page
-                            filteredAndSortedInvoices.slice(0, 6).map((inv) => {
-                                const isPartial = inv.sellingAmount && inv.sellingAmount < inv.amount;
-
-                                return (
-                                    <Card key={inv.id} className="flex flex-col h-full hover:shadow-lg transition-shadow border-slate-200 cursor-pointer" onClick={() => navigate('/login')}>
-                                        <CardContent className="p-5 flex-1 flex flex-col">
-                                            <div className="flex justify-between items-start mb-3">
-                                                <div className="flex flex-wrap gap-1.5 mb-2">
-                                                    <span className="bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded font-medium border border-slate-200">{inv.industry}</span>
-                                                    <span className="bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded font-medium border border-slate-200">{translateCompanySize(inv.companySize)}</span>
-                                                    <span className={`text-xs px-2 py-1 rounded font-bold ${isPartial ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-                                                        {isPartial ? '一部売却' : '全部売却'}
-                                                    </span>
-                                                </div>
-                                                {inv.status === 'sold' && (
-                                                    <span className="bg-slate-500 text-white px-2 py-0.5 rounded text-xs font-bold whitespace-nowrap shadow-sm shrink-0 uppercase tracking-widest">
-                                                        成約済
-                                                    </span>
-                                                )}
-                                            </div>
-
-                                            <div className="text-sm font-bold text-slate-800 mb-1 flex items-center justify-between">
-                                                <span>{inv.isClientNamePublic ? (inv.debtorName || '企業名未設定') : '企業名非公開'}</span>
-                                            </div>
-
-                                            <div className="mt-4 space-y-3 bg-slate-50 p-3 rounded-lg border border-slate-100 flex-1">
-                                                <div className="flex justify-between items-center text-sm">
-                                                    <span className="text-slate-500 flex items-center"><CreditCard className="w-4 h-4 mr-1" />全体債権額</span>
-                                                    <span className={isPartial ? 'line-through text-slate-400' : 'font-bold text-slate-700'}>¥{inv.amount.toLocaleString()}</span>
-                                                </div>
-                                                {isPartial && (
-                                                    <div className="flex justify-between items-center text-sm border-t border-slate-200 pt-2">
-                                                        <span className="text-amber-700 font-bold flex items-center"><DollarSign className="w-4 h-4 mr-1" />取引対象債権額</span>
-                                                        <span className="font-bold text-amber-600 text-base">¥{inv.sellingAmount?.toLocaleString()}</span>
-                                                    </div>
-                                                )}
-                                                <div className="flex justify-between items-center text-sm border-t border-slate-200 pt-2">
-                                                    <span className="text-primary font-bold">希望売却額</span>
-                                                    <span className="font-bold text-primary text-lg">¥{inv.requestedAmount?.toLocaleString() || '未設定'}</span>
-                                                </div>
-                                            </div>
-                                            <div className="mt-4 pt-3 border-t border-slate-100 text-sm text-center text-slate-500">
-                                                {inv.status === 'sold' ? '成約済みの案件です' : '詳細を見るにはログインが必要です'}
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                );
-                            })
-                        )}
+                    <div className="text-center mb-12">
+                        <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4 tracking-tight">
+                            実績が証明する、確かな取引市場
+                        </h2>
+                        <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                            当プラットフォームで成立した案件のトランザクションを公開しています。<br />
+                            自由競争による適正なディスカウントと、参加者の透明な「信用」をご確認ください。
+                        </p>
                     </div>
-                    {filteredAndSortedInvoices.length > 6 && (
-                        <div className="text-center mt-8">
-                            <p className="text-slate-500 mb-4">他にも {filteredAndSortedInvoices.length - 6} 件の公開案件があります。</p>
-                            <Button variant="outline" onClick={() => navigate('/login')}>ログインしてすべての案件を見る</Button>
-                        </div>
-                    )}
-                </div>
-            </section>
 
-            {/* CTA Section */}
-            <section className="py-20 bg-slate-900 text-white text-center">
-                <div className="container mx-auto px-4">
-                    <h2 className="text-3xl font-bold mb-6">さあ、新しい資金の流れを作りましょう</h2>
-                    <p className="text-xl opacity-80 mb-10">
-                        登録は無料です。まずはアカウントを作成してください。
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    <PublicDealsBoard />
+
+                    <div className="mt-16 text-center">
+                        <p className="text-slate-500 mb-6">すべての募集案件や詳細情報を閲覧するには、無料のアカウント登録が必要です。</p>
                         <Button
                             size="lg"
-                            className="bg-white text-slate-900 hover:bg-slate-100 px-8 w-full sm:w-auto"
+                            className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-10 h-14 rounded-xl shadow-md transition-all"
                             onClick={() => navigate('/register?role=seller')}
                         >
-                            売り手登録
-                        </Button>
-                        <Button
-                            size="lg"
-                            variant="outline"
-                            className="border-white text-white hover:bg-white/10 px-8 w-full sm:w-auto"
-                            onClick={() => navigate('/register?role=buyer')}
-                        >
-                            買い手登録
+                            今すぐプラットフォームに参加する
+                            <ArrowRight className="ml-2 w-5 h-5" />
                         </Button>
                     </div>
                 </div>
@@ -301,3 +309,4 @@ export const LandingPage: React.FC = () => {
         </div>
     );
 };
+
