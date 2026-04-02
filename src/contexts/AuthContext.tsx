@@ -26,6 +26,10 @@ interface AuthContextType {
         industry: string;
         industryOther: string;
         appealPoint: string;
+        corporateNumber?: string;
+        websiteUrl?: string;
+        idDocumentUrl?: string;
+        idDocumentFile?: File;
         privacySettings: Record<string, boolean>;
     }) => Promise<{ error: any }>;
     updateProfile: (data: Partial<PublicUser>) => Promise<{ error: any }>;
@@ -115,7 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 role: userData.role as UserRole,
                 avatarUrl: userData.avatar_url,
                 budget: userData.budget,
-                appealPoint: userData.appeal_point,
+                appealPoint: profileData.appeal_point, // Fix: Read from role-specific table instead of users
                 status: userData.status,
                 registeredAt: userData.registered_at,
                 isAdmin: userData.is_admin,
@@ -133,6 +137,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 representativeNameKana: profileData.representative_name_kana,
                 industry: profileData.industry,
                 industryOther: profileData.industry_other,
+                corporateNumber: profileData.corporate_number,
+                websiteUrl: profileData.website_url,
+                idDocumentUrl: profileData.id_document_url,
                 privacySettings: profileData.privacy_settings,
             });
         } catch (err) {
@@ -167,6 +174,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         industry: string;
         industryOther: string;
         appealPoint: string;
+        corporateNumber?: string;
+        websiteUrl?: string;
+        idDocumentUrl?: string;
+        idDocumentFile?: File;
+        budget?: string | number;
         privacySettings: Record<string, boolean>;
     }) => {
         // 1. Sign up to Auth
@@ -187,6 +199,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const userId = authData.user.id;
 
+        let finalIdDocumentUrl = extraData.idDocumentUrl || null;
+        if (extraData.idDocumentFile) {
+            const fileExt = extraData.idDocumentFile.name.split('.').pop() || 'tmp';
+            const fileName = `${Date.now()}_id.${fileExt}`;
+            const filePath = `${userId}/${fileName}`;
+            const { data: uploadData, error: uploadError } = await supabase.storage.from('kyc_documents').upload(filePath, extraData.idDocumentFile);
+            if (uploadError) {
+                console.error('Error uploading KYC document:', uploadError);
+                return { error: { message: '本人確認書類のアップロードに失敗しました。', details: uploadError } };
+            }
+            if (uploadData) {
+                finalIdDocumentUrl = uploadData.path;
+            }
+        }
+
         // 2. Insert into Public Users Table (Common info)
         const commonUser = {
             id: userId,
@@ -194,6 +221,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             company_name: extraData.companyName,
             role: role,
             email: email, // Fix email missing
+            budget: extraData.budget || null,
             status: 'active',
             registered_at: new Date().toISOString(),
         };
@@ -227,6 +255,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 industry: extraData.industry,
                 industry_other: extraData.industryOther,
                 appeal_point: extraData.appealPoint,
+                corporate_number: extraData.corporateNumber,
+                website_url: extraData.websiteUrl,
+                id_document_url: finalIdDocumentUrl,
                 privacy_settings: extraData.privacySettings,
             };
             const { error } = await supabase.from('sellers').insert([sellerProfile]);
@@ -248,6 +279,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 industry: extraData.industry,
                 industry_other: extraData.industryOther,
                 appeal_point: extraData.appealPoint,
+                corporate_number: extraData.corporateNumber,
+                website_url: extraData.websiteUrl,
+                id_document_url: extraData.idDocumentUrl,
                 privacy_settings: extraData.privacySettings,
             };
             const { error } = await supabase.from('buyers').insert([buyerProfile]);
@@ -270,6 +304,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const commonData: any = {};
             if (data.name !== undefined) commonData.name = data.name;
             if (data.companyName !== undefined) commonData.company_name = data.companyName;
+            if (data.budget !== undefined) commonData.budget = data.budget;
 
             if (Object.keys(commonData).length > 0) {
                 const { error: userError } = await supabase.from('users').update(commonData).eq('id', user.id);
@@ -291,6 +326,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (data.industry !== undefined) specificData.industry = data.industry;
             if (data.industryOther !== undefined) specificData.industry_other = data.industryOther;
             if (data.appealPoint !== undefined) specificData.appeal_point = data.appealPoint;
+            if (data.corporateNumber !== undefined) specificData.corporate_number = data.corporateNumber;
+            if (data.websiteUrl !== undefined) specificData.website_url = data.websiteUrl;
+            if (data.idDocumentUrl !== undefined) specificData.id_document_url = data.idDocumentUrl;
+            if (data.idDocumentFile) {
+                const fileExt = data.idDocumentFile.name.split('.').pop() || 'tmp';
+                const fileName = `${Date.now()}_id.${fileExt}`;
+                const filePath = `${user.id}/${fileName}`;
+                const { data: uploadData, error: uploadError } = await supabase.storage.from('kyc_documents').upload(filePath, data.idDocumentFile);
+                if (uploadError) {
+                    console.error('Error uploading KYC document:', uploadError);
+                    return { error: uploadError };
+                }
+                if (uploadData) {
+                    specificData.id_document_url = uploadData.path;
+                }
+            }
             if (data.privacySettings !== undefined) specificData.privacy_settings = data.privacySettings;
 
             if (profile.role === 'seller') {

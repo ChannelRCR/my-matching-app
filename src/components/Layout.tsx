@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Briefcase, Coins, Menu, X, ChevronRight, Settings } from 'lucide-react';
-import { DonationModal } from './DonationModal';
+import { SystemFeeModal } from './SystemFeeModal';
 import { useAuth } from '../contexts/AuthContext';
 import { getDisplayName } from '../utils/displayName';
 
 export const Layout: React.FC = () => {
-    const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
+    const [isSystemFeeModalOpen, setIsSystemFeeModalOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const location = useLocation();
 
@@ -79,7 +79,7 @@ export const Layout: React.FC = () => {
 
                                 <button
                                     className="flex items-center gap-1 text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-full transition-colors border border-emerald-100"
-                                    onClick={() => setIsDonationModalOpen(true)}
+                                    onClick={() => setIsSystemFeeModalOpen(true)}
                                 >
                                     <Coins className="h-4 w-4 fill-emerald-700/20" />
                                     <span className="text-xs font-bold">利用手数料（任意）</span>
@@ -148,7 +148,7 @@ export const Layout: React.FC = () => {
                                 <button
                                     className="mt-4 flex items-center justify-center gap-2 text-emerald-700 bg-emerald-50 py-3 rounded-lg font-bold"
                                     onClick={() => {
-                                        setIsDonationModalOpen(true);
+                                        setIsSystemFeeModalOpen(true);
                                         setIsMenuOpen(false);
                                     }}
                                 >
@@ -198,9 +198,9 @@ export const Layout: React.FC = () => {
                 </div>
             </footer>
 
-            <DonationModal
-                isOpen={isDonationModalOpen}
-                onClose={() => setIsDonationModalOpen(false)}
+            <SystemFeeModal
+                isOpen={isSystemFeeModalOpen}
+                onClose={() => setIsSystemFeeModalOpen(false)}
             />
         </div>
     );

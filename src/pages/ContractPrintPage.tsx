@@ -105,15 +105,17 @@ export const ContractPrintPage: React.FC = () => {
                         <div className="flex-1">
                             <p className="mb-4 font-bold">【甲】（譲渡人・売り手）</p>
                             <p className="mb-2">住所: {seller.address || '（未登録）'}</p>
-                            <p className="mb-2">会社名: {seller.companyName}</p>
+                            <p className="mb-2">{seller.entityType === 'individual' ? '屋号' : '会社名'}: {seller.companyName || (seller.entityType === 'individual' ? '屋号無し' : '')}</p>
                             <p className="mb-2">代表者: {seller.representativeName || seller.name}</p>
+                            <p className="mb-2">担当者: {seller.contactPerson || '-'}</p>
                             <div className="mt-8 border-b border-slate-300 w-32 ml-auto">（印）</div>
                         </div>
                         <div className="flex-1">
                             <p className="mb-4 font-bold">【乙】（譲受人・買い手）</p>
                             <p className="mb-2">住所: {buyer.address || '（未登録）'}</p>
-                            <p className="mb-2">会社名: {buyer.companyName}</p>
+                            <p className="mb-2">{buyer.entityType === 'individual' ? '屋号' : '会社名'}: {buyer.companyName || (buyer.entityType === 'individual' ? '屋号無し' : '')}</p>
                             <p className="mb-2">代表者: {buyer.representativeName || buyer.name}</p>
+                            <p className="mb-2">担当者: {buyer.contactPerson || '-'}</p>
                             <div className="mt-4">
                                 <p className="mb-2 font-bold">【振込先情報】</p>
                                 <p className="mb-1">{buyer.bankAccountInfo || '（未登録）'}</p>

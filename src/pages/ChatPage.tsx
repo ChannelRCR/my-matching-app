@@ -13,6 +13,7 @@ import { getDisplayName } from '../utils/displayName';
 import { translateCompanySize } from '../utils/translations';
 import type { Deal, Invoice, User as UserType } from '../types';
 import { Download, Handshake } from 'lucide-react';
+import { DealStepper } from '../components/DealStepper';
 
 interface ChatMessage {
     id: string;
@@ -43,6 +44,7 @@ export const ChatPage: React.FC = () => {
     const [isTermsAgreed, setIsTermsAgreed] = useState(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [isPriceUnlocked, setIsPriceUnlocked] = useState(false);
     
     const fileInputRef = React.useRef<HTMLInputElement>(null);
     const hasSentMatchMessageRef = React.useRef(false);
@@ -64,6 +66,14 @@ export const ChatPage: React.FC = () => {
 
     const isBuyer = user && deal ? user.id === deal.buyerId : false;
     const isPriceMatched = deal ? (deal.currentBuyerPrice || 0) > 0 && deal.currentBuyerPrice === deal.currentSellerPrice : false;
+    const effectivelyMatched = isPriceMatched && !isPriceUnlocked;
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const isOverdue = invoice?.dueDate ? invoice.dueDate < todayStr : false;
+    const isDealExpired = isOverdue && !['concluded', 'agreed'].includes(deal?.status || '') && invoice?.status !== 'sold';
+
+    const activeDealsForInvoice = deals.filter(d => d.invoiceId === invoice?.id && !['rejected', 'withdrawn', 'cancelled'].includes(d.status));
+    const hasMultipleBuyers = activeDealsForInvoice.length > 1;
 
     const myProfile = isBuyer ? users.find(u => u.id === deal?.buyerId) : users.find(u => u.id === deal?.sellerId);
     const opponentProfile = isBuyer ? users.find(u => u.id === deal?.sellerId) : users.find(u => u.id === deal?.buyerId);
@@ -297,10 +307,16 @@ export const ChatPage: React.FC = () => {
     };
 
     const handleProposePrice = async () => {
-        if (!deal || !user || !proposedPrice) return;
+        if (!deal || !user || !proposedPrice || !invoice) return;
         const numPrice = Number(proposedPrice);
         if (isNaN(numPrice) || numPrice <= 0) {
             alert("有効な金額を入力してください");
+            return;
+        }
+
+        const maxAllowed = deal.currentSellerPrice || invoice.requestedAmount || invoice.amount;
+        if (isBuyer && maxAllowed && numPrice > maxAllowed) {
+            alert(`売主の提示額または希望額（¥${maxAllowed.toLocaleString()}）を超える金額は提示できません`);
             return;
         }
 
@@ -312,16 +328,18 @@ export const ChatPage: React.FC = () => {
             await updateDeal(deal.id, { currentSellerPrice: numPrice });
         }
         setProposedPrice('');
+        setIsPriceUnlocked(false);
 
         // Let's add an admin-like system message to chat as well
         const now = new Date();
         const receiverId = isBuyer ? deal.sellerId : deal.buyerId;
+        const proposerRole = isBuyer ? '買主' : '売主';
         await addMessage({
             id: `sys_${Date.now()}`,
             dealId: deal.id,
             senderId: user.id, // technically it's me sending the system prop
             receiverId: receiverId,
-            content: `【システム通知】\n新しい提示金額: ¥${numPrice.toLocaleString()}`,
+            content: `【システム通知】\n${proposerRole}の新しい提示金額: ¥${numPrice.toLocaleString()}`,
             timestamp: now.toISOString(),
             isSystemMessage: true
         });
@@ -329,7 +347,7 @@ export const ChatPage: React.FC = () => {
 
     const handleRevealField = async (fieldKey: string, fieldLabel: string) => {
         if (!deal || !user) return;
-        if (!window.confirm("債権の情報を公開しますか？")) return;
+        if (!window.confirm(`「${fieldLabel}」の情報を開示しますか？`)) return;
 
         const updates: Partial<Deal> = {};
         if (isBuyer) {
@@ -449,7 +467,7 @@ export const ChatPage: React.FC = () => {
                         receiver_id: isBuyer ? deal.sellerId : deal.buyerId,
                         content: "【システム】双方が合意し、契約が成立しました🎉",
                         is_system_message: true,
-                        timestamp: now
+                        timestamp: new Date().toISOString()
                     };
                     const { error: msgInsertError } = await supabase.from('messages').insert([systemMsg]);
                     if (msgInsertError) throw msgInsertError;
@@ -606,6 +624,40 @@ export const ChatPage: React.FC = () => {
         URL.revokeObjectURL(url);
     };
 
+    const handleWithdraw = async () => {
+        if (!deal || !invoice || !user) return;
+        if (!window.confirm("本当にこの案件（交渉）を取り下げますか？\n※取り下げると以降のメッセージ送信や取引はできなくなります。")) return;
+
+        try {
+            const now = new Date().toISOString();
+            
+            // 1. Invoicesテーブルのステータス更新
+            const { error: invoiceError } = await supabase
+                .from('invoices')
+                .update({ status: 'withdrawn' })
+                .eq('id', invoice.id);
+            if (invoiceError) throw invoiceError;
+
+            // 2. システムメッセージの送信
+            await addMessage({
+                id: `sys_withdraw_${Date.now()}`,
+                dealId: deal.id,
+                senderId: user.id,
+                receiverId: isBuyer ? deal.sellerId : deal.buyerId,
+                content: `【システム通知】\n売り手から案件の取り下げ（キャンセル）が行われました。\nこれ以降の取引およびメッセージの送信はできません。`,
+                timestamp: now,
+                isSystemMessage: true
+            });
+
+            alert("案件を取り下げました。");
+            // リロードや遷移ですぐに反映させるか、リアルタイムサブスクリプションに任せる
+            // window.location.reload(); 
+        } catch (error: any) {
+            console.error("Withdraw Error:", error);
+            alert("取り下げ処理に失敗しました：" + (error.message || "不明なエラー"));
+        }
+    };
+
     const togglePanel = (key: string) => {
         setExpandedPanels(prev => ({ ...prev, [key]: !prev[key] }));
     };
@@ -640,7 +692,7 @@ export const ChatPage: React.FC = () => {
         { key: 'phone', label: '電話番号' },
         { key: 'email', label: 'メールアドレス' },
         { key: 'bankAccountInfo', label: '口座情報' },
-        { key: 'appealPoint', label: 'アピールポイント' },
+        { key: 'appealPoint', label: '企業としてのアピールポイント' },
     ];
 
     const renderProfileField = (
@@ -695,8 +747,9 @@ export const ChatPage: React.FC = () => {
                             <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-6 text-[10px] px-2 border-blue-200 text-blue-600 hover:bg-blue-50"
+                                className="h-6 text-[10px] px-2 border-blue-200 text-blue-600 hover:bg-blue-50 disabled:opacity-50"
                                 onClick={() => handleRevealField(field.key, field.label)}
+                                disabled={invoice?.status === 'withdrawn' || isDealExpired}
                             >
                                 開示する
                             </Button>
@@ -725,8 +778,14 @@ export const ChatPage: React.FC = () => {
                 if (msg.isSystemMessage) {
                     return (
                         <div key={msg.id} className="flex justify-center my-4" translate="no">
-                            <div className="bg-pink-50 text-pink-800 text-xs sm:text-sm px-4 py-2 rounded-lg text-center max-w-[90%] md:max-w-[70%] border border-pink-200 shadow-sm whitespace-pre-wrap font-medium">
-                                {msg.text}
+                            <div className="bg-slate-100 text-slate-600 text-[13px] px-5 py-3 rounded-lg text-left max-w-[90%] md:max-w-[75%] border border-slate-200 shadow-sm whitespace-pre-wrap font-medium flex items-start gap-3 leading-relaxed tracking-wide">
+                                {/* SYSTEM MSG */}
+                                <span className="text-slate-400 mt-0.5 shrink-0">
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </span>
+                                <div className="flex-1 pt-0.5">{msg.text.replace(/【システム(通知)?】\n?/g, '').trim()}</div>
                             </div>
                         </div>
                     );
@@ -767,6 +826,21 @@ export const ChatPage: React.FC = () => {
                     </div>
                 );
             })}
+            
+            {invoice?.status === 'withdrawn' && (
+                <div key="sys_withdrawn" className="flex justify-center my-5" translate="no">
+                    <div className="bg-slate-100 text-slate-500 text-xs sm:text-sm px-5 py-2.5 rounded-md text-center max-w-[90%] md:max-w-[75%] border border-slate-300 shadow-sm font-bold flex items-center justify-center gap-2">
+                        <span className="text-slate-400">⚠️</span> この案件は取り下げられました（メッセージの送信はできません）
+                    </div>
+                </div>
+            )}
+            {isDealExpired && invoice?.status !== 'withdrawn' && (
+                <div key="sys_expired" className="flex justify-center my-5" translate="no">
+                    <div className="bg-slate-100 text-slate-500 text-xs sm:text-sm px-5 py-2.5 rounded-md text-center max-w-[90%] md:max-w-[75%] border border-slate-300 shadow-sm font-bold flex items-center justify-center gap-2">
+                        <span className="text-slate-400">⚠️</span> 入金期日が徒過したため、この取引の交渉は終了しました
+                    </div>
+                </div>
+            )}
         </div>
     );
 
@@ -789,164 +863,173 @@ export const ChatPage: React.FC = () => {
             </div>
 
             <Card className="flex-1 flex flex-col shadow-md md:overflow-hidden relative">
-                <CardHeader className="border-b bg-white z-10 py-3">
-                    <div className="flex justify-between items-start">
-                        <CardTitle className="flex items-center gap-3">
-                            <div className="bg-blue-100 p-2 rounded-full relative">
-                                <User className="h-6 w-6 text-primary" />
+                <CardHeader className="border-b bg-slate-900 z-10 py-2.5 px-4 md:px-6 shadow-sm shrink-0">
+                    <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div className="bg-slate-800 p-2 rounded-md border border-slate-700 shrink-0 shadow-inner">
+                                <User className="h-6 w-6 text-slate-400" />
                             </div>
-                            <div>
-                                <div className="text-lg flex items-center gap-2">
-                                    {counterpartName}
+                            <div className="flex flex-col min-w-0">
+                                <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">取引相手・出品企業</div>
+                                <div className="text-base text-white font-bold flex items-center gap-2 truncate">
+                                    <span className="truncate">{counterpartName}</span>
                                     {opponentProfile && (
-                                        <div className="text-xs font-bold bg-slate-100 inline-flex px-2 py-0.5 rounded-full border border-slate-200 ml-2">
-                                            {getUserTrackRecord(opponentProfile.id, opponentProfile.role === 'buyer' ? 'buyer' : 'seller') === 0 ? (
-                                                <span className="text-blue-600">🔰 初回</span>
-                                            ) : (
-                                                <span className="text-emerald-600">🏆 成約 {getUserTrackRecord(opponentProfile.id, opponentProfile.role === 'buyer' ? 'buyer' : 'seller')}件</span>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="text-sm font-normal text-slate-500 flex flex-wrap gap-2 items-center mt-1">
-                                    <span className="bg-slate-100 px-2 py-0.5 rounded text-xs text-slate-600 border border-slate-200">ID: {invoice.id}</span>
-                                    <span>額面: ¥{invoice.amount.toLocaleString()}</span>
-                                    {invoice.sellingAmount && invoice.sellingAmount < invoice.amount && (
-                                        <span className="text-blue-600 font-medium">
-                                            (売却対象: ¥{invoice.sellingAmount.toLocaleString()})
+                                        <span className="text-[10px] font-bold bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-600 shrink-0">
+                                            {getUserTrackRecord(opponentProfile.id, opponentProfile.role === 'buyer' ? 'buyer' : 'seller') === 0 ? '🔰 初回' : `🏆 成約 ${getUserTrackRecord(opponentProfile.id, opponentProfile.role === 'buyer' ? 'buyer' : 'seller')}件`}
                                         </span>
                                     )}
                                 </div>
                             </div>
-                        </CardTitle>
-                        <div className="flex flex-col items-end gap-2">
-                            <div className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded font-bold text-sm border border-indigo-100 shadow-sm">
-                                希望買取額: ¥{invoice.requestedAmount?.toLocaleString() || '未設定'}
+                        </div>
+
+                        <div className="flex-1 flex justify-center w-full xl:w-auto px-4 border-y xl:border-y-0 xl:border-x border-slate-800 py-2 xl:py-0">
+                            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm">
+                                <span className="text-slate-500 text-xs font-bold tracking-wider uppercase">対象債権額</span>
+                                <span className="text-slate-100 font-mono font-bold tracking-wide">¥{invoice.amount.toLocaleString()}</span>
+                                {invoice.sellingAmount && invoice.sellingAmount < invoice.amount && (
+                                    <span className="text-emerald-400 text-xs font-bold font-mono">(売枠: ¥{invoice.sellingAmount.toLocaleString()})</span>
+                                )}
+                                <span className="text-slate-700 mx-2 hidden xl:inline">|</span>
+                                <span className="text-slate-500 text-xs font-bold tracking-wider uppercase">期日</span>
+                                <span className="text-slate-300 font-mono">{invoice.dueDate || '未設定'}</span>
+                                <span className="text-slate-700 mx-2 hidden xl:inline">|</span>
+                                <span className="text-slate-500 text-xs font-bold tracking-wider uppercase">ID</span>
+                                <span className="text-slate-400 font-mono bg-slate-800 px-1.5 rounded">{invoice.id}</span>
                             </div>
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 text-xs px-2 border-slate-300 text-slate-600 hover:bg-slate-50 flex items-center shadow-sm"
-                                onClick={handleDownloadChatHistory}
-                            >
-                                <Download className="w-3 h-3 mr-1" /> チャット履歴
-                            </Button>
+                        </div>
+
+                        <div className="flex flex-row items-center justify-between xl:justify-end gap-3 shrink-0 w-full xl:w-auto mt-1 xl:mt-0">
+                            <div className="bg-slate-800 border-l-[3px] border-l-indigo-500 text-indigo-100 px-3 py-1 rounded-sm text-xs shadow-inner flex flex-col items-start xl:items-end w-28 shrink-0">
+                                <span className="text-[10px] text-indigo-400 uppercase tracking-widest font-bold mb-0">希望買取額</span>
+                                <span className="font-mono font-bold tracking-wide">¥{invoice.requestedAmount?.toLocaleString() || '未設定'}</span>
+                            </div>
+                            <div className="flex gap-2 shrink-0">
+                                {!isBuyer && ['open', 'pending', 'negotiating'].includes(deal.status) && invoice.status !== 'withdrawn' && !isDealExpired && (
+                                    <Button size="sm" variant="outline" className="h-8 text-xs px-3 border-slate-700 text-slate-400 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-colors bg-transparent" onClick={handleWithdraw}>
+                                        取り下げる
+                                    </Button>
+                                )}
+                                <Button size="sm" variant="outline" className="h-8 text-xs px-3 border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors bg-transparent" onClick={handleDownloadChatHistory}>
+                                    <Download className="w-3.5 h-3.5 mr-1.5" /> 履歴取得
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </CardHeader>
 
                 <div className="flex-1 flex flex-col md:flex-row md:overflow-hidden bg-slate-100 p-2 gap-2">
                     {/* Negotiation Panel (Left Panel) */}
-                    <Card className="md:w-1/3 flex flex-col shadow-sm border-slate-200 shrink-0 md:h-full md:overflow-y-auto">
-                        <CardHeader className="border-b bg-white py-3 px-4 sticky top-0 z-10">
-                            <CardTitle className="text-base flex items-center gap-2">
-                                <DollarSign className="w-5 h-5 text-green-600" />
-                                条件交渉
+                    <Card className="md:w-[320px] lg:w-[380px] flex flex-col shadow-sm border-slate-200 shrink-0 md:h-full md:overflow-y-auto bg-slate-50">
+                        <CardHeader className="border-b bg-white py-2.5 px-4 sticky top-0 z-10 shadow-sm">
+                            <CardTitle className="text-sm font-bold flex items-center justify-between text-slate-700 tracking-wide uppercase">
+                                <div className="flex items-center gap-2">
+                                    <DollarSign className="w-4 h-4 text-emerald-600" />
+                                    取引ボード
+                                </div>
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                                    isDealExpired || invoice.status === 'withdrawn' ? 'bg-slate-100 text-slate-500 border-slate-300' :
+                                    (deal.status === 'open' || deal.status === 'pending' || deal.status === 'negotiating') ? 'bg-emerald-50 text-emerald-700 border-emerald-200 animate-pulse' :
+                                    'bg-indigo-50 text-indigo-700 border-indigo-200'
+                                }`}>
+                                    {invoice.status === 'withdrawn' ? '中止' : isDealExpired ? '期限切れ' : (deal.status === 'agreed' || deal.status === 'concluded') ? '成約済' : 'ACTIVE'}
+                                </span>
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="p-4 space-y-4">
-                            <div className="bg-slate-50 p-3 rounded-md border border-slate-200">
-                                <div className="text-xs font-bold text-slate-500 mb-1">相手の提示額</div>
-                                <div className="text-xl font-bold text-slate-800">
-                                    {isBuyer ?
-                                        (deal.currentSellerPrice ? `¥${deal.currentSellerPrice.toLocaleString()}` : '未提示') :
-                                        (deal.currentBuyerPrice ? `¥${deal.currentBuyerPrice.toLocaleString()}` : '未提示')}
+                        <CardContent className="p-3 space-y-4">
+                            <div className={`flex flex-col gap-3 ${(isDealExpired || invoice.status === 'withdrawn') ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+                                {/* Trading Board Price Grid */}
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex flex-col justify-between">
+                                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+                                            Offer ({isBuyer ? 'Seller' : 'Buyer'})
+                                        </div>
+                                        <div className="text-lg font-bold text-slate-700">
+                                            {isBuyer ?
+                                                (deal.currentSellerPrice ? `¥${deal.currentSellerPrice.toLocaleString()}` : '未提示') :
+                                                (deal.currentBuyerPrice ? `¥${deal.currentBuyerPrice.toLocaleString()}` : '未提示')}
+                                        </div>
+                                    </div>
+                                    <div className={`p-3 rounded-lg border shadow-sm flex flex-col justify-between ${effectivelyMatched ? 'bg-emerald-50 border-emerald-300' : 'bg-blue-50 border-blue-200'}`}>
+                                        <div className={`text-[10px] font-bold uppercase tracking-widest mb-1.5 ${effectivelyMatched ? 'text-emerald-600' : 'text-blue-600'}`}>
+                                            Your Bid ({isBuyer ? 'Buyer' : 'Seller'})
+                                        </div>
+                                        <div className={`text-2xl font-black tracking-tight ${effectivelyMatched ? 'text-emerald-800' : 'text-blue-900'} leading-none`}>
+                                            {isBuyer ?
+                                                (deal.currentBuyerPrice ? `¥${deal.currentBuyerPrice.toLocaleString()}` : '未提示') :
+                                                (deal.currentSellerPrice ? `¥${deal.currentSellerPrice.toLocaleString()}` : '未提示')}
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="bg-blue-50 p-3 rounded-md border border-blue-200 shadow-sm">
-                                <div className="text-xs font-bold text-blue-800/70 mb-1">あなたの提示額</div>
-                                <div className="text-xl font-bold text-blue-900 mb-3">
-                                    {isBuyer ?
-                                        (deal.currentBuyerPrice ? `¥${deal.currentBuyerPrice.toLocaleString()}` : '未提示') :
-                                        (deal.currentSellerPrice ? `¥${deal.currentSellerPrice.toLocaleString()}` : '未提示')}
-                                </div>
-                                {['open', 'pending', 'negotiating'].includes(deal.status) && !isPriceMatched && (
-                                    <form onSubmit={(e) => { e.preventDefault(); handleProposePrice(); }} className="flex flex-col gap-2">
-                                        <div className="flex gap-2">
+
+                                {/* Form */}
+                                {['open', 'pending', 'negotiating'].includes(deal.status) && (invoice.status as string) !== 'withdrawn' && !isDealExpired && !effectivelyMatched && (
+                                    <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex flex-col gap-2">
+                                        <div className="text-[11px] font-bold text-slate-600 tracking-wide">入札・金額提示</div>
+                                        <form onSubmit={(e) => { e.preventDefault(); handleProposePrice(); }} className="flex gap-2">
                                             <Input
                                                 type="number"
                                                 value={proposedPrice}
                                                 onChange={(e) => setProposedPrice(e.target.value)}
                                                 placeholder="金額を入力"
-                                                className="flex-1 bg-white h-9"
+                                                className="flex-1 h-9 font-mono text-base border-slate-300 focus:border-blue-500 focus:ring-blue-500 placeholder:text-slate-300"
                                                 min="1"
+                                                disabled={isDealExpired || (invoice.status as string) === 'withdrawn'}
                                             />
-                                            <Button type="submit" size="sm" variant="secondary" className="bg-blue-600 text-white hover:bg-blue-700 h-9 shrink-0">
+                                            <Button type="submit" size="sm" className="h-9 bg-slate-800 hover:bg-slate-700 text-white shadow font-bold tracking-wide shrink-0 transition-colors px-4" disabled={!proposedPrice || isDealExpired || (invoice.status as string) === 'withdrawn'}>
                                                 提示する
                                             </Button>
-                                        </div>
-                                    </form>
+                                        </form>
+                                    </div>
                                 )}
                             </div>
 
-                            {/* --- Information Panels (Responsive Accordion) --- */}
-                            <div className="space-y-4 pt-2">
-                                {renderAccordionPanel('receivable', '対象債権情報', (
-                                    <>
-                                        <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
-                                            <span className="text-slate-500 shrink-0 mr-2">請求書額面</span>
-                                            <div className="flex-1 text-right font-medium text-slate-800">¥{invoice.amount.toLocaleString()}</div>
-                                        </div>
-                                        <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
-                                            <span className="text-slate-500 shrink-0 mr-2">売却対象額</span>
-                                            <div className="flex-1 text-right font-medium text-blue-700">{invoice.sellingAmount ? `¥${invoice.sellingAmount.toLocaleString()}` : `¥${invoice.amount.toLocaleString()}`}</div>
-                                        </div>
-                                        <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
-                                            <span className="text-slate-500 shrink-0 mr-2">入金期日</span>
-                                            <div className="flex-1 text-right font-medium text-slate-800">{invoice.dueDate}</div>
-                                        </div>
-                                        <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
-                                            <span className="text-slate-500 shrink-0 mr-2">企業名</span>
-                                            <div className="flex-1 text-right font-medium text-slate-800">
-                                                {invoice.isClientNamePublic || deal.sellerRevealedFields?.invoiceDetails ? (invoice.debtorName || '未設定') : '*** (非公開)'}
-                                            </div>
-                                        </div>
-                                        <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
-                                            <span className="text-slate-500 shrink-0 mr-2">所在地</span>
-                                            <div className="flex-1 text-right font-medium text-slate-800">
-                                                {invoice.isClientAddressPublic || deal.sellerRevealedFields?.invoiceDetails ? (invoice.debtorAddress || '未設定') : '*** (非公開)'}
-                                            </div>
-                                        </div>
-                                        <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
-                                            <span className="text-slate-500 shrink-0 mr-2">業種 / 規模</span>
-                                            <div className="flex-1 text-right font-medium text-slate-800">{invoice.industry} / {invoice.companySize ? translateCompanySize(invoice.companySize) : '未設定'}</div>
-                                        </div>
-                                        
-                                        {!isBuyer && ['open', 'pending', 'negotiating'].includes(deal.status) && (
-                                            <div className="mt-4 flex justify-end">
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    className={`h-7 text-xs px-3 shadow-sm ${deal.sellerRevealedFields?.invoiceDetails ? 'border-green-200 text-green-700 bg-green-50 pointer-events-none' : 'border-blue-200 text-blue-600 hover:bg-blue-50 cursor-pointer'}`}
-                                                    onClick={() => !deal.sellerRevealedFields?.invoiceDetails && handleRevealField('invoiceDetails', '対象債権情報（企業名・所在地）')}
-                                                    disabled={deal.sellerRevealedFields?.invoiceDetails}
-                                                >
-                                                    {deal.sellerRevealedFields?.invoiceDetails ? '開示済み ✓' : '対象債権情報を開示する'}
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </>
-                                ))}
-                                {renderAccordionPanel('opponent', '相手のプロフィール', (
-                                    <>
-                                        {PROFILE_FIELDS.map(f => renderProfileField(opponentProfile, f, false, opponentRevealedFields))}
-                                    </>
-                                ))}
-                                {renderAccordionPanel('mine', 'あなたのプロフィール', (
-                                    <>
-                                        {PROFILE_FIELDS.map(f => renderProfileField(myProfile, f, true, myRevealedFields))}
-                                    </>
-                                ))}
-                            </div>
-
                             {/* Agreement Logic */}
-                            {['open', 'pending', 'negotiating'].includes(deal.status) ? (
-                                <div className="mt-6 border-t border-slate-200 pt-4">
-                                    {isPriceMatched ? (
+                            {invoice.status === 'withdrawn' ? (
+                                <div className="mt-2 border-t border-slate-200 pt-4 text-center">
+                                    <span className="bg-slate-100 text-slate-600 px-4 py-2 rounded-full text-sm font-bold border border-slate-300 shadow-sm">
+                                        案件取り下げ済み
+                                    </span>
+                                </div>
+                            ) : isDealExpired ? (
+                                <div className="mt-2 border-t border-slate-200 pt-4 text-center">
+                                    <span className="bg-slate-100 text-slate-600 px-4 py-2 rounded-full text-sm font-bold border border-slate-300 shadow-sm">
+                                        入金期日が徒過したため、この取引の交渉は終了しました。
+                                    </span>
+                                </div>
+                            ) : ['open', 'pending', 'negotiating'].includes(deal.status) ? (
+                                <div className={`pt-2 ${(isDealExpired || (invoice.status as string) === 'withdrawn') ? 'opacity-50 pointer-events-none' : ''}`}>
+                                    {effectivelyMatched ? (
                                         <>
                                             <div className="bg-green-100 text-green-800 p-3 rounded-md mb-4 font-bold text-center border border-green-200 shadow-sm">
                                                 🎉 金額が合致しました！
                                             </div>
+
+                                            {!isBuyer && hasMultipleBuyers && !deal.sellerAgreedAt && (
+                                                <div className="mb-4 text-center">
+                                                    <p className="text-xs text-slate-500 mb-2">最高額オファーの買主が複数います。金額を再提示できます。</p>
+                                                    <Button 
+                                                        size="sm" 
+                                                        variant="outline" 
+                                                        onClick={async () => {
+                                                            setIsPriceUnlocked(true);
+                                                            if (deal && user) {
+                                                                await addMessage({
+                                                                    id: `sys_unlock_${Date.now()}`,
+                                                                    dealId: deal.id,
+                                                                    senderId: user.id,
+                                                                    receiverId: deal.buyerId,
+                                                                    content: "【システム通知】買い手が同額で競合しました。売り手が提示額を再検討します。",
+                                                                    timestamp: new Date().toISOString(),
+                                                                    isSystemMessage: true
+                                                                });
+                                                            }
+                                                        }}
+                                                        className="text-slate-600 border-slate-300 hover:bg-slate-50"
+                                                    >
+                                                        相手の買主に対して、金額を再提示する。
+                                                    </Button>
+                                                </div>
+                                            )}
 
                                             {/* Check if you've already agreed */}
                                             {((isBuyer && deal.buyerAgreedAt) || (!isBuyer && deal.sellerAgreedAt)) ? (
@@ -1009,7 +1092,7 @@ export const ChatPage: React.FC = () => {
                                     )}
                                 </div>
                             ) : (
-                                <div className="mt-6 border-t border-slate-200 pt-4 flex flex-col items-center gap-3">
+                                <div className="mt-2 border-t border-slate-200 pt-4 flex flex-col items-center gap-3">
                                     {deal.status === 'agreed' ? (
                                         <span className="bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-bold border border-green-200">
                                             取引成立済み
@@ -1047,76 +1130,99 @@ export const ChatPage: React.FC = () => {
                                             </div>
 
                                             {/* --- PAYMENT & PROCEDURE PANEL --- */}
-                                            {isBuyer ? (
-                                                <div className="w-full bg-blue-50 border border-blue-200 p-4 rounded-lg shadow-sm text-sm text-left">
-                                                    <p className="font-bold text-blue-800 mb-2">契約が成立しました。速やかに以下の口座へ譲渡代金（合意金額: ¥{(deal.currentAmount || deal.currentBuyerPrice || 0).toLocaleString()}）をお振込みください。</p>
-                                                    <div className="bg-white p-3 rounded border border-blue-100 mb-3 space-y-1 text-slate-700">
-                                                        <p><strong>振込先口座:</strong></p>
-                                                        <p>{opponentProfile?.bankAccountInfo || '口座情報が未設定です。売主にお問い合わせください。'}</p>
-                                                    </div>
+                                            <div className="w-full mb-2">
+                                                <DealStepper status={deal.status} paymentStatus={deal.paymentStatus} />
+                                            </div>
 
-                                                    {(!deal.paymentStatus || deal.paymentStatus === 'pending') ? (
-                                                        <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold shadow" onClick={handleBuyerPaymentReport}>
-                                                            振込を完了し、売り手に報告する
-                                                        </Button>
-                                                    ) : deal.paymentStatus === 'buyer_paid' ? (
-                                                        <div className="text-center p-2 bg-slate-100 border border-slate-200 text-slate-600 rounded font-medium mt-2">
-                                                            最初の振込報告済み。売り手の確認待ちです。
+                                            {isBuyer ? (
+                                                <div className="w-full font-medium text-sm text-left">
+                                                    {(!deal.paymentStatus || deal.paymentStatus === 'pending') && (
+                                                        <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg shadow-sm">
+                                                            <p className="font-bold text-blue-800 mb-2">
+                                                                契約が成立しました。速やかに以下の口座へ譲渡代金（合意金額: ¥{(deal.currentAmount || deal.currentBuyerPrice || 0).toLocaleString()}）をお振込みください。
+                                                            </p>
+                                                            <div className="bg-white p-3 rounded border border-blue-100 mb-3 space-y-1 text-slate-700">
+                                                                <p><strong>振込先口座:</strong></p>
+                                                                <p>{opponentProfile?.bankAccountInfo || '口座情報が未設定です。売主にお問い合わせください。'}</p>
+                                                            </div>
+                                                            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold shadow" onClick={handleBuyerPaymentReport}>
+                                                                振込を完了し、売り手に報告する
+                                                            </Button>
                                                         </div>
-                                                    ) : deal.paymentStatus === 'seller_received' ? (
-                                                        <div className="text-center p-2 bg-blue-100 border border-blue-200 text-blue-800 rounded font-medium mt-2">
-                                                            売り手が着金を確認しました。期日の回収と送金をお待ちください。
+                                                    )}
+                                                    
+                                                    {deal.paymentStatus === 'buyer_paid' && (
+                                                        <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg shadow-sm text-center text-slate-600 font-bold">
+                                                            <p>振込完了を報告しました。売り手の着金確認をお待ちください。</p>
                                                         </div>
-                                                    ) : deal.paymentStatus === 'seller_repaid' ? (
-                                                        <div className="flex flex-col gap-2 mt-2">
-                                                            <p className="text-orange-700 font-bold mb-1">📢 売り手から回収・送金完了の報告がありました。</p>
+                                                    )}
+                                                    
+                                                    {deal.paymentStatus === 'seller_received' && (
+                                                        <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg shadow-sm text-center text-blue-800 font-bold">
+                                                            <p>売り手が着金を確認しました。期日の回収と送金をお待ちください。</p>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {deal.paymentStatus === 'seller_repaid' && (
+                                                        <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg shadow-sm">
+                                                            <p className="text-orange-800 font-bold mb-3 text-center">📢 売り手から回収・送金完了の報告がありました。</p>
                                                             <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold shadow" onClick={handleBuyerRepaymentConfirm}>
                                                                 着金を確認し、全取引を完了する
                                                             </Button>
                                                         </div>
-                                                    ) : (
-                                                        <div className="text-center p-2 mt-2 font-bold text-emerald-800 bg-emerald-100 rounded border border-emerald-200 flex items-center justify-center gap-1">
-                                                            <span>最終着金確認済み。全取引が完了しました。</span>
+                                                    )}
+                                                    
+                                                    {deal.paymentStatus === 'fully_settled' && (
+                                                        <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-lg shadow-sm text-center font-bold text-emerald-800">
+                                                            <p>最終着金確認済み。全取引が完了しました。</p>
                                                         </div>
                                                     )}
                                                 </div>
                                             ) : (
-                                                <div className="w-full bg-blue-50 border border-blue-200 p-4 rounded-lg shadow-sm text-sm text-left">
-                                                    <p className="font-bold text-blue-800 mb-3">契約が成立しました。買い手からの入金をお待ちください。</p>
-
-                                                    {(!deal.paymentStatus || deal.paymentStatus === 'pending') ? (
-                                                        <div className="text-center p-2 bg-white border border-slate-200 text-slate-500 rounded font-medium">
-                                                            買い手の最初の振込・報告待ちです。
+                                                <div className="w-full font-medium text-sm text-left">
+                                                    {(!deal.paymentStatus || deal.paymentStatus === 'pending') && (
+                                                        <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg shadow-sm text-center">
+                                                            <p className="font-bold text-blue-800">契約が成立しました。買い手からの譲渡代金の入金をお待ちください。</p>
                                                         </div>
-                                                    ) : deal.paymentStatus === 'buyer_paid' ? (
-                                                        <div className="flex flex-col gap-2 mt-2">
-                                                            <p className="text-green-700 font-bold mb-1">✅ 買い手から譲渡代金の振込完了報告がありました。</p>
+                                                    )}
+                                                    
+                                                    {deal.paymentStatus === 'buyer_paid' && (
+                                                        <div className="bg-green-50 border border-green-200 p-4 rounded-lg shadow-sm">
+                                                            <p className="text-green-800 font-bold mb-3 text-center">✅ 買い手から譲渡代金の振込完了報告がありました。</p>
                                                             <Button className="w-full bg-green-600 hover:bg-green-700 text-white font-bold shadow" onClick={handleSellerPaymentConfirm}>
                                                                 着金を確認し、取引を継続する
                                                             </Button>
                                                         </div>
-                                                    ) : deal.paymentStatus === 'seller_received' ? (
-                                                        <div className="flex flex-col gap-2 mt-2">
-                                                            <p className="text-slate-700 font-medium mb-1 border-t border-blue-200 pt-2 text-xs">
+                                                    )}
+                                                    
+                                                    {deal.paymentStatus === 'seller_received' && (
+                                                        <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg shadow-sm">
+                                                            <p className="text-blue-800 font-bold mb-3 text-center">
                                                                 最初の着金を確認済みです。期日に第三債務者から回収後、速やかに買い手へ送金してください。
                                                             </p>
+                                                            <div className="bg-white p-3 rounded border border-blue-100 mb-3 space-y-1 text-slate-700">
+                                                                <p><strong>買主（送金先）口座:</strong></p>
+                                                                <p>{opponentProfile?.bankAccountInfo || '口座情報が未設定です。買主にお問い合わせください。'}</p>
+                                                            </div>
                                                             <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold shadow" onClick={handleSellerRepaymentReport}>
                                                                 回収完了および買い手への送金報告
                                                             </Button>
                                                         </div>
-                                                    ) : deal.paymentStatus === 'seller_repaid' ? (
-                                                        <div className="text-center p-2 bg-slate-100 border border-slate-200 text-slate-600 rounded font-medium mt-2">
-                                                            回収・送金報告済み。買い手の最終着金確認待ちです。
+                                                    )}
+                                                    
+                                                    {deal.paymentStatus === 'seller_repaid' && (
+                                                        <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg shadow-sm text-center text-slate-600 font-bold">
+                                                            <p>回収・買主への送金完了を報告しました。買主の最終着金確認をお待ちください。</p>
                                                         </div>
-                                                    ) : (
-                                                        <div className="text-center p-2 mt-2 font-bold text-emerald-800 bg-emerald-100 rounded border border-emerald-200 flex items-center justify-center gap-1">
-                                                            <span>買い手の最終着金確認済み。全取引が完了しました。</span>
+                                                    )}
+                                                    
+                                                    {deal.paymentStatus === 'fully_settled' && (
+                                                        <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-lg shadow-sm text-center font-bold text-emerald-800">
+                                                            <p>買い手の最終着金確認済み。全取引が完了しました。</p>
                                                         </div>
                                                     )}
                                                 </div>
                                             )}
-
-                                            {/* (Duplicate specific contract button removed to consolidate UI above) */}
                                         </div>
                                     ) : (
                                         <span className="bg-slate-100 text-slate-600 px-4 py-2 rounded-full text-sm font-bold border border-slate-200">
@@ -1125,6 +1231,48 @@ export const ChatPage: React.FC = () => {
                                     )}
                                 </div>
                             )}
+
+                            {/* --- Information Panels (Responsive Accordion) --- */}
+                            <div className="space-y-4 mt-6">
+                                {renderAccordionPanel('receivable', '対象債権情報', (
+                                    <>
+                                        <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
+                                            <span className="text-slate-500 shrink-0 mr-2">請求書額面</span>
+                                            <div className="flex-1 text-right font-medium text-slate-800">¥{invoice.amount.toLocaleString()}</div>
+                                        </div>
+                                        <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
+                                            <span className="text-slate-500 shrink-0 mr-2">売却対象額</span>
+                                            <div className="flex-1 text-right font-medium text-blue-700">{invoice.sellingAmount ? `¥${invoice.sellingAmount.toLocaleString()}` : `¥${invoice.amount.toLocaleString()}`}</div>
+                                        </div>
+                                        <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
+                                            <span className="text-slate-500 shrink-0 mr-2">入金期日</span>
+                                            <div className="flex-1 text-right font-medium text-slate-800">{invoice.dueDate}</div>
+                                        </div>
+                                        <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
+                                            <span className="text-slate-500 shrink-0 mr-2">企業名</span>
+                                            <div className="flex-1 text-right font-medium text-slate-800">{invoice.isClientNamePublic ? (invoice.debtorName || '未設定') : '*** (非公開)'}</div>
+                                        </div>
+                                        <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
+                                            <span className="text-slate-500 shrink-0 mr-2">所在地</span>
+                                            <div className="flex-1 text-right font-medium text-slate-800">{invoice.isClientAddressPublic ? (invoice.debtorAddress || '未設定') : '*** (非公開)'}</div>
+                                        </div>
+                                        <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
+                                            <span className="text-slate-500 shrink-0 mr-2">業種 / 規模</span>
+                                            <div className="flex-1 text-right font-medium text-slate-800">{invoice.industry} / {invoice.companySize ? translateCompanySize(invoice.companySize) : '未設定'}</div>
+                                        </div>
+                                    </>
+                                ))}
+                                {renderAccordionPanel('opponent', '相手のプロフィール', (
+                                    <>
+                                        {PROFILE_FIELDS.map(f => renderProfileField(opponentProfile, f, false, opponentRevealedFields))}
+                                    </>
+                                ))}
+                                {renderAccordionPanel('mine', 'あなたのプロフィール', (
+                                    <>
+                                        {PROFILE_FIELDS.map(f => renderProfileField(myProfile, f, true, myRevealedFields))}
+                                    </>
+                                ))}
+                            </div>
                         </CardContent>
                     </Card>
 
@@ -1135,8 +1283,18 @@ export const ChatPage: React.FC = () => {
                                 ⚠️ この案件は他のお客様と成約したため、募集・交渉が終了しました。
                             </div>
                         )}
-                        <CardContent className={`flex-1 md:overflow-y-auto p-0 bg-white min-h-[300px] md:min-h-0 relative ${deal.status === 'rejected' ? 'mt-12' : ''}`}>
-                            <div className={deal.status === 'rejected' ? 'pt-12' : ''}>
+                        {invoice.status === 'withdrawn' && (
+                            <div className="absolute top-0 left-0 right-0 z-20 bg-slate-100 text-slate-500 px-4 py-3 flex text-center justify-center items-center text-sm font-bold border-b border-slate-300 shadow-sm">
+                                ⚠️ この案件は取り下げられました（メッセージの送信はできません）。
+                            </div>
+                        )}
+                        {isDealExpired && invoice.status !== 'withdrawn' && (
+                            <div className="absolute top-0 left-0 right-0 z-20 bg-slate-100 text-slate-500 px-4 py-3 flex text-center justify-center items-center text-sm font-bold border-b border-slate-300 shadow-sm">
+                                ⚠️ 入金期日が徒過したため、この取引の交渉は終了しました（メッセージの送信はできません）。
+                            </div>
+                        )}
+                        <CardContent className={`flex-1 md:overflow-y-auto p-0 bg-white min-h-[300px] md:min-h-0 relative ${deal.status === 'rejected' || invoice.status === 'withdrawn' || isDealExpired ? 'mt-12' : ''}`}>
+                            <div className={deal.status === 'rejected' || invoice.status === 'withdrawn' || isDealExpired ? 'pt-12' : ''}>
                                 {renderMessages()}
                             </div>
                         </CardContent>
@@ -1162,7 +1320,7 @@ export const ChatPage: React.FC = () => {
                                     size="sm"
                                     className="h-10 w-10 shrink-0 border-slate-300 text-slate-500 hover:bg-slate-200 disabled:opacity-50 !p-0"
                                     onClick={() => fileInputRef.current?.click()}
-                                    disabled={deal.status === 'rejected' || deal.paymentStatus === 'fully_settled' || isUploading}
+                                    disabled={deal.status === 'rejected' || deal.paymentStatus === 'fully_settled' || invoice.status === 'withdrawn' || isDealExpired || isUploading}
                                     title="ファイルを添付する"
                                 >
                                     <Paperclip className="h-5 w-5" />
@@ -1171,17 +1329,19 @@ export const ChatPage: React.FC = () => {
                                     value={inputText}
                                     onChange={(e) => setInputText(e.target.value)}
                                     placeholder={
+                                        invoice.status === 'withdrawn' ? "この案件は取り下げられました" :
+                                        isDealExpired ? "入金期日の徒過により交渉終了" :
                                         (deal.status === 'rejected' || deal.paymentStatus === 'fully_settled') ?
                                             "取引が終了しました（メッセージの送信はできません）。" :
                                             "メッセージを入力..."
                                     }
                                     className="flex-1 bg-white h-10"
-                                    disabled={deal.status === 'rejected' || deal.paymentStatus === 'fully_settled' || isUploading}
+                                    disabled={deal.status === 'rejected' || deal.paymentStatus === 'fully_settled' || invoice.status === 'withdrawn' || isDealExpired || isUploading}
                                     autoComplete="off"
                                     autoCorrect="off"
                                     spellCheck={false}
                                 />
-                                <Button type="submit" size="md" disabled={(!inputText.trim() && !isUploading) || deal.status === 'rejected' || deal.paymentStatus === 'fully_settled' || isUploading} className="h-10 px-5 shrink-0 bg-primary hover:bg-primary/90 text-white shadow-sm flex items-center justify-center">
+                                <Button type="submit" size="md" disabled={(!inputText.trim() && !isUploading) || deal.status === 'rejected' || deal.paymentStatus === 'fully_settled' || invoice.status === 'withdrawn' || isDealExpired || isUploading} className="h-10 px-5 shrink-0 bg-primary hover:bg-primary/90 text-white shadow-sm flex items-center justify-center">
                                     {isUploading ? (
                                         <div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin"></div>
                                     ) : (

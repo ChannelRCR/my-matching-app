@@ -95,7 +95,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             return {
                 id: u.id, name: u.name, companyName: u.company_name, role: u.role,
-                avatarUrl: u.avatar_url, budget: u.budget, appealPoint: u.appeal_point,
+                avatarUrl: u.avatar_url, budget: u.budget, appealPoint: profile.appeal_point,
                 status: u.status, isAdmin: u.is_admin, registeredAt: u.registered_at,
 
                 // Fields from specialized tables
@@ -170,6 +170,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 claimType: i.claim_type, claimTypeOther: i.claim_type_other,
                 status: i.status, requestedAmount: i.requested_amount,
                 evidenceUrl: i.evidence_url, evidenceName: i.evidence_name,
+                saleType: i.sale_type,
                 createdAt: i.created_at,
             })));
         }
@@ -201,6 +202,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             requested_amount: invoice.requestedAmount,
             evidence_url: invoice.evidenceUrl,
             evidence_name: invoice.evidenceName,
+            sale_type: invoice.saleType || 'full',
         };
         const { error } = await supabase.from('invoices').insert([dbInvoice]).select();
         if (error) {

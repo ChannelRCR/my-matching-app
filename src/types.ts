@@ -18,6 +18,10 @@ export interface User {
     bankAccountInfo?: string;
     phone?: string;
     email?: string; // For display/contact, separate from auth email
+    corporateNumber?: string;
+    websiteUrl?: string;
+    idDocumentUrl?: string;
+    idDocumentFile?: File;
 
     // Revamped Profile Fields
     entityType?: 'corporate' | 'individual';
@@ -53,11 +57,12 @@ export interface Invoice {
     debtorPostalCode?: string;
     industry: string;
     industryOther?: string;
+    saleType?: 'full' | 'partial';
     companySize?: 'Listed' | 'Large' | 'SMB' | 'Individual'; // Updated enum
     companyCredit: string; // Credit info of the debtor company
     claimType?: string;
     claimTypeOther?: string;
-    status: 'open' | 'negotiating' | 'pending' | 'sold';
+    status: 'open' | 'negotiating' | 'pending' | 'sold' | 'withdrawn';
     requestedAmount?: number;
     evidenceUrl?: string;
     evidenceName?: string;

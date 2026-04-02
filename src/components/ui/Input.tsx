@@ -7,7 +7,7 @@ function cn(...inputs: ClassValue[]) {
 }
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-    label?: string;
+    label?: React.ReactNode;
     error?: string;
 }
 

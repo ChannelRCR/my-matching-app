@@ -10,18 +10,23 @@ interface InvoiceFilterPanelProps {
     setMaxAmount: (v: string) => void;
     industryFilter: string;
     setIndustryFilter: (v: string) => void;
+    trackRecordFilter?: string;
+    setTrackRecordFilter?: (v: string) => void;
     sortBy: string;
     setSortBy: (v: string) => void;
     isFilterOpen: boolean;
     setIsFilterOpen: (v: boolean) => void;
+    showTrackRecordFilter?: boolean;
 }
 
 export const InvoiceFilterPanel: React.FC<InvoiceFilterPanelProps> = ({
     minAmount, setMinAmount,
     maxAmount, setMaxAmount,
     industryFilter, setIndustryFilter,
+    trackRecordFilter = '', setTrackRecordFilter = () => {},
     sortBy, setSortBy,
-    isFilterOpen, setIsFilterOpen
+    isFilterOpen, setIsFilterOpen,
+    showTrackRecordFilter = false
 }) => {
     return (
         <>
@@ -80,6 +85,25 @@ export const InvoiceFilterPanel: React.FC<InvoiceFilterPanelProps> = ({
                                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                             </div>
                         </div>
+                        {showTrackRecordFilter && (
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 mb-1.5 block">売主の実績回数</label>
+                                <div className="relative">
+                                    <select
+                                        value={trackRecordFilter}
+                                        onChange={(e) => setTrackRecordFilter(e.target.value)}
+                                        className="w-full h-9 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary shadow-sm appearance-none"
+                                    >
+                                        <option value="">すべての回数</option>
+                                        <option value="0">初回（0回）</option>
+                                        <option value="2">2回</option>
+                                        <option value="3+">3回以上</option>
+                                        <option value="10+">10回以上</option>
+                                    </select>
+                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                                </div>
+                            </div>
+                        )}
                         <div>
                             <label className="text-xs font-bold text-slate-500 mb-1.5 block">並び替え</label>
                             <select

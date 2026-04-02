@@ -9,6 +9,10 @@ import type { UserRole } from '../types';
 import { fetchAddressFromZip } from '../utils/zipcode';
 import { INDUSTRY_OPTIONS } from '../utils/constants';
 
+const RequiredBadge = () => <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 border border-red-200">必須</span>;
+const ConditionalBadge = ({ text = "案件登録に必須" }: { text?: string }) => <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200">{text}</span>;
+const OptionalBadge = () => <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">任意</span>;
+
 export const RegisterPage: React.FC = () => {
     const { signUp } = useAuth();
     const navigate = useNavigate();
@@ -42,6 +46,11 @@ export const RegisterPage: React.FC = () => {
         appealPoint: '',
         industry: '',
         industryOther: '',
+        budget: '',
+        corporateNumber: '',
+        websiteUrl: '',
+        idDocumentUrl: '',
+        idDocumentFile: null as File | null,
     });
 
     const [privacySettings, setPrivacySettings] = useState({
@@ -52,13 +61,17 @@ export const RegisterPage: React.FC = () => {
         bankAccountInfo: true,
         phone: true,
         email: true,
+        corporateNumber: true,
+        websiteUrl: true,
+        idDocumentUrl: true,
+        idDocumentFile: true,
     });
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isConfirming, setIsConfirming] = useState(false);
 
-    const handleChange = (field: string, value: string | boolean) => {
+    const handleChange = (field: string, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
@@ -81,8 +94,17 @@ export const RegisterPage: React.FC = () => {
         setPrivacySettings(prev => ({ ...prev, [field]: !prev[field] }));
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent | React.MouseEvent) => {
         e.preventDefault();
+        
+        if ('checkValidity' in e.currentTarget) {
+            const form = e.currentTarget as HTMLFormElement;
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+        }
+
         setLoading(true);
         setError(null);
 
@@ -100,8 +122,8 @@ export const RegisterPage: React.FC = () => {
         }
 
         if (role === 'seller') {
-            if (!formData.phone || !formData.address || !formData.bankAccountInfo) {
-                setError('売り手（資金調達）として登録する場合、電話番号、住所、入金口座情報は必須項目です。');
+            if (!formData.phone || !formData.address) {
+                setError('売り手（資金調達）として登録する場合、電話番号、住所は必須項目です。');
                 setLoading(false);
                 return;
             }
@@ -123,8 +145,9 @@ export const RegisterPage: React.FC = () => {
             name: companyName, // Dummy name field for internal auth since it's deprecated
             companyName,
             ...formData,
+            idDocumentFile: formData.idDocumentFile || undefined,
             email: email, // Set email derived from auth fields
-            contactPerson: formData.contactPerson || companyName, // フォールバック: 空の場合は代表される入力を使用
+            contactPerson: formData.contactPerson || (formData.entityType === 'corporate' ? companyName : formData.representativeName), // フォールバック: 法人の場合は法人名、個人の場合は代表者名を使用
             privacySettings
         });
 
@@ -147,7 +170,13 @@ export const RegisterPage: React.FC = () => {
         }
     };
 
-    const renderInputWithPrivacy = (label: string, field: keyof typeof formData, placeholder: string = "", type: string = "text", customOnChange?: (e: React.ChangeEvent<HTMLInputElement>) => void) => (
+    const renderInputWithPrivacy = (label: React.ReactNode, field: keyof typeof formData, placeholder: string = "", type: string = "text", customOnChange?: (e: React.ChangeEvent<HTMLInputElement>) => void) => {
+        let maxLength = 50;
+        if (field === 'appealPoint') maxLength = 1000;
+        if (field === 'address' || field === 'bankAccountInfo') maxLength = 200;
+        if (field === 'postalCode') maxLength = 8;
+
+        return (
         <div className="space-y-1">
             <div className="flex justify-between items-center">
                 <label className="text-sm font-medium text-gray-700">{label}</label>
@@ -172,23 +201,46 @@ export const RegisterPage: React.FC = () => {
             </div>
             {type === 'textarea' ? (
                 <textarea
-                    value={String(formData[field])}
-                    onChange={(e) => handleChange(field, e.target.value)}
+                    value={String(formData[field] || '')}
+                    maxLength={maxLength}
+                    onChange={(e) => handleChange(field as string, e.target.value)}
                     placeholder={placeholder}
                     required
                     className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none resize-none h-24 text-slate-800"
                 />
+            ) : type === 'file' ? (
+                <div className="flexflex-col gap-2">
+                    <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={(e) => {
+                            const file = e.target.files?.[0] || null;
+                            if (customOnChange) {
+                                // @ts-ignore
+                                customOnChange(e);
+                            } else {
+                                handleChange(field as string, file);
+                            }
+                        }}
+                        className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                    />
+                    {formData[field] && formData[field] instanceof File && (
+                        <div className="text-xs text-slate-600 truncate mt-1">選択済み: {(formData[field] as any as File).name}</div>
+                    )}
+                </div>
             ) : (
                 <Input
-                    value={String(formData[field])}
-                    onChange={customOnChange || ((e) => handleChange(field, e.target.value))}
+                    value={String(formData[field] || '')}
+                    maxLength={maxLength}
+                    onChange={customOnChange || ((e) => handleChange(field as string, e.target.value))}
                     placeholder={placeholder}
                     type={type}
-                    required={field !== 'appealPoint' && field !== 'postalCode' && field !== 'companyNameKana' && field !== 'representativeNameKana' && field !== 'contactPerson'}
+                    required={field !== 'appealPoint' && field !== 'postalCode' && field !== 'companyNameKana' && field !== 'representativeNameKana' && field !== 'contactPerson' && field !== 'bankAccountInfo' && field !== 'corporateNumber' && field !== 'websiteUrl' && field !== 'idDocumentUrl' && field !== 'idDocumentFile'}
                 />
             )}
         </div>
-    );
+        );
+    };
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 py-12">
@@ -269,7 +321,7 @@ export const RegisterPage: React.FC = () => {
                                 <div className="space-y-4">
                                     <div className="space-y-1">
                                         <div className="flex justify-between items-center">
-                                            <label className="text-sm font-medium text-gray-700">法人名</label>
+                                            <label className="text-sm font-medium text-gray-700">法人名<RequiredBadge /></label>
                                             <div className="flex items-center gap-2 text-xs">
                                                 <span className={privacySettings.companyName ? "text-blue-600 font-bold" : "text-slate-400"}>
                                                     {privacySettings.companyName ? "公開" : "非公開"}
@@ -286,22 +338,33 @@ export const RegisterPage: React.FC = () => {
                                         <Input
                                             placeholder="例 〇〇株式会社"
                                             value={companyName}
+                                            maxLength={50}
                                             onChange={(e) => setCompanyName(e.target.value)}
                                             required
                                         />
                                     </div>
                                     <Input
-                                        label="法人名（フリガナ）"
+                                        label={<>法人名（フリガナ）<OptionalBadge /></>}
                                         placeholder="例 マルマル カブシキガイシャ"
                                         value={formData.companyNameKana}
+                                        maxLength={50}
                                         onChange={(e) => handleChange('companyNameKana', e.target.value)}
                                     />
+                                    <div className="space-y-1 mt-2">
+                                        {renderInputWithPrivacy(<>法人番号（13桁）<OptionalBadge /></>, "corporateNumber", "例: 1234567890123")}
+                                        <div className="text-xs text-slate-500 pb-2">
+                                            ※国税庁指定の13桁の法人番号をご入力ください。（商業登記の会社法人等番号とは異なります）
+                                            <a href="https://www.houjin-bangou.nta.go.jp/" target="_blank" rel="noopener noreferrer" className="ml-1 text-blue-600 hover:underline">
+                                                [法人番号公表サイトで確認する]
+                                            </a>
+                                        </div>
+                                    </div>
                                 </div>
                             ) : (
                                 <div className="space-y-4">
                                     <div className="space-y-1">
                                         <div className="flex justify-between items-center">
-                                            <label className="text-sm font-medium text-gray-700">屋号</label>
+                                            <label className="text-sm font-medium text-gray-700">屋号<RequiredBadge /></label>
                                             <div className="flex items-center gap-2 text-xs">
                                                 <span className={privacySettings.companyName ? "text-blue-600 font-bold" : "text-slate-400"}>
                                                     {privacySettings.companyName ? "公開" : "非公開"}
@@ -320,6 +383,7 @@ export const RegisterPage: React.FC = () => {
                                                 <Input
                                                     placeholder="例 〇〇商会"
                                                     value={formData.hasNoTradeName ? '屋号無し' : companyName}
+                                                    maxLength={50}
                                                     onChange={(e) => setCompanyName(e.target.value)}
                                                     required
                                                     disabled={formData.hasNoTradeName}
@@ -332,21 +396,27 @@ export const RegisterPage: React.FC = () => {
                                                 onClick={() => {
                                                     const noTrade = !formData.hasNoTradeName;
                                                     handleChange('hasNoTradeName', noTrade);
-                                                    if (noTrade) setCompanyName('屋号無し');
-                                                    else setCompanyName('');
+                                                    if (noTrade) {
+                                                        setCompanyName('屋号無し');
+                                                        handleChange('companyNameKana', ''); // 屋号なしの場合はカナもクリア
+                                                    } else {
+                                                        setCompanyName('');
+                                                    }
                                                 }}
-                                                className={formData.hasNoTradeName ? "bg-slate-200 border-slate-300" : ""}
+                                                className={`mb-[2px] whitespace-nowrap ${formData.hasNoTradeName ? "bg-slate-200 border-slate-300 hover:bg-slate-300" : ""}`}
                                             >
-                                                {formData.hasNoTradeName ? "取消" : "屋号無し"}
+                                                {formData.hasNoTradeName ? "屋号を入れる" : "屋号なしで登録"}
                                             </Button>
                                         </div>
-                                        <span className="text-xs text-slate-500 block mt-1">※屋号がない場合は「屋号無し」として登録されます</span>
+                                        <span className="text-xs text-slate-500 block mt-1">※屋号がない場合は「屋号なしで登録」を選択してください</span>
                                     </div>
                                     <Input
-                                        label="屋号（フリガナ）"
+                                        label={<>屋号（フリガナ）<OptionalBadge /></>}
                                         placeholder="例 マルマル ショウカイ"
                                         value={formData.companyNameKana}
+                                        maxLength={50}
                                         onChange={(e) => handleChange('companyNameKana', e.target.value)}
+                                        disabled={formData.hasNoTradeName}
                                     />
                                 </div>
                             )}
@@ -357,7 +427,7 @@ export const RegisterPage: React.FC = () => {
 
                             <div className="space-y-4 mb-4">
                                 <div className="space-y-1">
-                                    <label className="text-sm font-medium text-gray-700">業種 *</label>
+                                    <label className="text-sm font-medium text-gray-700">業種<RequiredBadge /></label>
                                     <select
                                         value={formData.industry}
                                         onChange={(e) => handleChange('industry', e.target.value)}
@@ -372,9 +442,10 @@ export const RegisterPage: React.FC = () => {
                                 </div>
                                 {formData.industry === 'その他' && (
                                     <div className="space-y-1">
-                                        <label className="text-sm font-medium text-gray-700">業種（その他）*</label>
+                                        <label className="text-sm font-medium text-gray-700">業種（その他）<RequiredBadge /></label>
                                         <Input
                                             value={formData.industryOther}
+                                            maxLength={50}
                                             onChange={(e) => handleChange('industryOther', e.target.value)}
                                             placeholder="具体的な業種を入力してください"
                                             required
@@ -385,14 +456,14 @@ export const RegisterPage: React.FC = () => {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    {renderInputWithPrivacy(formData.entityType === 'corporate' ? "代表者名" : "代表者名（個人名）", "representativeName", "例: 山田 太郎")}
-                                    {renderInputWithPrivacy("代表者名（フリガナ）", "representativeNameKana", "例: ヤマダ タロウ")}
+                                    {renderInputWithPrivacy(<>{formData.entityType === 'corporate' ? "代表者名" : "代表者名（個人名）"}<RequiredBadge /></>, "representativeName", "例: 山田 太郎")}
+                                    {renderInputWithPrivacy(<>代表者名（フリガナ）<OptionalBadge /></>, "representativeNameKana", "例: ヤマダ タロウ")}
                                 </div>
 
                                 <div className="space-y-1">
                                     <div className="flex justify-between items-end gap-2">
                                         <div className="flex-1">
-                                            {renderInputWithPrivacy("担当者名", "contactPerson", "例: 佐藤 花子")}
+                                            {renderInputWithPrivacy(<>担当者名<OptionalBadge /></>, "contactPerson", "例: 佐藤 花子")}
                                         </div>
                                         <Button
                                             type="button"
@@ -408,20 +479,40 @@ export const RegisterPage: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {renderInputWithPrivacy("連絡先電話番号", "phone", "例: 03-1234-5678", "tel")}
+                                {renderInputWithPrivacy(<>連絡先電話番号<RequiredBadge /></>, "phone", "例: 03-1234-5678", "tel")}
                             </div>
 
                             <div className="flex gap-4 items-start">
-                                <div className="w-1/3">
-                                    {renderInputWithPrivacy("郵便番号（7桁）", "postalCode", "例: 1000001", "text", handlePostalCodeChange)}
+                                <div className="w-1/3 flex items-end gap-1">
+                                    <div className="flex-1">
+                                        {renderInputWithPrivacy(<>郵便番号（7桁）<OptionalBadge /></>, "postalCode", "例: 1000001", "text", handlePostalCodeChange)}
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="mb-[2px] h-10 px-2 text-xs shrink-0 whitespace-nowrap"
+                                        onClick={async () => {
+                                            const cleaned = formData.postalCode.replace(/[^\d]/g, '');
+                                            if (cleaned.length === 7) {
+                                                const fetchedAddress = await fetchAddressFromZip(cleaned);
+                                                if (fetchedAddress) handleChange('address', fetchedAddress);
+                                                else alert('入力された郵便番号から住所が見つかりませんでした。');
+                                            } else {
+                                                alert('7桁の郵便番号を入力してください。');
+                                            }
+                                        }}
+                                    >
+                                        住所検索
+                                    </Button>
                                 </div>
                                 <div className="w-2/3">
-                                    {renderInputWithPrivacy("所在地", "address", "例: 東京都千代田区...")}
+                                    {renderInputWithPrivacy(<>所在地{role === 'seller' ? <RequiredBadge /> : <OptionalBadge />}</>, "address", "例: 東京都千代田区...")}
                                 </div>
                             </div>
 
                             {renderInputWithPrivacy(
-                                formData.entityType === 'corporate' ? "自社のアピールポイント（最大400文字）" : "貴殿のアピールポイント",
+                                <>{formData.entityType === 'corporate' ? "自社のアピールポイント（最大400文字）" : "貴殿のアピールポイント"}<OptionalBadge /></>,
                                 "appealPoint",
                                 role === 'buyer'
                                     ? "売り手に対するアピールポイントや、希望する買取条件等をお願いします。"
@@ -429,24 +520,36 @@ export const RegisterPage: React.FC = () => {
                                 "textarea"
                             )}
 
-                            {renderInputWithPrivacy("入金口座（本人名義）", "bankAccountInfo", "例: ○○銀行 ××支店 普通 1234567")}
+                            {role === 'buyer' && renderInputWithPrivacy(
+                                <>想定買取可能額（予算）<OptionalBadge /></>,
+                                "budget",
+                                "例: 〜1,000万円"
+                            )}
+
+                            {renderInputWithPrivacy(<>自社ホームページURL<OptionalBadge /></>, "websiteUrl", "例: https://example.com/ (任意)", "url")}
+
+                            {renderInputWithPrivacy(<>本人確認書類 (登記簿、身分証明書等)<ConditionalBadge text={role === 'seller' ? '案件登録に必須' : '取引に必須'} /></>, "idDocumentFile", "ファイルをアップロード", "file")}
+
+                            {renderInputWithPrivacy(<>入金口座（本人名義）<ConditionalBadge text={role === 'seller' ? '案件登録に必須' : '取引に必須'} /></>, "bankAccountInfo", "例: ○○銀行 ××支店 普通 1234567")}
                         </div>
 
                         <div className="border-t border-slate-100 pt-4">
                             <h3 className="font-bold text-slate-700 mb-2">ログイン情報</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Input
-                                    label="メールアドレス ※ログインIDとなります。"
+                                    label={<>メールアドレス <span className="text-xs text-slate-500 font-normal">※ログインIDとなります。</span><RequiredBadge /></>}
                                     type="email"
                                     value={email}
+                                    maxLength={50}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
                                 />
                                 <div className="space-y-2">
                                     <Input
-                                        label="パスワード (6文字以上)"
+                                        label={<>パスワード (6文字以上)<RequiredBadge /></>}
                                         type={showPassword ? "text" : "password"}
                                         value={password}
+                                        maxLength={100}
                                         onChange={(e) => setPassword(e.target.value)}
                                         required
                                         minLength={6}
@@ -504,6 +607,13 @@ export const RegisterPage: React.FC = () => {
 
                                     <div className="text-slate-500 font-medium">入金口座:</div>
                                     <div className="font-bold">{formData.bankAccountInfo || '-'} <span className="text-xs text-slate-400 font-normal">({privacySettings.bankAccountInfo ? '公開' : '非公開'})</span></div>
+
+                                    {role === 'buyer' && (
+                                        <>
+                                            <div className="text-slate-500 font-medium mt-2">想定買取可能額（予算）:</div>
+                                            <div className="font-bold mt-2">{formData.budget || '-'} <span className="text-xs text-slate-400 font-normal">({(privacySettings as any).budget === false ? '非公開' : '公開'})</span></div>
+                                        </>
+                                    )}
 
                                     <div className="text-slate-500 font-medium mt-2">ログインID (Email):</div>
                                     <div className="font-bold mt-2">{email}</div>

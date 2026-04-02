@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
 import type { Invoice } from '../types';
 
-export function useInvoiceFilter(initialInvoices: Invoice[]) {
+export function useInvoiceFilter(initialInvoices: Invoice[], getTrackRecord?: (sellerId: string) => number) {
     const [minAmount, setMinAmount] = useState('');
     const [maxAmount, setMaxAmount] = useState('');
     const [industryFilter, setIndustryFilter] = useState('');
+    const [trackRecordFilter, setTrackRecordFilter] = useState('');
     const [sortBy, setSortBy] = useState('newest'); // 'newest', 'priceDesc', 'priceAsc'
     const [isFilterOpen, setIsFilterOpen] = useState(false); // For mobile tracking
 
@@ -20,6 +21,16 @@ export function useInvoiceFilter(initialInvoices: Invoice[]) {
         }
         if (industryFilter) {
             result = result.filter(inv => inv.industry.includes(industryFilter));
+        }
+        if (trackRecordFilter && getTrackRecord) {
+            result = result.filter(inv => {
+                const tr = getTrackRecord(inv.sellerId);
+                if (trackRecordFilter === '0') return tr === 0;
+                if (trackRecordFilter === '2') return tr === 2;
+                if (trackRecordFilter === '3+') return tr >= 3;
+                if (trackRecordFilter === '10+') return tr >= 10;
+                return true;
+            });
         }
 
         // Sorting
@@ -37,12 +48,13 @@ export function useInvoiceFilter(initialInvoices: Invoice[]) {
         });
 
         return result;
-    }, [initialInvoices, minAmount, maxAmount, industryFilter, sortBy]);
+    }, [initialInvoices, minAmount, maxAmount, industryFilter, sortBy, trackRecordFilter, getTrackRecord]);
 
     const resetFilters = () => {
         setMinAmount('');
         setMaxAmount('');
         setIndustryFilter('');
+        setTrackRecordFilter('');
         setSortBy('newest');
     };
 
@@ -50,9 +62,11 @@ export function useInvoiceFilter(initialInvoices: Invoice[]) {
         minAmount, setMinAmount,
         maxAmount, setMaxAmount,
         industryFilter, setIndustryFilter,
+        trackRecordFilter, setTrackRecordFilter,
         sortBy, setSortBy,
         isFilterOpen, setIsFilterOpen,
         filteredAndSortedInvoices,
-        resetFilters
+        resetFilters,
+        showTrackRecordFilter: !!getTrackRecord
     };
 }

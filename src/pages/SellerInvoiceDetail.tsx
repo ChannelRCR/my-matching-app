@@ -4,7 +4,8 @@ import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import { ArrowLeft, MessageCircle, FileText, CheckCircle2, CreditCard, DollarSign } from 'lucide-react';
+import { ArrowLeft, MessageCircle, FileText, CheckCircle2, CreditCard, DollarSign, XCircle } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import type { Invoice, Deal } from '../types';
 import { hasUnreadMessages } from '../utils/chat';
 import { translateCompanySize } from '../utils/translations';
@@ -28,8 +29,10 @@ export const SellerInvoiceDetail: React.FC = () => {
 
             // Sort: Amount DESC, then CreatedAt ASC
             const sortedDeals = relevantDeals.sort((a, b) => {
-                if (b.currentAmount !== a.currentAmount) {
-                    return b.currentAmount - a.currentAmount;
+                const amountA = a.currentBuyerPrice || a.currentAmount || 0;
+                const amountB = b.currentBuyerPrice || b.currentAmount || 0;
+                if (amountB !== amountA) {
+                    return amountB - amountA; // DESC
                 }
                 return new Date(a.lastMessageAt).getTime() - new Date(b.lastMessageAt).getTime(); // Note: leveraging lastMessageAt as a proxy for created if created_at missing in type, but usually acceptable for MVP
             });
@@ -60,6 +63,64 @@ export const SellerInvoiceDetail: React.FC = () => {
         }
     };
 
+    const handleWithdrawInvoice = async () => {
+        if (window.confirm('本当にこの案件を取り下げますか？\n（取り下げた案件は買い手から見えなくなり、元に戻すことはできません）')) {
+            const { error } = await supabase
+                .from('invoices')
+                .update({ status: 'withdrawn' })
+                .eq('id', invoice.id);
+            
+            if (error) {
+                console.error('Invoice withdrawal failed', error);
+                alert('案件の取り下げに失敗しました。');
+            } else {
+                if (invoiceDeals.length > 0) {
+                    const messagesToInsert = invoiceDeals.map(d => ({
+                        deal_id: d.id,
+                        sender_id: user?.id || invoice.sellerId,
+                        receiver_id: d.buyerId,
+                        content: '【システム通知】売り手がこの案件を取り下げました。',
+                        is_system_message: true,
+                        read: false,
+                        created_at: new Date().toISOString()
+                    }));
+                    
+                    const { error: msgError } = await supabase
+                        .from('messages')
+                        .insert(messagesToInsert);
+                        
+                    if (msgError) console.error('Failed to notify buyers', msgError);
+                }
+
+                alert('案件を取り下げました。');
+                navigate('/seller/dashboard');
+            }
+        }
+    };
+
+    const handleViewEvidence = async () => {
+        if (!invoice?.evidenceUrl) return;
+        
+        // 旧システムでのパブリックURLの場合はそのまま開く
+        if (invoice.evidenceUrl.startsWith('http')) {
+            window.open(invoice.evidenceUrl, '_blank');
+            return;
+        }
+
+        // privateバケットからのSigned URL取得
+        const { data, error } = await supabase.storage
+            .from('invoice_evidences')
+            .createSignedUrl(invoice.evidenceUrl, 60); // 60秒間有効
+
+        if (error || !data) {
+            console.error('Error fetching signed URL:', error);
+            alert('証拠書類の取得に失敗しました。');
+            return;
+        }
+        
+        window.open(data.signedUrl, '_blank');
+    };
+
     return (
         <div className="space-y-6 max-w-5xl mx-auto">
             <Button variant="ghost" className="mb-4" onClick={() => navigate('/seller/dashboard')}>
@@ -72,21 +133,32 @@ export const SellerInvoiceDetail: React.FC = () => {
                 <div className="md:col-span-1 space-y-6">
                     <Card>
                         <CardHeader className="bg-slate-50 border-b flex flex-row items-center justify-between pb-3">
-                            <CardTitle className="text-lg">案件詳細</CardTitle>
+                            <CardTitle className="text-lg flex items-center gap-3">
+                                案件詳細
+                                {['open', 'pending', 'negotiating'].includes(invoice.status) && (
+                                    <Button variant="outline" size="sm" onClick={handleWithdrawInvoice} className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700">
+                                        <XCircle className="w-3 h-3 mr-1" />
+                                        取り下げる
+                                    </Button>
+                                )}
+                            </CardTitle>
                             <span className={`px-2 py-1 rounded-full text-xs font-bold ${invoice.status === 'open' ? 'bg-green-100 text-green-700' :
                                 invoice.status === 'negotiating' ? 'bg-orange-100 text-orange-700' :
-                                    'bg-slate-100 text-slate-700'
+                                    invoice.status === 'withdrawn' ? 'bg-slate-200 text-slate-500' :
+                                        'bg-slate-100 text-slate-700'
                                 }`}>
                                 {invoice.status === 'open' ? '募集中' :
-                                    invoice.status === 'negotiating' ? '交渉中' : '完了'}
+                                    invoice.status === 'negotiating' ? '交渉中' :
+                                        invoice.status === 'withdrawn' ? '取下げ済' : '完了'}
                             </span>
                         </CardHeader>
                         <CardContent className="p-5 space-y-5">
                             <div className="flex flex-wrap gap-1.5">
                                 <span className="bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded font-medium border border-slate-200">{invoice.industry}</span>
+                                {invoice.claimType && <span className="bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded font-medium border border-slate-200">{invoice.claimType}</span>}
                                 <span className="bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded font-medium border border-slate-200">{translateCompanySize(invoice.companySize)}</span>
-                                <span className={`text-xs px-2 py-1 rounded font-bold ${invoice.sellingAmount && invoice.sellingAmount < invoice.amount ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-                                    {invoice.sellingAmount && invoice.sellingAmount < invoice.amount ? '一部売却' : '全部売却'}
+                                <span className={`text-xs px-2 py-1 rounded font-bold ${invoice.saleType === 'partial' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                                    {invoice.saleType === 'partial' ? '一部売却' : '全部売却'}
                                 </span>
                             </div>
 
@@ -94,30 +166,31 @@ export const SellerInvoiceDetail: React.FC = () => {
                                 <div>
                                     <h3 className="flex items-center text-slate-500 font-medium mb-1 text-sm">
                                         <CreditCard className="w-4 h-4 mr-1.5" />
-                                        全体債権額
+                                        請求書額面
                                     </h3>
-                                    <p className={`text-xl font-bold ${invoice.sellingAmount && invoice.sellingAmount < invoice.amount ? 'text-slate-400 line-through text-lg' : 'text-slate-900'}`}>
+                                    <p className={`text-xl font-bold ${invoice.saleType === 'partial' ? 'text-slate-400 line-through text-lg' : 'text-slate-900'}`}>
                                         ¥{invoice.amount.toLocaleString()}
                                     </p>
                                 </div>
-                                {invoice.sellingAmount && invoice.sellingAmount < invoice.amount && (
+                                {invoice.saleType === 'partial' && (
                                     <div className="pt-3 border-t border-slate-200">
                                         <h3 className="flex items-center text-amber-700 font-bold text-sm mb-1">
                                             <DollarSign className="w-4 h-4 mr-1" />
-                                            取引対象債権額
+                                            譲渡対象金額
                                         </h3>
                                         <p className="text-xl font-bold text-amber-600">
-                                            ¥{invoice.sellingAmount.toLocaleString()}
+                                            ¥{invoice.requestedAmount?.toLocaleString()}
                                         </p>
                                     </div>
                                 )}
                                 <div className="pt-3 border-t border-slate-200">
                                     <h3 className="flex items-center text-primary font-bold text-sm mb-1">
                                         <DollarSign className="w-4 h-4 mr-1" />
-                                        希望売却額
+                                        譲渡対象金額
                                     </h3>
                                     <p className="text-xl font-bold text-primary">
                                         ¥{invoice.requestedAmount?.toLocaleString() || '未設定'}
+                                        {invoice.saleType === 'full' && <span className="text-xs text-slate-500 font-normal ml-2">(全額)</span>}
                                     </p>
                                 </div>
                             </div>
@@ -136,15 +209,13 @@ export const SellerInvoiceDetail: React.FC = () => {
                             </div>
 
                             {invoice.evidenceUrl && (
-                                <a
-                                    href={invoice.evidenceUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="flex items-center justify-center gap-2 w-full mt-4 p-2 bg-blue-50 text-blue-600 rounded text-sm hover:underline"
+                                <button
+                                    onClick={handleViewEvidence}
+                                    className="flex items-center justify-center gap-2 w-full mt-4 p-2 bg-blue-50 text-blue-600 rounded text-sm hover:underline hover:bg-blue-100 transition-colors"
                                 >
                                     <FileText size={16} />
-                                    証拠書類を確認
-                                </a>
+                                    証拠書類を確認 (プレビュー/ダウンロード)
+                                </button>
                             )}
                         </CardContent>
                     </Card>
@@ -165,30 +236,35 @@ export const SellerInvoiceDetail: React.FC = () => {
                                 <p>まだオファーは届いていません。</p>
                             </div>
                         ) : (
-                            invoiceDeals.map((deal, index) => (
-                                <Card key={deal.id} className="hover:shadow-md transition-all border-l-4 border-l-primary/50 relative overflow-hidden">
-                                    {index === 0 && (
-                                        <div className="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-1 rounded-bl">
-                                            最高額オファー
-                                        </div>
-                                    )}
-                                    <CardContent className="p-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-600 text-xs">
-                                                    {getBuyerName(deal.buyerId).charAt(0)}
+                            (() => {
+                                const maxAmount = Math.max(...invoiceDeals.map(d => d.currentBuyerPrice || d.currentAmount || 0));
+                                return invoiceDeals.map((deal) => {
+                                    const dealAmount = deal.currentBuyerPrice || deal.currentAmount || 0;
+                                    const isHighest = dealAmount === maxAmount && maxAmount > 0;
+                                    return (
+                                        <Card key={deal.id} className="hover:shadow-md transition-all border-l-4 border-l-primary/50 relative overflow-hidden">
+                                            {isHighest && (
+                                                <div className="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-1 rounded-bl">
+                                                    最高額オファー
                                                 </div>
-                                                <h3 className="font-bold text-lg">{getBuyerName(deal.buyerId)}</h3>
-                                                <span className="text-xs text-slate-400">
-                                                    {new Date(deal.lastMessageAt).toLocaleDateString()}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-baseline gap-2">
-                                                <span className="text-sm text-slate-500">提示額:</span>
-                                                <span className="text-2xl font-bold text-primary">
-                                                    ¥{deal.currentAmount.toLocaleString()}
-                                                </span>
-                                            </div>
+                                            )}
+                                            <CardContent className="p-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-600 text-xs">
+                                                            {getBuyerName(deal.buyerId).charAt(0)}
+                                                        </div>
+                                                        <h3 className="font-bold text-lg">{getBuyerName(deal.buyerId)}</h3>
+                                                        <span className="text-xs text-slate-400">
+                                                            {new Date(deal.lastMessageAt).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-baseline gap-2">
+                                                        <span className="text-sm text-slate-500">提示額:</span>
+                                                        <span className="text-2xl font-bold text-primary">
+                                                            ¥{dealAmount.toLocaleString()}
+                                                        </span>
+                                                    </div>
                                             {(deal.status === 'agreed' || deal.status === 'concluded') && (
                                                 <span className="inline-flex items-center gap-1 text-green-600 font-bold text-sm mt-1">
                                                     <CheckCircle2 size={14} /> 🎉 成約済み
@@ -236,8 +312,10 @@ export const SellerInvoiceDetail: React.FC = () => {
                                         </div>
                                     </CardContent>
                                 </Card>
-                            ))
-                        )}
+                            );
+                        });
+                    })()
+                    )}
                     </div>
                 </div>
             </div>

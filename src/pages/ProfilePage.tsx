@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
-import { Eye, EyeOff, Save, Loader2, Building2, User as UserIcon, MapPin, Phone, Mail, CreditCard, Activity, Target } from 'lucide-react';
+import { Eye, EyeOff, Save, Loader2, Building2, User as UserIcon, MapPin, Phone, Mail, CreditCard, Activity, Target, ExternalLink } from 'lucide-react';
 import { fetchAddressFromZip } from '../utils/zipcode';
 import { INDUSTRY_OPTIONS } from '../utils/constants';
 
@@ -26,6 +27,8 @@ export const ProfilePage: React.FC = () => {
         appealPoint: '',
         industry: '',
         industryOther: '',
+        budget: '',
+        idDocumentFile: null as File | null,
     });
 
     // Privacy Settings State
@@ -37,6 +40,7 @@ export const ProfilePage: React.FC = () => {
         phone: false,
         email: false,
         bankAccountInfo: false,
+        idDocumentUrl: false,
     });
 
     const [saving, setSaving] = useState(false);
@@ -61,6 +65,8 @@ export const ProfilePage: React.FC = () => {
                 appealPoint: profile.appealPoint || '',
                 industry: profile.industry || '',
                 industryOther: profile.industryOther || '',
+                budget: profile.budget?.toString() || '',
+                idDocumentFile: null,
             });
 
             if (profile.privacySettings) {
@@ -92,13 +98,23 @@ export const ProfilePage: React.FC = () => {
         setPrivacySettings((prev: any) => ({ ...prev, [field]: !prev[field] }));
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent | React.MouseEvent) => {
         e.preventDefault();
+        
+        if ('checkValidity' in e.currentTarget) {
+            const form = e.currentTarget as HTMLFormElement;
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+        }
+
         setSaving(true);
         setSaveMessage({ text: '', type: '' });
 
         const updateData = {
             ...formData,
+            idDocumentFile: formData.idDocumentFile || undefined,
             privacySettings
         };
 
@@ -120,6 +136,11 @@ export const ProfilePage: React.FC = () => {
         const isPublic = privacySettings[name];
         const isPrivacyApplicable = name in privacySettings;
 
+        let maxLength = 50;
+        if (name === 'appealPoint') maxLength = 1000;
+        if (name === 'address' || name === 'bankAccountInfo') maxLength = 200;
+        if (name === 'postalCode') maxLength = 8;
+
         return (
             <div className="flex flex-col sm:flex-row sm:items-start gap-4 p-4 border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors">
                 <div className="sm:w-1/3 flex items-center gap-2 pt-2 text-slate-700 font-medium">
@@ -132,6 +153,7 @@ export const ProfilePage: React.FC = () => {
                         {isTextarea ? (
                             <textarea
                                 name={name}
+                                maxLength={maxLength}
                                 value={String(formData[name])}
                                 onChange={handleChange}
                                 disabled={disabled}
@@ -145,6 +167,7 @@ export const ProfilePage: React.FC = () => {
                         ) : (
                             <input
                                 type={type}
+                                maxLength={maxLength}
                                 name={name}
                                 value={String(formData[name])}
                                 onChange={customOnChange || handleChange}
@@ -255,11 +278,16 @@ export const ProfilePage: React.FC = () => {
                                         type="button"
                                         onClick={() => {
                                             const noTrade = !formData.hasNoTradeName;
-                                            setFormData(prev => ({ ...prev, hasNoTradeName: noTrade, companyName: noTrade ? '屋号無し' : '' }));
+                                            setFormData(prev => ({ 
+                                                ...prev, 
+                                                hasNoTradeName: noTrade, 
+                                                companyName: noTrade ? '屋号無し' : '',
+                                                companyNameKana: noTrade ? '' : prev.companyNameKana // 屋号なしの場合はカナもクリア
+                                            }));
                                         }}
-                                        className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${formData.hasNoTradeName ? 'bg-slate-200 border-slate-300 text-slate-700' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600'}`}
+                                        className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors whitespace-nowrap ${formData.hasNoTradeName ? 'bg-slate-200 border-slate-300 text-slate-700 hover:bg-slate-300' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600'}`}
                                     >
-                                        {formData.hasNoTradeName ? "取消" : "屋号無し"}
+                                        {formData.hasNoTradeName ? "屋号を入れる" : "屋号なしで登録"}
                                     </button>
                                 )}
                                 <button
@@ -355,7 +383,41 @@ export const ProfilePage: React.FC = () => {
                         </div>
                     </div>
 
-                    {renderField('postalCode', '郵便番号（7桁）', <MapPin size={18} className="text-slate-400" />, 'text', false, handlePostalCodeChange)}
+                    <div className="flex flex-col sm:flex-row sm:items-start gap-4 p-4 border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                        <div className="sm:w-1/3 flex items-center gap-2 pt-2 text-slate-700 font-medium">
+                            <MapPin size={18} className="text-slate-400" />
+                            <span>郵便番号（7桁）</span>
+                        </div>
+                        <div className="sm:w-2/3 flex flex-col gap-3">
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    maxLength={8}
+                                    name="postalCode"
+                                    value={formData.postalCode}
+                                    onChange={handlePostalCodeChange}
+                                    className="flex-1 px-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none text-slate-800"
+                                    placeholder="郵便番号（7桁）を入力"
+                                />
+                                <button
+                                    type="button"
+                                    className="bg-white border text-sm border-slate-300 hover:bg-slate-50 text-slate-700 font-medium py-2 px-3 rounded-lg shadow-sm whitespace-nowrap"
+                                    onClick={async () => {
+                                        const cleaned = formData.postalCode.replace(/[^\d]/g, '');
+                                        if (cleaned.length === 7) {
+                                            const fetchedAddress = await fetchAddressFromZip(cleaned);
+                                            if (fetchedAddress) setFormData(prev => ({ ...prev, address: fetchedAddress }));
+                                            else alert('入力された郵便番号から住所が見つかりませんでした。');
+                                        } else {
+                                            alert('7桁の郵便番号を入力してください。');
+                                        }
+                                    }}
+                                >
+                                    住所検索
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                     {renderField('address', '所在地', <MapPin size={18} className="text-slate-400" />)}
                     {renderField('phone', '電話番号', <Phone size={18} className="text-slate-400" />, 'tel')}
                     {renderField('email', '連絡先メールアドレス', <Mail size={18} className="text-slate-400" />, 'email', false, undefined, true)}
@@ -367,6 +429,76 @@ export const ProfilePage: React.FC = () => {
                         'text',
                         true
                     )}
+
+                    {profile?.role === 'buyer' && renderField(
+                        'budget',
+                        '想定買取可能額（予算）',
+                        <CreditCard size={18} className="text-slate-400" />,
+                        'text'
+                    )}
+
+                    <div className="flex flex-col sm:flex-row sm:items-start gap-4 p-4 border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors">
+                        <div className="sm:w-1/3 flex items-center gap-2 pt-2 text-slate-700 font-medium">
+                            <Building2 size={18} className="text-slate-400" />
+                            <span>本人確認書類 (登記簿、身分証明書等)</span>
+                        </div>
+                        <div className="sm:w-2/3 flex flex-col gap-3">
+                            <div className="flex gap-3">
+                                <div className="flex-1 flex flex-col gap-2">
+                                    {profile.idDocumentUrl && (
+                                        <div className="flex flex-wrap items-center gap-3 mb-2">
+                                            <span className="text-sm font-bold text-emerald-600 bg-emerald-50 py-1.5 px-3 rounded w-fit">現在登録済みのファイルがあります</span>
+                                            <button
+                                                type="button"
+                                                onClick={async () => {
+                                                    try {
+                                                        const { data, error } = await supabase.storage.from('kyc_documents').createSignedUrl(profile.idDocumentUrl!, 60);
+                                                        if (error) throw error;
+                                                        if (data?.signedUrl) {
+                                                            window.open(data.signedUrl, '_blank');
+                                                        } else {
+                                                            alert('書類のURLが取得できませんでした。');
+                                                        }
+                                                    } catch (err: any) {
+                                                        console.error('Error fetching signed URL for KYC document:', err);
+                                                        alert('書類の読み込みに失敗しました。時間をおいて再試行してください。エラー: ' + (err.message || '不明'));
+                                                    }
+                                                }}
+                                                className="flex items-center gap-1.5 text-sm font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 py-1.5 px-3 rounded transition-colors"
+                                            >
+                                                <ExternalLink size={16} />
+                                                登録済みの書類を確認する
+                                            </button>
+                                        </div>
+                                    )}
+                                    <input
+                                        type="file"
+                                        accept="image/*,.pdf"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0] || null;
+                                            setFormData(prev => ({ ...prev, idDocumentFile: file }));
+                                        }}
+                                        className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                                    />
+                                    {formData.idDocumentFile && (
+                                        <div className="text-xs text-slate-600 truncate mt-1">新しく選択済み: {formData.idDocumentFile.name}</div>
+                                    )}
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => handleTogglePrivacy('idDocumentUrl')}
+                                    className={`flex flex-col items-center justify-center w-16 h-10 sm:h-auto rounded-lg border transition-all ${privacySettings.idDocumentUrl
+                                        ? 'bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100'
+                                        : 'bg-slate-100 border-slate-200 text-slate-400 hover:bg-slate-200'
+                                        }`}
+                                    title={privacySettings.idDocumentUrl ? "公開中" : "非公開"}
+                                >
+                                    {privacySettings.idDocumentUrl ? <Eye size={18} /> : <EyeOff size={18} />}
+                                    <span className="text-[10px] font-bold mt-1">{privacySettings.idDocumentUrl ? '公開' : '非公開'}</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
 
                     {renderField('bankAccountInfo', '振込先口座情報', <CreditCard size={18} className="text-slate-400" />, 'text', true)}
 

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Users, Wallet, X, Building, Info, FileText } from 'lucide-react';
+import { Users, Wallet, X, Building, FileText } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useData } from '../contexts/DataContext';
@@ -8,11 +8,46 @@ import type { User } from '../types';
 export const BuyerList: React.FC = () => {
     const { users, getUserTrackRecord } = useData();
     const [selectedBuyer, setSelectedBuyer] = useState<User | null>(null);
+    const [trackRecordFilter, setTrackRecordFilter] = useState('');
+    const [budgetFilter, setBudgetFilter] = useState('');
 
     // Filter for buyers and map to display format if needed, but User type now has these fields
     const buyers = useMemo(() => {
-        return users.filter(u => u.role === 'buyer');
-    }, [users]);
+        let result = users.filter(u => u.role === 'buyer');
+
+        if (trackRecordFilter) {
+            result = result.filter(buyer => {
+                const tr = getUserTrackRecord(buyer.id, 'buyer');
+                if (trackRecordFilter === '0') return tr === 0;
+                if (trackRecordFilter === '2') return tr === 2;
+                if (trackRecordFilter === '3+') return tr >= 3;
+                if (trackRecordFilter === '10+') return tr >= 10;
+                return true;
+            });
+        }
+
+        if (budgetFilter) {
+            result = result.filter(buyer => {
+                if (!buyer.budget) return false;
+                
+                const halfWidth = String(buyer.budget).replace(/[０-９]/g, (s: string) => String.fromCharCode(s.charCodeAt(0) - 0xfee0)).replace(/,/g, '');
+                const matches = halfWidth.match(/\d+/g);
+                if (!matches) return false;
+                
+                let maxNumValue = Math.max(...matches.map(Number));
+                if (halfWidth.includes('億')) maxNumValue *= 10000; // Convert oku to man
+                
+                if (budgetFilter === 'under_500') return maxNumValue <= 500;
+                if (budgetFilter === 'under_1000') return maxNumValue <= 1000;
+                if (budgetFilter === 'under_3000') return maxNumValue <= 3000;
+                if (budgetFilter === 'over_3000') return maxNumValue >= 3000;
+                
+                return true;
+            });
+        }
+
+        return result;
+    }, [users, getUserTrackRecord, trackRecordFilter, budgetFilter]);
 
     return (
         <div className="space-y-6">
@@ -22,6 +57,41 @@ export const BuyerList: React.FC = () => {
                     <p className="text-slate-500 mt-1">
                         現在登録されている投資家の一覧です。
                     </p>
+                </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4">
+                <div className="flex-1">
+                    <label className="text-xs font-bold text-slate-500 mb-1.5 block">実績回数</label>
+                    <div className="relative">
+                        <select
+                            value={trackRecordFilter}
+                            onChange={(e) => setTrackRecordFilter(e.target.value)}
+                            className="w-full h-9 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm"
+                        >
+                            <option value="">すべての回数</option>
+                            <option value="0">初回（0回）</option>
+                            <option value="2">2回</option>
+                            <option value="3+">3回以上</option>
+                            <option value="10+">10回以上</option>
+                        </select>
+                    </div>
+                </div>
+                <div className="flex-1">
+                    <label className="text-xs font-bold text-slate-500 mb-1.5 block">投資予算額 (目安)</label>
+                    <div className="relative">
+                        <select
+                            value={budgetFilter}
+                            onChange={(e) => setBudgetFilter(e.target.value)}
+                            className="w-full h-9 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm"
+                        >
+                            <option value="">すべての予算額</option>
+                            <option value="under_500">〜500万円</option>
+                            <option value="under_1000">〜1,000万円</option>
+                            <option value="under_3000">〜3,000万円</option>
+                            <option value="over_3000">3,000万円以上</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -159,11 +229,6 @@ export const BuyerList: React.FC = () => {
                                                 )}
                                             </div>
                                         </div>
-                                    </div>
-
-                                    <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-700 flex items-start gap-2">
-                                        <Info size={16} className="shrink-0 mt-0.5" />
-                                        <p>当プラットフォームでは、この投資家に関する追加の実績審査を行っております。より詳細な情報は、具体的な取引開始等を通じて開示されます。</p>
                                     </div>
                                 </div>
                             </div>

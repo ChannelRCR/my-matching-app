@@ -47,7 +47,6 @@ function App() {
                 <Route element={<ProtectedRoute allowedRoles={['seller', 'admin']} />}>
                   <Route path="/seller/dashboard" element={<SellerDashboard />} />
                   <Route path="/seller/invoices/:id" element={<SellerInvoiceDetail />} />
-                  <Route path="/buyers" element={<BuyerList />} />
                 </Route>
 
                 {/* Protected Routes: Buyer */}
@@ -61,6 +60,7 @@ function App() {
                 <Route element={<ProtectedRoute />}>
                   <Route path="/chat" element={<ChatPage />} />
                   <Route path="/contract/:dealId" element={<ContractPrintPage />} />
+                  <Route path="/buyers" element={<BuyerList />} />
                 </Route>
 
                 <Route element={<AdminProtectedRoute />}>
