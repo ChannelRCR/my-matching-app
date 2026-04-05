@@ -308,7 +308,7 @@ export const ChatPage: React.FC = () => {
                 dealId: deal.id,
                 senderId: user.id,
                 receiverId: isBuyer ? deal.sellerId : deal.buyerId,
-                content: `🚨 【システム通知】${myName}より事故申告が行われました。これ以降は本システム上での仲裁・和解に向けた協議となります。`,
+                content: `⚠️ 【システム通知】${myName}より交渉システムへの移行が選択されました。これ以降は、本画面にて当事者間での和解・解決に向けた協議を行ってください。`,
                 timestamp: new Date().toISOString(),
                 isSystemMessage: true
             });
@@ -324,7 +324,7 @@ export const ChatPage: React.FC = () => {
             
         } catch (error) {
             console.error("Error reporting dispute:", error);
-            alert("事故申告に失敗しました。");
+            alert("交渉システムへの移行に失敗しました。");
             setIsReportingDispute(false);
         }
     };
@@ -523,13 +523,16 @@ export const ChatPage: React.FC = () => {
             // --- ULTIMATE ESCAPE: 1. Block Realtime ---
             setTransitioning(true);
 
+            const isDisputedForLoading = dealIsDisputed;
+            const loadingText = isDisputedForLoading && willBeConcluded ? '和解合意書を生成・保存中...' : '契約処理中...';
+
             // --- ULTIMATE ESCAPE: 2. Pure DOM Overlay (unaffected by React lifecycles) ---
             const overlay = document.createElement('div');
             overlay.id = 'ultimate-escape-overlay';
             overlay.innerHTML = `
                 <div style="position: fixed; inset: 0; z-index: 99999; background: rgba(255,255,255,0.85); backdrop-filter: blur(4px); display: flex; flex-direction: column; align-items: center; justify-content: center;">
                     <div style="width: 48px; height: 48px; border-radius: 50%; border: 4px solid #3b82f6; border-top-color: transparent; animation: ultimate-spin 1s linear infinite; margin-bottom: 16px;"></div>
-                    <h2 style="font-size: 1.25rem; font-weight: bold; color: #1e293b; font-family: sans-serif;">契約処理中...</h2>
+                    <h2 style="font-size: 1.25rem; font-weight: bold; color: #1e293b; font-family: sans-serif;">${loadingText}</h2>
                     <p style="font-size: 0.875rem; color: #64748b; margin-top: 8px; font-family: sans-serif;">このまま画面を閉じずにお待ちください。</p>
                     <style>@keyframes ultimate-spin { 100% { transform: rotate(360deg); } }</style>
                 </div>
@@ -566,6 +569,38 @@ export const ChatPage: React.FC = () => {
                     dbUpdates.status = 'concluded';
                     dbUpdates.contract_date = now;
                     dbUpdates.current_amount = finalAmount;
+
+                    if (dealIsDisputed && activeDispute) {
+                        try {
+                            const { generateSettlementPDFBlob } = await import('../utils/pdfGenerator');
+                            const sellerData = users.find(u => u.id === deal.sellerId);
+                            const buyerData = users.find(u => u.id === deal.buyerId);
+                            
+                            if (sellerData && buyerData) {
+                                const pdfBlob = await generateSettlementPDFBlob(deal, activeDispute, sellerData, buyerData);
+                                const fileName = `settlement_${deal.id}_${Date.now()}.pdf`;
+                                
+                                const { error: uploadError } = await supabase.storage
+                                    .from('contracts')
+                                    .upload(fileName, pdfBlob, {
+                                        cacheControl: '3600',
+                                        upsert: false,
+                                        contentType: 'application/pdf'
+                                    });
+
+                                if (!uploadError) {
+                                    const { data: publicUrlData } = supabase.storage
+                                        .from('contracts')
+                                        .getPublicUrl(fileName);
+                                    dbUpdates.settlement_url = publicUrlData.publicUrl;
+                                } else {
+                                    console.error("Failed to upload settlement PDF:", uploadError);
+                                }
+                            }
+                        } catch (pdfErr) {
+                            console.error("Failed to generate settlement PDF:", pdfErr);
+                        }
+                    }
                 }
                 
                 // デバッグ用ログ: DB更新直前のペイロード
@@ -1124,8 +1159,8 @@ export const ChatPage: React.FC = () => {
                             </div>
                             <div className="flex gap-2 shrink-0">
                                 {!dealIsDisputed && deal.status !== 'rejected' && deal.paymentStatus !== 'fully_settled' && (
-                                    <Button size="sm" variant="outline" className="h-8 text-xs px-3 border-red-800/50 text-red-400 hover:bg-red-900/40 hover:text-red-300 transition-colors bg-transparent shadow-sm" onClick={() => setIsDisputeModalOpen(true)}>
-                                        🚨 事故を申告する
+                                    <Button size="sm" variant="outline" className="h-8 text-xs px-3 border-orange-500/50 text-orange-500 hover:bg-orange-900/40 hover:text-orange-400 transition-colors bg-transparent shadow-sm" onClick={() => setIsDisputeModalOpen(true)}>
+                                        ⚠️ 交渉システムに移行する
                                     </Button>
                                 )}
                                 {!isBuyer && ['open', 'pending', 'negotiating'].includes(deal.status) && invoice.status !== 'withdrawn' && !isDealExpired && !dealIsDisputed && (
@@ -1703,21 +1738,21 @@ export const ChatPage: React.FC = () => {
             {isDisputeModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
-                        <div className="bg-red-50 px-6 py-4 border-b border-red-100 flex items-center gap-3">
-                            <div className="bg-red-100 p-2 rounded-full text-red-600">
-                                🚨
+                        <div className="bg-orange-50 px-6 py-4 border-b border-orange-100 flex items-center gap-3">
+                            <div className="bg-orange-100 p-2 rounded-full text-orange-600">
+                                ⚠️
                             </div>
-                            <h3 className="text-lg font-bold text-red-800">事故申告（運営へのトラブル報告）</h3>
+                            <h3 className="text-lg font-bold text-orange-800">交渉システムへの移行（当事者間解決）</h3>
                         </div>
                         <div className="p-6 space-y-4">
                             <p className="text-sm font-bold text-slate-700 bg-amber-50 p-3 rounded-lg border border-amber-200 shadow-inner">
-                                一度事故を申告すると、通常の取引には戻れず、強制的に仲裁・和解モードに移行します。<br/>本当によろしいですか？
+                                一度交渉システムに移行すると、通常の取引画面には戻れず、当事者間での和解・再交渉を行う専用モードに切り替わります。※運営が直接トラブルの仲裁を行うものではありません。本当によろしいですか？
                             </p>
                             
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-600 uppercase tracking-widest">事故の種類を選択してください</label>
+                                <label className="text-xs font-bold text-slate-600 uppercase tracking-widest">現在のトラブル・状況を選択してください</label>
                                 <select 
-                                    className="w-full border border-slate-300 rounded-md p-2 text-sm focus:ring-red-500 focus:border-red-500 font-medium text-slate-700 outline-none cursor-pointer"
+                                    className="w-full border border-slate-300 rounded-md p-2 text-sm focus:ring-orange-500 focus:border-orange-500 font-medium text-slate-700 outline-none cursor-pointer"
                                     value={selectedDisputeType}
                                     onChange={(e) => setSelectedDisputeType(e.target.value)}
                                 >
@@ -1732,14 +1767,14 @@ export const ChatPage: React.FC = () => {
                             <Button variant="outline" className="text-slate-600 font-bold" onClick={() => setIsDisputeModalOpen(false)} disabled={isReportingDispute}>
                                 キャンセル
                             </Button>
-                            <Button className="bg-red-600 hover:bg-red-700 text-white font-bold px-6 shadow-sm shadow-red-600/20 flex items-center justify-center gap-2" onClick={handleReportDispute} disabled={isReportingDispute}>
+                            <Button className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 shadow-sm shadow-orange-600/20 flex items-center justify-center gap-2" onClick={handleReportDispute} disabled={isReportingDispute}>
                                 {isReportingDispute ? (
                                     <>
                                         <div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin"></div>
                                         処理中...
                                     </>
                                 ) : (
-                                    '確定して申告する'
+                                    '確定して移行する'
                                 )}
                             </Button>
                         </div>

@@ -113,6 +113,8 @@ export interface Deal {
     paymentStatus?: 'pending' | 'buyer_paid' | 'seller_received' | 'seller_repaid' | 'fully_settled';
     is_disputed?: boolean;
     isDisputed?: boolean;
+    contract_url?: string;
+    settlement_url?: string;
 }
 
 export interface Dispute {
