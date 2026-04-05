@@ -207,7 +207,9 @@ export const SellerDashboard: React.FC = () => {
                         // Determine if it is an "Uncompleted" transaction
                         let isUncompleted = false;
                         if (inv.sellerId === user?.id) {
-                            if (inv.status !== 'sold') {
+                            if (['withdrawn', 'cancelled', 'rejected'].includes(inv.status as string)) {
+                                isUncompleted = false;
+                            } else if (inv.status !== 'sold') {
                                 isUncompleted = true;
                             } else {
                                 const associatedDeal = deals.find(d => d.invoiceId === inv.id && d.status === 'concluded');

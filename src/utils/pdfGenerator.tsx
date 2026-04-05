@@ -36,9 +36,9 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
     // 2. Build the UI as a React Component to ensure styles and fonts apply normally
     const contractDate = deal.contractDate ? new Date(deal.contractDate) : new Date();
     const formattedDate = `${contractDate.getFullYear()}年${contractDate.getMonth() + 1}月${contractDate.getDate()}日`;
-
-    const isPartialSale = invoice.sellingAmount !== undefined && invoice.sellingAmount < invoice.amount;
-    const targetAmountText = isPartialSale ? `金 ${invoice.sellingAmount?.toLocaleString()} 円 （一部譲渡）` : `金 ${invoice.amount.toLocaleString()} 円 （全部譲渡）`;
+    const isPartialSale = invoice.saleType === 'partial' || (invoice.requestedAmount !== undefined && invoice.requestedAmount < invoice.amount);
+    const requestedAmountToUse = invoice.requestedAmount || invoice.amount;
+    const targetAmountText = isPartialSale ? `金 ${requestedAmountToUse.toLocaleString()} 円 （一部譲渡）` : `金 ${invoice.amount.toLocaleString()} 円 （全部譲渡）`;
     const finalPrice = deal.currentAmount || deal.currentBuyerPrice || deal.currentSellerPrice || 0;
 
     const ContractComponent = () => (

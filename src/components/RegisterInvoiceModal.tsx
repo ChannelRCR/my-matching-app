@@ -49,9 +49,8 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
     // Calculate uncompleted transactions for the current user
     const uncompletedInvoices = invoices.filter(inv => {
         if (inv.sellerId !== user?.id) return false;
-        
         // 取り下げ（withdrawn）やキャンセルされた案件はカウントしない
-        if (inv.status === 'withdrawn') return false;
+        if (['withdrawn', 'cancelled', 'rejected'].includes(inv.status as string)) return false;
         
         if (inv.status !== 'sold') return true;
         

@@ -172,7 +172,7 @@ export const SellerInvoiceDetail: React.FC = () => {
                                         ¥{invoice.amount.toLocaleString()}
                                     </p>
                                 </div>
-                                {invoice.saleType === 'partial' && (
+                                {invoice.saleType === 'partial' && invoice.requestedAmount !== invoice.amount && (
                                     <div className="pt-3 border-t border-slate-200">
                                         <h3 className="flex items-center text-amber-700 font-bold text-sm mb-1">
                                             <DollarSign className="w-4 h-4 mr-1" />
@@ -186,11 +186,10 @@ export const SellerInvoiceDetail: React.FC = () => {
                                 <div className="pt-3 border-t border-slate-200">
                                     <h3 className="flex items-center text-primary font-bold text-sm mb-1">
                                         <DollarSign className="w-4 h-4 mr-1" />
-                                        譲渡対象金額
+                                        希望売却額
                                     </h3>
                                     <p className="text-xl font-bold text-primary">
-                                        ¥{invoice.requestedAmount?.toLocaleString() || '未設定'}
-                                        {invoice.saleType === 'full' && <span className="text-xs text-slate-500 font-normal ml-2">(全額)</span>}
+                                        ¥{invoice.sellingAmount?.toLocaleString() || '未設定'}
                                     </p>
                                 </div>
                             </div>

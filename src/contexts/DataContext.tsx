@@ -357,7 +357,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const sellerId = invoice?.sellerId;
         if (!sellerId) return null;
 
-        const initialSellerPrice = invoice?.requestedAmount || invoice?.sellingAmount || invoice?.amount || 0;
+
 
         const dbDeal = {
             invoice_id: invoiceId,
@@ -366,7 +366,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             status: 'negotiating',
             initial_offer_amount: 0,
             current_amount: 0,
-            current_seller_price: initialSellerPrice,
+            current_seller_price: null,
             current_buyer_price: 0
         };
 
@@ -408,7 +408,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const sellerId = invoice?.sellerId;
         if (!sellerId) return null;
 
-        const initialSellerPrice = invoice?.requestedAmount || invoice?.sellingAmount || invoice?.amount || 0;
+
 
         const dbDeal = {
             invoice_id: invoiceId,
@@ -417,7 +417,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             status: 'open',
             initial_offer_amount: offerAmount,
             current_amount: offerAmount,
-            current_seller_price: initialSellerPrice,
+            current_seller_price: null,
             current_buyer_price: offerAmount
         };
 

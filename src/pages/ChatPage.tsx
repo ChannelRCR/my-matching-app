@@ -51,8 +51,18 @@ export const ChatPage: React.FC = () => {
     const [disputeClaimAmount, setDisputeClaimAmount] = useState('');
     const [disputeMonthlyPayment, setDisputeMonthlyPayment] = useState('');
     
+    // Dispute Modal state
+    const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
+    const [selectedDisputeType, setSelectedDisputeType] = useState('buyer_payment_delay');
+    const [isReportingDispute, setIsReportingDispute] = useState(false);
+    
     const fileInputRef = React.useRef<HTMLInputElement>(null);
     const hasSentMatchMessageRef = React.useRef(false);
+
+    // --- CRITICAL FIX: Permanent Dispute State Latch ---
+    // 一度でも事故状態が検出された場合、以降のチャット送信等の再フェッチや古い状態のプッシュで
+    // 画面がリセットされないよう、完全に true でラッチ（固定）するステート
+    const [isDisputedLocal, setIsDisputedLocal] = useState(false);
 
     // --- CRITICAL FIX: Local Override State ---
     // This state forcibly overrides the deal state from DataContext to prevent WebSocket
@@ -69,10 +79,13 @@ export const ChatPage: React.FC = () => {
     // Compute effective deal state combining global context and local overrides
     const deal = baseDeal ? { ...baseDeal, ...localDealOverride } as Deal : null;
 
-    const dealIsDisputed = deal?.is_disputed === true || deal?.isDisputed === true;
+    const dealIsDisputed = deal?.is_disputed === true || deal?.isDisputed === true || isDisputedLocal === true;
 
     const isBuyer = user && deal ? user.id === deal.buyerId : false;
-    const isPriceMatched = deal ? (deal.currentBuyerPrice || 0) > 0 && deal.currentBuyerPrice === deal.currentSellerPrice : false;
+    const effectiveSellerPrice = (deal?.currentSellerPrice && deal.currentSellerPrice !== invoice?.requestedAmount && deal.currentSellerPrice !== invoice?.amount) 
+        ? deal.currentSellerPrice 
+        : (invoice?.sellingAmount || invoice?.amount || 0);
+    const isPriceMatched = deal ? (deal.currentBuyerPrice || 0) > 0 && deal.currentBuyerPrice === effectiveSellerPrice : false;
     const effectivelyMatched = isPriceMatched && !isPriceUnlocked;
 
     const todayStr = new Date().toISOString().split('T')[0];
@@ -87,6 +100,18 @@ export const ChatPage: React.FC = () => {
 
     const myRevealedFields = isBuyer ? (deal?.buyerRevealedFields || {}) : (deal?.sellerRevealedFields || {});
     const opponentRevealedFields = isBuyer ? (deal?.sellerRevealedFields || {}) : (deal?.buyerRevealedFields || {});
+
+    // Force fetch is_disputed directly to bypass context sync/caching issues
+    useEffect(() => {
+        if (!dealId) return;
+        const checkDisputeStatus = async () => {
+            const { data, error } = await supabase.from('deals').select('is_disputed').eq('id', dealId).single();
+            if (!error && data?.is_disputed) {
+                setIsDisputedLocal(true);
+            }
+        };
+        checkDisputeStatus();
+    }, [dealId]);
 
     // Fetch dispute info
     useEffect(() => {
@@ -123,6 +148,11 @@ export const ChatPage: React.FC = () => {
         if (dealId && user) {
             const foundDeal = deals.find(d => d.id === dealId);
             if (foundDeal) {
+                // もし親から渡されたステートが事故状態なら、確実にローカルにラッチする（降格を防ぐ）
+                if (foundDeal.is_disputed || foundDeal.isDisputed) {
+                    setIsDisputedLocal(true);
+                }
+
                 // If we have a local override that says we are agreed, but the incoming foundDeal
                 // says we are NOT agreed yet, DO NOT accept the incoming state. It's stale.
                 setLocalDealOverride(prev => {
@@ -196,8 +226,12 @@ export const ChatPage: React.FC = () => {
                     if (prev !== '') return prev;
                     if (isBuyer && foundDeal.currentBuyerPrice) {
                         return String(foundDeal.currentBuyerPrice);
-                    } else if (!isBuyer && foundDeal.currentSellerPrice) {
-                        return String(foundDeal.currentSellerPrice);
+                    } else if (!isBuyer) {
+                        // Use explicit propose value if it's not the old system default
+                        if (foundDeal.currentSellerPrice && foundDeal.currentSellerPrice !== foundInvoice?.requestedAmount && foundDeal.currentSellerPrice !== foundInvoice?.amount) {
+                            return String(foundDeal.currentSellerPrice);
+                        }
+                        if (foundInvoice?.sellingAmount) return String(foundInvoice.sellingAmount);
                     }
                     return '';
                 });
@@ -244,6 +278,54 @@ export const ChatPage: React.FC = () => {
                 timestamp: new Date().toISOString(),
                 isSystemMessage: true
             });
+        }
+    };
+
+    const handleReportDispute = async () => {
+        if (!deal || !user || isReportingDispute) return;
+        
+        setIsReportingDispute(true);
+        try {
+            // 1. Update deal
+            const { error: dealError } = await supabase.from('deals').update({ is_disputed: true }).eq('id', deal.id);
+            if (dealError) throw dealError;
+            
+            // 2. Insert into disputes
+            const { error: disputeError } = await supabase.from('disputes').insert([{
+                deal_id: deal.id,
+                reporter_id: user.id,
+                dispute_type: selectedDisputeType,
+                status: 'open'
+            }]);
+            if (disputeError) throw disputeError;
+            
+            // 3. Add system message
+            const myProfileData = isBuyer ? users.find(u => u.id === deal.buyerId) : users.find(u => u.id === deal.sellerId);
+            const myName = myProfileData?.companyName || myProfileData?.contactPerson || 'ユーザー';
+            
+            await addMessage({
+                id: `sys_dispute_${Date.now()}`,
+                dealId: deal.id,
+                senderId: user.id,
+                receiverId: isBuyer ? deal.sellerId : deal.buyerId,
+                content: `🚨 【システム通知】${myName}より事故申告が行われました。これ以降は本システム上での仲裁・和解に向けた協議となります。`,
+                timestamp: new Date().toISOString(),
+                isSystemMessage: true
+            });
+            
+            // 4. Update local state and fallback to full reload to guarantee clean layout
+            setIsDisputedLocal(true);
+            setLocalDealOverride(prev => ({ ...prev, is_disputed: true, isDisputed: true }));
+            setIsDisputeModalOpen(false);
+            
+            // Allow DB a moment to settle, then force a clean window reload
+            await new Promise(resolve => setTimeout(resolve, 500));
+            window.location.reload();
+            
+        } catch (error) {
+            console.error("Error reporting dispute:", error);
+            alert("事故申告に失敗しました。");
+            setIsReportingDispute(false);
         }
     };
 
@@ -342,9 +424,9 @@ export const ChatPage: React.FC = () => {
             return;
         }
 
-        const maxAllowed = deal.currentSellerPrice || invoice.requestedAmount || invoice.amount;
+        const maxAllowed = invoice.requestedAmount || invoice.amount;
         if (isBuyer && maxAllowed && numPrice > maxAllowed) {
-            alert(`売主の提示額または希望額（¥${maxAllowed.toLocaleString()}）を超える金額は提示できません`);
+            alert(`譲渡対象額を超えるオファーはできません`);
             return;
         }
 
@@ -403,6 +485,12 @@ export const ChatPage: React.FC = () => {
 
     const handleAgree = async () => {
         if (!deal || !invoice || !user) return;
+
+        // プロフィール必須項目の入力チェック
+        if (!myProfile?.companyName || !myProfile?.representativeName || !myProfile?.address || !myProfile?.bankAccountInfo) {
+            alert('契約手続に進む前に、プロフィール設定画面から「会社名」「代表者名」「所在地」「口座情報」をすべて登録してください。');
+            return;
+        }
 
         // --- 1. DBからの最新状態の直接取得 ---
         // WebSocket同期漏れ（切断）を防ぐため、合意ボタン押下時に確実に最新のDB状態を取得
@@ -701,9 +789,9 @@ export const ChatPage: React.FC = () => {
             return;
         }
         
-        const maxAllowed = invoice.sellingAmount || invoice.amount;
+        const maxAllowed = invoice.requestedAmount || invoice.amount;
         if (claimAmt > maxAllowed) {
-            alert(`和解請求額は対象債権額（¥${maxAllowed.toLocaleString()}）を超えることはできません`);
+            alert(`和解請求額は対象債権額（¥${maxAllowed.toLocaleString()}）を超えることはできません。`);
             return;
         }
 
@@ -1005,11 +1093,15 @@ export const ChatPage: React.FC = () => {
 
                         <div className="flex-1 flex justify-center w-full xl:w-auto px-4 border-y xl:border-y-0 xl:border-x border-slate-800 py-2 xl:py-0">
                             <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm">
-                                <span className="text-slate-500 text-xs font-bold tracking-wider uppercase">対象債権額</span>
+                                <span className="text-slate-500 text-xs font-bold tracking-wider uppercase">額面</span>
                                 <span className="text-slate-100 font-mono font-bold tracking-wide">¥{invoice.amount.toLocaleString()}</span>
-                                {invoice.sellingAmount && invoice.sellingAmount < invoice.amount && (
-                                    <span className="text-emerald-400 text-xs font-bold font-mono">(売枠: ¥{invoice.sellingAmount.toLocaleString()})</span>
-                                )}
+                                {((invoice.saleType === 'partial' || invoice.requestedAmount !== invoice.amount) && invoice.requestedAmount) ? (
+                                    <>
+                                        <span className="text-slate-700 mx-2 hidden xl:inline">|</span>
+                                        <span className="text-slate-500 text-xs font-bold tracking-wider uppercase">譲渡対象額</span>
+                                        <span className="text-emerald-400 text-xs font-bold font-mono">¥{invoice.requestedAmount.toLocaleString()}</span>
+                                    </>
+                                ) : null}
                                 <span className="text-slate-700 mx-2 hidden xl:inline">|</span>
                                 <span className="text-slate-500 text-xs font-bold tracking-wider uppercase">期日</span>
                                 <span className="text-slate-300 font-mono">{invoice.dueDate || '未設定'}</span>
@@ -1020,11 +1112,22 @@ export const ChatPage: React.FC = () => {
                         </div>
 
                         <div className="flex flex-row items-center justify-between xl:justify-end gap-3 shrink-0 w-full xl:w-auto mt-1 xl:mt-0">
-                            <div className="bg-slate-800 border-l-[3px] border-l-indigo-500 text-indigo-100 px-3 py-1 rounded-sm text-xs shadow-inner flex flex-col items-start xl:items-end w-28 shrink-0">
-                                <span className="text-[10px] text-indigo-400 uppercase tracking-widest font-bold mb-0">希望買取額</span>
-                                <span className="font-mono font-bold tracking-wide">¥{invoice.requestedAmount?.toLocaleString() || '未設定'}</span>
+                            <div className="bg-slate-800 border-l-[3px] border-l-indigo-500 text-indigo-100 px-3 py-1 rounded-sm text-xs shadow-inner flex flex-col items-start xl:items-end w-max shrink-0 gap-0.5">
+                                <span className="text-[10px] text-indigo-400 uppercase tracking-widest font-bold mb-0">
+                                    {isBuyer ? '売主の希望売却額' : '買主の提示額'}
+                                </span>
+                                <span className="font-mono font-bold tracking-wide">
+                                    {isBuyer 
+                                        ? (invoice.sellingAmount ? `¥${invoice.sellingAmount.toLocaleString()}` : '未設定') 
+                                        : (deal.currentBuyerPrice ? `¥${deal.currentBuyerPrice.toLocaleString()}` : '未提示')}
+                                </span>
                             </div>
                             <div className="flex gap-2 shrink-0">
+                                {!dealIsDisputed && deal.status !== 'rejected' && deal.paymentStatus !== 'fully_settled' && (
+                                    <Button size="sm" variant="outline" className="h-8 text-xs px-3 border-red-800/50 text-red-400 hover:bg-red-900/40 hover:text-red-300 transition-colors bg-transparent shadow-sm" onClick={() => setIsDisputeModalOpen(true)}>
+                                        🚨 事故を申告する
+                                    </Button>
+                                )}
                                 {!isBuyer && ['open', 'pending', 'negotiating'].includes(deal.status) && invoice.status !== 'withdrawn' && !isDealExpired && !dealIsDisputed && (
                                     <Button size="sm" variant="outline" className="h-8 text-xs px-3 border-slate-700 text-slate-400 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-colors bg-transparent" onClick={handleWithdraw}>
                                         取り下げる
@@ -1147,22 +1250,22 @@ export const ChatPage: React.FC = () => {
                                 <div className="grid grid-cols-2 gap-2">
                                     <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex flex-col justify-between">
                                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
-                                            Offer ({isBuyer ? 'Seller' : 'Buyer'})
+                                            相手方の提示額
                                         </div>
                                         <div className="text-lg font-bold text-slate-700">
                                             {isBuyer ?
-                                                (deal.currentSellerPrice ? `¥${deal.currentSellerPrice.toLocaleString()}` : '未提示') :
+                                                (deal.currentSellerPrice && deal.currentSellerPrice !== invoice.requestedAmount && deal.currentSellerPrice !== invoice.amount ? `¥${deal.currentSellerPrice.toLocaleString()}` : (invoice.sellingAmount ? `¥${invoice.sellingAmount.toLocaleString()}` : '未提示')) :
                                                 (deal.currentBuyerPrice ? `¥${deal.currentBuyerPrice.toLocaleString()}` : '未提示')}
                                         </div>
                                     </div>
                                     <div className={`p-3 rounded-lg border shadow-sm flex flex-col justify-between ${effectivelyMatched ? 'bg-emerald-50 border-emerald-300' : 'bg-blue-50 border-blue-200'}`}>
                                         <div className={`text-[10px] font-bold uppercase tracking-widest mb-1.5 ${effectivelyMatched ? 'text-emerald-600' : 'text-blue-600'}`}>
-                                            Your Bid ({isBuyer ? 'Buyer' : 'Seller'})
+                                            当方の提示額
                                         </div>
                                         <div className={`text-2xl font-black tracking-tight ${effectivelyMatched ? 'text-emerald-800' : 'text-blue-900'} leading-none`}>
                                             {isBuyer ?
                                                 (deal.currentBuyerPrice ? `¥${deal.currentBuyerPrice.toLocaleString()}` : '未提示') :
-                                                (deal.currentSellerPrice ? `¥${deal.currentSellerPrice.toLocaleString()}` : '未提示')}
+                                                (deal.currentSellerPrice && deal.currentSellerPrice !== invoice.requestedAmount && deal.currentSellerPrice !== invoice.amount ? `¥${deal.currentSellerPrice.toLocaleString()}` : (invoice.sellingAmount ? `¥${invoice.sellingAmount.toLocaleString()}` : '未提示'))}
                                         </div>
                                     </div>
                                 </div>
@@ -1219,15 +1322,28 @@ export const ChatPage: React.FC = () => {
                                                         onClick={async () => {
                                                             setIsPriceUnlocked(true);
                                                             if (deal && user) {
-                                                                await addMessage({
-                                                                    id: `sys_unlock_${Date.now()}`,
-                                                                    dealId: deal.id,
-                                                                    senderId: user.id,
-                                                                    receiverId: deal.buyerId,
-                                                                    content: "【システム通知】買い手が同額で競合しました。売り手が提示額を再検討します。",
-                                                                    timestamp: new Date().toISOString(),
-                                                                    isSystemMessage: true
-                                                                });
+                                                                const competingDeals = activeDealsForInvoice.filter(d => 
+                                                                    (d.currentBuyerPrice || 0) > 0 && d.currentBuyerPrice === deal.currentBuyerPrice
+                                                                );
+                                                                
+                                                                for (const cDeal of competingDeals) {
+                                                                    await addMessage({
+                                                                        id: `sys_unlock_${Date.now()}_${cDeal.id}`,
+                                                                        dealId: cDeal.id,
+                                                                        senderId: user.id,
+                                                                        receiverId: cDeal.buyerId,
+                                                                        content: "【システム通知】複数名の買い手が同額で競合しました。売り手が提示額を再検討し、順次再提示します。",
+                                                                        timestamp: new Date().toISOString(),
+                                                                        isSystemMessage: true
+                                                                    });
+                                                                    
+                                                                    // 競合判定フラグ（金額合致状態）のリセット処理
+                                                                    await updateDeal(cDeal.id, { currentSellerPrice: null as any });
+                                                                }
+                                                                // リセット時の提示入力フォームの初期値を希望売却額に強制設定
+                                                                if (invoice?.sellingAmount) {
+                                                                    setProposedPrice(String(invoice.sellingAmount));
+                                                                }
                                                             }
                                                         }}
                                                         className="text-slate-600 border-slate-300 hover:bg-slate-50"
@@ -1449,8 +1565,12 @@ export const ChatPage: React.FC = () => {
                                             <div className="flex-1 text-right font-medium text-slate-800">¥{invoice.amount.toLocaleString()}</div>
                                         </div>
                                         <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
-                                            <span className="text-slate-500 shrink-0 mr-2">売却対象額</span>
-                                            <div className="flex-1 text-right font-medium text-blue-700">{invoice.sellingAmount ? `¥${invoice.sellingAmount.toLocaleString()}` : `¥${invoice.amount.toLocaleString()}`}</div>
+                                            <span className="text-slate-500 shrink-0 mr-2">譲渡対象額</span>
+                                            <div className="flex-1 text-right font-medium text-blue-700">{(invoice.saleType === 'partial' || (invoice.requestedAmount && invoice.requestedAmount !== invoice.amount)) ? `¥${invoice.requestedAmount?.toLocaleString()}` : `全額（¥${invoice.amount.toLocaleString()}）`}</div>
+                                        </div>
+                                        <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
+                                            <span className="text-slate-500 shrink-0 mr-2">売主の希望売却額</span>
+                                            <div className="flex-1 text-right font-medium text-indigo-700">{invoice.sellingAmount ? `¥${invoice.sellingAmount.toLocaleString()}` : '未設定'}</div>
                                         </div>
                                         <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
                                             <span className="text-slate-500 shrink-0 mr-2">入金期日</span>
@@ -1458,12 +1578,25 @@ export const ChatPage: React.FC = () => {
                                         </div>
                                         <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
                                             <span className="text-slate-500 shrink-0 mr-2">企業名</span>
-                                            <div className="flex-1 text-right font-medium text-slate-800">{invoice.isClientNamePublic ? (invoice.debtorName || '未設定') : '*** (非公開)'}</div>
+                                            <div className="flex-1 text-right font-medium text-slate-800">{invoice.isClientNamePublic || (!isBuyer ? true : opponentRevealedFields['debtorInfo']) ? (invoice.debtorName || '未設定') : '*** (非公開)'}</div>
                                         </div>
                                         <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
                                             <span className="text-slate-500 shrink-0 mr-2">所在地</span>
-                                            <div className="flex-1 text-right font-medium text-slate-800">{invoice.isClientAddressPublic ? (invoice.debtorAddress || '未設定') : '*** (非公開)'}</div>
+                                            <div className="flex-1 text-right font-medium text-slate-800">{invoice.isClientAddressPublic || (!isBuyer ? true : opponentRevealedFields['debtorInfo']) ? (invoice.debtorAddress || '未設定') : '*** (非公開)'}</div>
                                         </div>
+                                        {!isBuyer && !invoice.isClientNamePublic && !myRevealedFields['debtorInfo'] && (
+                                            <div className="pt-2">
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="w-full text-blue-600 border-blue-200 hover:bg-blue-50"
+                                                    disabled={invoice?.status === 'withdrawn' || isDealExpired}
+                                                    onClick={() => handleRevealField('debtorInfo', '案件の売掛先 企業名と所在地')}
+                                                >
+                                                    企業名と所在地を公開する
+                                                </Button>
+                                            </div>
+                                        )}
                                         <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
                                             <span className="text-slate-500 shrink-0 mr-2">業種 / 規模</span>
                                             <div className="flex-1 text-right font-medium text-slate-800">{invoice.industry} / {invoice.companySize ? translateCompanySize(invoice.companySize) : '未設定'}</div>
@@ -1565,6 +1698,54 @@ export const ChatPage: React.FC = () => {
                     </Card>
                 </div>
             </Card>
+
+            {/* Dispute Report Modal */}
+            {isDisputeModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
+                        <div className="bg-red-50 px-6 py-4 border-b border-red-100 flex items-center gap-3">
+                            <div className="bg-red-100 p-2 rounded-full text-red-600">
+                                🚨
+                            </div>
+                            <h3 className="text-lg font-bold text-red-800">事故申告（運営へのトラブル報告）</h3>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <p className="text-sm font-bold text-slate-700 bg-amber-50 p-3 rounded-lg border border-amber-200 shadow-inner">
+                                一度事故を申告すると、通常の取引には戻れず、強制的に仲裁・和解モードに移行します。<br/>本当によろしいですか？
+                            </p>
+                            
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-600 uppercase tracking-widest">事故の種類を選択してください</label>
+                                <select 
+                                    className="w-full border border-slate-300 rounded-md p-2 text-sm focus:ring-red-500 focus:border-red-500 font-medium text-slate-700 outline-none cursor-pointer"
+                                    value={selectedDisputeType}
+                                    onChange={(e) => setSelectedDisputeType(e.target.value)}
+                                >
+                                    <option value="buyer_payment_delay">買主の代金未払</option>
+                                    <option value="seller_receipt_unconfirmed">売主の着金未確認</option>
+                                    <option value="seller_repayment_delay">売主の回収金未送金</option>
+                                    <option value="buyer_receipt_unconfirmed">買主の着金未確認</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="bg-slate-50 px-6 py-4 flex justify-end gap-3 border-t border-slate-100">
+                            <Button variant="outline" className="text-slate-600 font-bold" onClick={() => setIsDisputeModalOpen(false)} disabled={isReportingDispute}>
+                                キャンセル
+                            </Button>
+                            <Button className="bg-red-600 hover:bg-red-700 text-white font-bold px-6 shadow-sm shadow-red-600/20 flex items-center justify-center gap-2" onClick={handleReportDispute} disabled={isReportingDispute}>
+                                {isReportingDispute ? (
+                                    <>
+                                        <div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin"></div>
+                                        処理中...
+                                    </>
+                                ) : (
+                                    '確定して申告する'
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -150,11 +150,11 @@ export const BuyerInvoiceDetail: React.FC = () => {
                                     <CreditCard className="w-4 h-4 mr-2" />
                                     全体債権額
                                 </h3>
-                                <p className={`text-3xl font-bold ${invoice.saleType === 'partial' ? 'text-slate-400 line-through text-2xl' : 'text-slate-900'}`}>
+                                <p className={`text-3xl font-bold ${invoice.saleType === 'partial' && invoice.requestedAmount !== invoice.amount ? 'text-slate-400 line-through text-2xl' : 'text-slate-900'}`}>
                                     ¥{invoice.amount.toLocaleString()}
                                 </p>
                             </div>
-                            {invoice.saleType === 'partial' && (
+                            {invoice.saleType === 'partial' && invoice.requestedAmount !== invoice.amount && (
                                 <div className="pt-4 border-t border-slate-200">
                                     <h3 className="flex items-center text-amber-700 font-bold text-sm mb-1">
                                         <DollarSign className="w-4 h-4 mr-1" />
@@ -172,15 +172,15 @@ export const BuyerInvoiceDetail: React.FC = () => {
                                     <DollarSign className="w-4 h-4 mr-2" />
                                     希望売却額
                                 </h3>
-                                <p className="text-3xl font-bold text-indigo-700">¥{invoice.requestedAmount?.toLocaleString() || '未設定'}</p>
+                                <p className="text-3xl font-bold text-indigo-700">¥{invoice.sellingAmount?.toLocaleString() || '未設定'}</p>
                             </div>
 
                             <div className="mt-4 pt-4 border-t border-indigo-200">
                                 <div className="flex items-center justify-between mb-1">
                                     <span className="text-sm font-bold text-indigo-900">想定利回り (年率)</span>
                                     <span className="text-xl font-bold text-green-600">
-                                        {invoice.requestedAmount && invoice.amount ?
-                                            calculateAnnualYield(invoice.amount, invoice.requestedAmount, invoice.dueDate).toFixed(1)
+                                        {invoice.sellingAmount ?
+                                            calculateAnnualYield(invoice.requestedAmount || invoice.amount, invoice.sellingAmount, invoice.dueDate).toFixed(1)
                                             : '0.0'}%
                                     </span>
                                 </div>
