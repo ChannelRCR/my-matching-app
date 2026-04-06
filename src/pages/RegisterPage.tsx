@@ -56,15 +56,15 @@ export const RegisterPage: React.FC = () => {
     const [privacySettings, setPrivacySettings] = useState({
         companyName: true,
         representativeName: true,
-        contactPerson: true,
-        address: true,
-        bankAccountInfo: true,
-        phone: true,
-        email: true,
-        corporateNumber: true,
-        websiteUrl: true,
-        idDocumentUrl: true,
-        idDocumentFile: true,
+        contactPerson: false,
+        address: false,
+        bankAccountInfo: false,
+        phone: false,
+        email: false,
+        corporateNumber: false,
+        websiteUrl: false,
+        idDocumentUrl: false,
+        idDocumentFile: false,
     });
 
     const [loading, setLoading] = useState(false);
@@ -235,7 +235,7 @@ export const RegisterPage: React.FC = () => {
                     onChange={customOnChange || ((e) => handleChange(field as string, e.target.value))}
                     placeholder={placeholder}
                     type={type}
-                    required={field !== 'appealPoint' && field !== 'postalCode' && field !== 'companyNameKana' && field !== 'representativeNameKana' && field !== 'contactPerson' && field !== 'bankAccountInfo' && field !== 'corporateNumber' && field !== 'websiteUrl' && field !== 'idDocumentUrl' && field !== 'idDocumentFile'}
+                    required={field !== 'appealPoint' && field !== 'budget' && field !== 'companyNameKana' && field !== 'representativeNameKana' && field !== 'contactPerson' && field !== 'bankAccountInfo' && field !== 'corporateNumber' && field !== 'websiteUrl' && field !== 'idDocumentUrl' && field !== 'idDocumentFile'}
                 />
             )}
         </div>
@@ -485,7 +485,7 @@ export const RegisterPage: React.FC = () => {
                             <div className="flex gap-4 items-start">
                                 <div className="w-1/3 flex items-end gap-1">
                                     <div className="flex-1">
-                                        {renderInputWithPrivacy(<>郵便番号（7桁）<OptionalBadge /></>, "postalCode", "例: 1000001", "text", handlePostalCodeChange)}
+                                        {renderInputWithPrivacy(<>郵便番号（7桁）<RequiredBadge /></>, "postalCode", "例: 1000001", "text", handlePostalCodeChange)}
                                     </div>
                                     <Button
                                         type="button"
@@ -507,7 +507,7 @@ export const RegisterPage: React.FC = () => {
                                     </Button>
                                 </div>
                                 <div className="w-2/3">
-                                    {renderInputWithPrivacy(<>所在地{role === 'seller' ? <RequiredBadge /> : <OptionalBadge />}</>, "address", "例: 東京都千代田区...")}
+                                    {renderInputWithPrivacy(<>所在地<RequiredBadge /></>, "address", "例: 東京都千代田区...")}
                                 </div>
                             </div>
 
@@ -520,10 +520,29 @@ export const RegisterPage: React.FC = () => {
                                 "textarea"
                             )}
 
-                            {role === 'buyer' && renderInputWithPrivacy(
-                                <>想定買取可能額（予算）<OptionalBadge /></>,
-                                "budget",
-                                "例: 〜1,000万円"
+                            {role === 'buyer' && (
+                                <div className="space-y-1">
+                                    <label className="text-sm font-medium text-gray-700">想定買取可能額（予算）<OptionalBadge /></label>
+                                    <div className="relative flex items-center w-full">
+                                        <span className="absolute left-3 text-slate-500 font-bold z-10 select-none">〜</span>
+                                        <Input
+                                            value={String(formData.budget || '')}
+                                            maxLength={20}
+                                            onChange={(e) => {
+                                                const numStr = e.target.value.replace(/[^\d]/g, '');
+                                                if (!numStr) {
+                                                    handleChange('budget', '');
+                                                } else {
+                                                    handleChange('budget', Number(numStr).toLocaleString('ja-JP'));
+                                                }
+                                            }}
+                                            placeholder="例: 10,000,000"
+                                            type="text"
+                                            required={false}
+                                            className="pl-8"
+                                        />
+                                    </div>
+                                </div>
                             )}
 
                             {renderInputWithPrivacy(<>自社ホームページURL<OptionalBadge /></>, "websiteUrl", "例: https://example.com/ (任意)", "url")}

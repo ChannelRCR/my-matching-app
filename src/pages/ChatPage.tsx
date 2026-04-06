@@ -723,7 +723,7 @@ export const ChatPage: React.FC = () => {
                             </div>
                             <div className="flex flex-col min-w-0">
                                 <div className={`text-[10px] font-bold uppercase tracking-wider mb-0.5 ${dealIsDisputed ? 'text-red-300' : 'text-slate-500'}`}>
-                                    {dealIsDisputed ? `🚨 事故案件（仲裁チャット） - ${activeDispute?.dispute_type || '係争中'}` : '取引相手・出品企業'}
+                                    {dealIsDisputed ? `🚨 事故案件（仲裁チャット） - ${activeDispute?.dispute_type || '係争中'}` : (isBuyer ? '取引先・譲渡人' : '取引先・譲受人')}
                                 </div>
                                 <div className="text-base text-white font-bold flex items-center gap-2 truncate">
                                     <span className="truncate">{counterpartName}</span>
@@ -737,22 +737,30 @@ export const ChatPage: React.FC = () => {
                         </div>
 
                         <div className="flex-1 flex justify-center w-full xl:w-auto px-4 border-y xl:border-y-0 xl:border-x border-slate-800 py-2 xl:py-0">
-                            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm">
-                                <span className="text-slate-500 text-xs font-bold tracking-wider uppercase">額面</span>
-                                <span className="text-slate-100 font-mono font-bold tracking-wide">¥{invoice.amount.toLocaleString()}</span>
+                            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm">
+                                <div className="flex items-center gap-1.5 whitespace-nowrap">
+                                    <span className="text-slate-500 text-xs font-bold tracking-wider uppercase">額面</span>
+                                    <span className="text-slate-100 font-mono font-bold tracking-wide">¥{invoice.amount.toLocaleString()}</span>
+                                </div>
                                 {((invoice.saleType === 'partial' || invoice.requestedAmount !== invoice.amount) && invoice.requestedAmount) ? (
                                     <>
-                                        <span className="text-slate-700 mx-2 hidden xl:inline">|</span>
-                                        <span className="text-slate-500 text-xs font-bold tracking-wider uppercase">譲渡対象額</span>
-                                        <span className="text-emerald-400 text-xs font-bold font-mono">¥{invoice.requestedAmount.toLocaleString()}</span>
+                                        <span className="text-slate-700 hidden xl:inline">|</span>
+                                        <div className="flex items-center gap-1.5 whitespace-nowrap">
+                                            <span className="text-slate-500 text-xs font-bold tracking-wider uppercase">譲渡対象額</span>
+                                            <span className="text-emerald-400 text-xs font-bold font-mono">¥{invoice.requestedAmount.toLocaleString()}</span>
+                                        </div>
                                     </>
                                 ) : null}
-                                <span className="text-slate-700 mx-2 hidden xl:inline">|</span>
-                                <span className="text-slate-500 text-xs font-bold tracking-wider uppercase">期日</span>
-                                <span className="text-slate-300 font-mono">{invoice.dueDate || '未設定'}</span>
-                                <span className="text-slate-700 mx-2 hidden xl:inline">|</span>
-                                <span className="text-slate-500 text-xs font-bold tracking-wider uppercase">ID</span>
-                                <span className="text-slate-400 font-mono bg-slate-800 px-1.5 rounded">{invoice.id}</span>
+                                <span className="text-slate-700 hidden xl:inline">|</span>
+                                <div className="flex items-center gap-1.5 whitespace-nowrap">
+                                    <span className="text-slate-500 text-xs font-bold tracking-wider uppercase">期日</span>
+                                    <span className="text-slate-300 font-mono">{invoice.dueDate || '未設定'}</span>
+                                </div>
+                                <span className="text-slate-700 hidden xl:inline">|</span>
+                                <div className="flex items-center gap-1.5 whitespace-nowrap">
+                                    <span className="text-slate-500 text-xs font-bold tracking-wider uppercase">ID</span>
+                                    <span className="text-slate-400 font-mono bg-slate-800 px-1.5 rounded">{invoice.id}</span>
+                                </div>
                             </div>
                         </div>
 
@@ -768,7 +776,7 @@ export const ChatPage: React.FC = () => {
                                 </span>
                             </div>
                             <div className="flex gap-2 shrink-0">
-                                {!dealIsDisputed && deal.status !== 'rejected' && deal.paymentStatus !== 'fully_settled' && (
+                                {!dealIsDisputed && (deal.status === 'concluded' || (deal.buyerAgreedAt && deal.sellerAgreedAt)) && (
                                     <Button size="sm" variant="outline" className="h-8 text-xs px-3 border-orange-500/50 text-orange-500 hover:bg-orange-900/40 hover:text-orange-400 transition-colors bg-transparent shadow-sm" onClick={() => setIsDisputeModalOpen(true)}>
                                         ⚠️ 交渉システムに移行する
                                     </Button>

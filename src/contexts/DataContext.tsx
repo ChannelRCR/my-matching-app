@@ -236,9 +236,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 sellerAgreedAt: d.seller_agreed_at,
                 buyerAgreedAt: d.buyer_agreed_at,
                 contractDate: d.contract_date,
-                sellerRevealedFields: d.seller_revealed_fields || {},
                 buyerRevealedFields: d.buyer_revealed_fields || {},
                 paymentStatus: d.payment_status || 'pending',
+                is_disputed: d.is_disputed,
+                contract_url: d.contract_url,
+                settlement_url: d.settlement_url,
             })));
         }
     };
@@ -388,6 +390,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             sellerRevealedFields: data.seller_revealed_fields || {},
             buyerRevealedFields: data.buyer_revealed_fields || {},
             paymentStatus: data.payment_status || 'pending',
+            is_disputed: data.is_disputed,
+            contract_url: data.contract_url,
+            settlement_url: data.settlement_url,
         };
 
         const dbMsg = {
@@ -439,6 +444,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             sellerRevealedFields: data.seller_revealed_fields || {},
             buyerRevealedFields: data.buyer_revealed_fields || {},
             paymentStatus: data.payment_status || 'pending',
+            is_disputed: data.is_disputed,
+            contract_url: data.contract_url,
+            settlement_url: data.settlement_url,
         };
 
         const dbMsg = {

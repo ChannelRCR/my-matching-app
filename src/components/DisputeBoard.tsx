@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
+import { FileTextIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { setTransitioning } from '../utils/transitionState';
 import { useMarket } from '../contexts/MarketContext';
@@ -45,6 +46,7 @@ export const DisputeBoard: React.FC<DisputeBoardProps> = ({
     // In ChatPage, these were managed centrally, but it's cleaner to manage them here if we initialize from activeDispute.
     const [disputeClaimAmount, setDisputeClaimAmount] = useState(activeDispute?.claim_amount ? String(activeDispute.claim_amount) : '');
     const [disputeMonthlyPayment, setDisputeMonthlyPayment] = useState(activeDispute?.settlement_amount ? String(activeDispute.settlement_amount) : '');
+    const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
     // 1. Real-time sync for disagreements/updates via Supabase Channel
     useEffect(() => {
@@ -246,6 +248,92 @@ export const DisputeBoard: React.FC<DisputeBoardProps> = ({
 
     return (
         <div className="flex flex-col gap-3">
+            {/* 和解合意書セクション */}
+            {activeDispute?.status === 'agreed' && deal.settlement_url && (
+                <div className="bg-red-50 border border-red-200 p-4 rounded-lg shadow-sm flex flex-col items-center gap-3">
+                    <p className="text-sm text-red-800 font-bold mb-1">✅ 和解合意書が締結されました</p>
+                    <div className="flex gap-2 w-full flex-col sm:flex-row max-w-sm">
+                        <Button
+                            variant="outline"
+                            className="flex-1 flex items-center justify-center border-red-300 hover:bg-red-100 text-red-800 font-bold shadow-sm bg-white"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                window.open(deal.settlement_url, '_blank', 'noopener,noreferrer');
+                            }}
+                        >
+                            <FileTextIcon className="w-4 h-4 mr-2" /> Webで確認
+                        </Button>
+                        <Button
+                            variant="outline"
+                            className="flex-1 border-red-300 hover:bg-red-100 text-red-800 font-bold shadow-sm bg-white"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                try {
+                                    const url = new URL(deal.settlement_url as string);
+                                    url.searchParams.set('download', `settlement_agreement_${deal.id}.pdf`);
+                                    const a = document.createElement('a');
+                                    a.href = url.toString();
+                                    a.download = `settlement_agreement_${deal.id}.pdf`;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    document.body.removeChild(a);
+                                } catch (err) {
+                                    window.open(deal.settlement_url, '_blank');
+                                }
+                            }}
+                        >
+                            <FileTextIcon className="w-4 h-4 mr-2" /> ダウンロード
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            {/* 原契約の確認セクション */}
+            <div className="bg-white border border-slate-200 p-4 rounded-lg shadow-sm flex flex-col items-center gap-3">
+                <p className="text-sm text-slate-600 font-bold mb-1">原契約（債権譲渡契約）の内容を確認</p>
+                <div className="flex gap-2 w-full flex-col sm:flex-row max-w-sm">
+                    <Button
+                        variant="outline"
+                        className="flex-1 flex items-center justify-center border-slate-300 hover:bg-slate-50 text-slate-700 font-bold shadow-sm"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const url = `/contract-print?dealId=${deal.id}`;
+                            window.open(url, '_blank', 'noopener,noreferrer');
+                        }}
+                    >
+                        <FileTextIcon className="w-4 h-4 mr-2" /> Webで確認
+                    </Button>
+                    <Button
+                        variant="outline"
+                        className="flex-1 border-slate-300 hover:bg-slate-50 text-slate-700 font-bold shadow-sm"
+                        onClick={async () => {
+                            try {
+                                setIsGeneratingPdf(true);
+                                const { generateContractPDF } = await import('../utils/pdfGenerator');
+                                const sellerData = users.find(u => u.id === deal.sellerId);
+                                const buyerData = users.find(u => u.id === deal.buyerId);
+                                if (sellerData && buyerData) {
+                                    await generateContractPDF(deal, invoice, sellerData, buyerData);
+                                } else {
+                                    alert('ユーザー情報が見つかりません');
+                                }
+                            } catch(e) {
+                                console.error(e);
+                                alert("PDFの生成に失敗しました");
+                            } finally {
+                                setIsGeneratingPdf(false);
+                            }
+                        }}
+                        disabled={isGeneratingPdf}
+                    >
+                        <FileTextIcon className="w-4 h-4 mr-2" /> {isGeneratingPdf ? '生成中...' : 'PDF保存'}
+                    </Button>
+                </div>
+            </div>
+
             <div className="bg-red-50 p-3 rounded-lg border border-red-200 shadow-sm flex flex-col gap-2">
                 <div className="text-[11px] font-bold text-red-600 tracking-wide mb-1">和解条件の計算・提示</div>
                 

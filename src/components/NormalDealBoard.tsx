@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { setTransitioning } from '../utils/transitionState';
 import { useMarket } from '../contexts/MarketContext';
+import { useAuth } from '../contexts/AuthContext';
 import { DealStepper } from './DealStepper';
 import type { Deal, Invoice, User as UserType } from '../types';
 
@@ -46,11 +47,11 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
     handleTermsClick
 }) => {
     const { completeDeal } = useMarket();
+    const { profile: loggedInProfile } = useAuth();
     
     const [isTermsAgreed, setIsTermsAgreed] = useState(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
-    const myProfile = isBuyer ? users.find(u => u.id === deal?.buyerId) : users.find(u => u.id === deal?.sellerId);
     const opponentProfile = isBuyer ? users.find(u => u.id === deal?.sellerId) : users.find(u => u.id === deal?.buyerId);
     const hasMultipleBuyers = activeDealsForInvoice.length > 1;
 
@@ -95,7 +96,8 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
     const handleAgree = async () => {
         if (!deal || !invoice || !user) return;
 
-        if (!myProfile?.companyName || !myProfile?.representativeName || !myProfile?.address || !myProfile?.bankAccountInfo) {
+        // 【修正】プロフィール入力チェック（公開・非公開の設定に関わらず、データベース上の文字列データが入力されていれば通す）
+        if (!loggedInProfile?.companyName || !loggedInProfile?.representativeName || !loggedInProfile?.address || !loggedInProfile?.bankAccountInfo) {
             alert('契約手続に進む前に、プロフィール設定画面から「会社名」「代表者名」「所在地」「口座情報」をすべて登録してください。');
             return;
         }
