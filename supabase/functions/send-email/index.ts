@@ -11,14 +11,14 @@ serve(async (req) => {
     try {
         const payload = await req.json();
         const { type, table, record, old_record } = payload;
-        let targetUserId = "";
+        let targetUserIds: string[] = [];
         let subject = "";
         let messageHtml = "";
 
         console.log(`Processing Webhook: ${type} on ${table}`);
 
         if (table === "messages" && type === "INSERT") {
-            targetUserId = record.receiver_id;
+            targetUserIds = [record.receiver_id];
 
             const { data: sender } = await supabase.from('users').select('name').eq('id', record.sender_id).single();
             const senderName = sender?.name || "ユーザー";
@@ -36,47 +36,60 @@ serve(async (req) => {
 
             // 契約合意
             if (record.status === "concluded" && old_record.status !== "concluded") {
-                targetUserId = record.buyer_id;
+                targetUserIds = [record.buyer_id];
                 subject = "契約が締結されました [FactorMatch]";
                 messageHtml = `<p>対象案件の契約が締結（成約）されました。</p><p>速やかに決済手続きへ進み、ダッシュボードから相手方の口座へ送金を行ってください。</p>`;
             }
             // 買い手が入金報告
             else if (record.payment_status === "paid" && old_record.payment_status !== "paid") {
-                targetUserId = record.seller_id;
+                targetUserIds = [record.seller_id];
                 subject = "入金報告のお知らせ [FactorMatch]";
                 messageHtml = `<p>買い手（譲受人）から入金完了の報告がありました。</p><p>口座の着金をご確認のうえ、ダッシュボードで受取確認ボタンを押して取引を完了させてください。</p>`;
             }
             // 売り手が着金確認 (完了)
             else if (record.payment_status === "completed" && old_record.payment_status !== "completed") {
-                targetUserId = record.buyer_id;
+                targetUserIds = [record.buyer_id];
                 subject = "取引完了のお知らせ [FactorMatch]";
                 messageHtml = `<p>売り手（譲渡人）が着金を確認し、取引プロセスがすべて完了いたしました。</p><p>FactorMatchをご利用いただき誠にありがとうございます。</p>`;
+            }
+            // 交渉システムへの移行
+            else if (record.is_disputed === true && old_record?.is_disputed !== true) {
+                targetUserIds = [record.seller_id, record.buyer_id];
+                subject = "⚠️ 交渉システムへの移行のお知らせ [FactorMatch]";
+                messageHtml = `<p>取引相手により、当事者間での協議を行う『交渉システム』への移行が選択されました。</p><p>通常の取引は一時停止され、和解に向けた再交渉モードとなります。速やかにFactorMatchのチャット画面より状況をご確認いただき、相手方と協議を行ってください。</p>`;
             } else {
                 console.log("Deal updated, but no actionable status/payment_status change detected.");
             }
         }
 
-        console.log(`Resolved targetUserId: ${targetUserId} from event`);
+        console.log(`Resolved targetUserIds: ${targetUserIds.join(', ')} from event`);
 
-        if (!targetUserId || !subject) {
-            console.log("No valid targetUserId or subject generated. Skipping email.");
+        if (targetUserIds.length === 0 || !subject) {
+            console.log("No valid targetUserIds or subject generated. Skipping email.");
             return new Response(JSON.stringify({ message: "No email triggered for this event." }), { headers: { "Content-Type": "application/json" } });
         }
 
-        // Fetch user email using admin auth API
-        const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(targetUserId);
-        if (userError || !user?.email) {
-            throw new Error(`Failed to fetch user email for ID ${targetUserId}. Error: ${userError?.message}`);
+        const targetEmails: string[] = [];
+        for (const uid of targetUserIds) {
+            const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(uid);
+            if (!userError && user?.email) {
+                targetEmails.push(user.email);
+            } else {
+                console.warn(`Failed to fetch user email for ID ${uid}. Error: ${userError?.message}`);
+            }
         }
 
-        console.log(`Recipient email resolved: ${user.email} (User ID: ${targetUserId})`);
+        if (targetEmails.length === 0) {
+             throw new Error("Could not resolve any emails from targetUserIds");
+        }
+
+        console.log(`Recipient emails resolved: ${targetEmails.join(', ')}`);
 
         // IMPORTANT NOTE FOR RESEND SANDBOX:
         // By default, Resend only allows sending to your own verified email address.
         // We will send to user.email, but if it fails with 403, we will fall back to a hardcoded email for testing purposes.
-        const targetEmail = user.email;
 
-        console.log(`Sending email to ${targetEmail}...`);
+        console.log(`Sending email to ${targetEmails.join(', ')}...`);
 
         const emailResponse = await fetch("https://api.resend.com/emails", {
             method: "POST",
@@ -86,7 +99,7 @@ serve(async (req) => {
             },
             body: JSON.stringify({
                 from: "FactorMatch <onboarding@resend.dev>",
-                to: [targetEmail], // Real dynamic email
+                to: targetEmails, // Array of dynamic emails
                 subject: subject,
                 html: messageHtml,
             }),
@@ -96,8 +109,8 @@ serve(async (req) => {
             const errorText = await emailResponse.text();
 
             // Auto fallback for unverified sandbox emails
-            if (emailResponse.status === 403 && targetEmail !== "info@nipponrcr.com") {
-                console.warn(`Resend Sandbox restriction hit for ${targetEmail}. Falling back to default test email (info@nipponrcr.com)...`);
+            if (emailResponse.status === 403 && !targetEmails.includes("info@nipponrcr.com")) {
+                console.warn(`Resend Sandbox restriction hit for ${targetEmails.join(', ')}. Falling back to default test email (info@nipponrcr.com)...`);
 
                 const fallbackResponse = await fetch("https://api.resend.com/emails", {
                     method: "POST",
@@ -108,7 +121,7 @@ serve(async (req) => {
                     body: JSON.stringify({
                         from: "FactorMatch <onboarding@resend.dev>",
                         to: ["info@nipponrcr.com"],
-                        subject: `[TEST FOR ${targetEmail}] ` + subject,
+                        subject: `[TEST FOR ${targetEmails.join(', ')}] ` + subject,
                         html: messageHtml,
                     }),
                 });
