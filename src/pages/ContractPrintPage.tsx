@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { ChevronLeft, Printer } from 'lucide-react';
-import type { Deal, Invoice, User } from '../types';
+
 
 export const ContractPrintPage: React.FC = () => {
     const { dealId } = useParams<{ dealId: string }>();
@@ -12,22 +12,10 @@ export const ContractPrintPage: React.FC = () => {
     const { deals, invoices, users } = useData();
     const { user: authUser } = useAuth();
 
-    const [deal, setDeal] = useState<Deal | null>(null);
-    const [invoice, setInvoice] = useState<Invoice | null>(null);
-    const [seller, setSeller] = useState<User | null>(null);
-    const [buyer, setBuyer] = useState<User | null>(null);
-
-    useEffect(() => {
-        if (dealId && authUser) {
-            const foundDeal = deals.find(d => d.id === dealId);
-            if (foundDeal) {
-                setDeal(foundDeal);
-                setInvoice(invoices.find(i => i.id === foundDeal.invoiceId) || null);
-                setSeller(users.find(u => u.id === foundDeal.sellerId) || null);
-                setBuyer(users.find(u => u.id === foundDeal.buyerId) || null);
-            }
-        }
-    }, [dealId, deals, invoices, users, authUser]);
+    const deal = (dealId && authUser) ? deals.find(d => d.id === dealId) || null : null;
+    const invoice = deal ? invoices.find(i => i.id === deal.invoiceId) || null : null;
+    const seller = deal ? users.find(u => u.id === deal.sellerId) || null : null;
+    const buyer = deal ? users.find(u => u.id === deal.buyerId) || null : null;
 
     if (!deal || !invoice || !seller || !buyer) {
         return <div className="p-8 text-center">読み込み中...またはデータが見つかりません。</div>;

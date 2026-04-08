@@ -85,7 +85,7 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
         const rawValue = halfWidthValue.replace(/[^0-9]/g, '');
         const formatted = rawValue ? Number(rawValue).toLocaleString() : '';
         setFormData(prev => {
-            const updates: any = { [name]: formatted };
+            const updates: Record<string, string> = { [name]: formatted };
             if (name === 'amount' && saleMode === 'full') {
                 updates.requestedAmount = formatted;
             }
@@ -201,7 +201,7 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
             amount: amountNum,
             sellingAmount: sellingAmountNum,
             dueDate: formData.dueDate,
-            debtorEntityType: formData.debtorEntityType as any,
+            debtorEntityType: formData.debtorEntityType as 'corporate' | 'individual',
             debtorPostalCode: formData.debtorPostalCode,
             debtorName: formData.debtorName,
             debtorAddress: formData.debtorAddress,
@@ -209,7 +209,7 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
             isClientAddressPublic: formData.isClientAddressPublic,
             industry: formData.industry,
             industryOther: formData.industryOther,
-            companySize: formData.companySize as any,
+            companySize: formData.companySize as 'Listed' | 'Large' | 'SMB' | 'Individual',
             companyCredit: formData.companyCredit,
             claimType: formData.claimType,
             claimTypeOther: formData.claimTypeOther,

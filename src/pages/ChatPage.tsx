@@ -70,7 +70,9 @@ export const ChatPage: React.FC = () => {
     });
 
     // Compute effective deal state combining global context and local overrides
-    const deal = baseDeal ? { ...baseDeal, ...localDealOverride } as Deal : null;
+    const deal = React.useMemo(() => {
+        return baseDeal ? { ...baseDeal, ...localDealOverride } as Deal : null;
+    }, [baseDeal, localDealOverride]);
 
     const dealIsDisputed = deal?.is_disputed === true || deal?.isDisputed === true || isDisputedLocal === true;
 
@@ -122,7 +124,7 @@ export const ChatPage: React.FC = () => {
             };
             fetchDispute();
         }
-    }, [deal?.id, dealIsDisputed]);
+    }, [deal, dealIsDisputed]);
 
     // Temporarily added for user verification of profile data coming from DataContext
     useEffect(() => {
@@ -174,7 +176,7 @@ export const ChatPage: React.FC = () => {
                 const dealMessages = allMessages.filter(m => m.dealId === dealId);
                 const chatMessages: ChatMessage[] = dealMessages.map(m => {
                     // Support both camelCase and snake_case for Supabase compatibility
-                    const messageSenderId = m.senderId || (m as any).sender_id;
+                    const messageSenderId = m.senderId || (m as unknown as Record<string, unknown>).sender_id;
                     // Safe comparison ensuring both are strings
                     const isMe = String(messageSenderId) === String(user.id);
                     return {
@@ -182,10 +184,10 @@ export const ChatPage: React.FC = () => {
                         sender: isMe ? 'me' : 'other',
                         text: m.content,
                         timestamp: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                        fileUrl: m.fileUrl || (m as any).file_url,
-                        fileName: m.fileName || (m as any).file_name,
-                        fileType: m.fileType || (m as any).file_type,
-                        isSystemMessage: m.isSystemMessage || (m as any).is_system_message
+                        fileUrl: m.fileUrl || (m as unknown as Record<string, unknown>).file_url as string | undefined,
+                        fileName: m.fileName || (m as unknown as Record<string, unknown>).file_name as string | undefined,
+                        fileType: m.fileType || (m as unknown as Record<string, unknown>).file_type as string | undefined,
+                        isSystemMessage: m.isSystemMessage || (m as unknown as Record<string, unknown>).is_system_message as boolean | undefined
                     };
                 });
 
@@ -193,7 +195,7 @@ export const ChatPage: React.FC = () => {
 
                 // Mark deal as read ONLY if there are actually unread messages for me
                 const hasUnread = dealMessages.some(m => {
-                    const receiverIdStr = String(m.receiverId || (m as any).receiver_id);
+                    const receiverIdStr = String(m.receiverId || (m as unknown as Record<string, unknown>).receiver_id);
                     return receiverIdStr === String(user?.id) && m.isRead === false;
                 });
 
@@ -227,7 +229,7 @@ export const ChatPage: React.FC = () => {
                 });
             }
         }
-    }, [dealId, deals, invoices, allMessages, users, user]);
+    }, [dealId, deals, invoices, allMessages, users, user, markMessagesAsRead]);
 
     // 1. 金額合致時の自動メッセージ
     useEffect(() => {
@@ -400,7 +402,7 @@ export const ChatPage: React.FC = () => {
 
         } catch (error) {
             console.error('File upload error:', error);
-            alert('ファイルのアップロードに失敗しました。');
+            alert('ファイルのアップロードに失敗しました: ' + (error instanceof Error ? error.message : String(error)));
         } finally {
             setIsUploading(false);
         }
@@ -476,9 +478,10 @@ export const ChatPage: React.FC = () => {
             alert("案件を取り下げました。");
             // リロードや遷移ですぐに反映させるか、リアルタイムサブスクリプションに任せる
             // window.location.reload(); 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Withdraw Error:", error);
-            alert("取り下げ処理に失敗しました：" + (error.message || "不明なエラー"));
+            const errMsg = error instanceof Error ? error.message : "不明なエラー";
+            alert("取り下げ処理に失敗しました：" + errMsg);
         }
     };
 

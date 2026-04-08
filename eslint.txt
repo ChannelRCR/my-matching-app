@@ -1,0 +1,314 @@
+
+C:\Projects\my-matching-app\src\components\DisputeBoard.tsx
+   24:11  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+   29:23  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+   71:8   warning  React Hook useEffect has missing dependencies: 'activeDispute.claim_amount' and 'activeDispute.settlement_amount'. Either include them or remove the dependency array. If 'setDisputeClaimAmount' needs the current value of 'activeDispute.claim_amount', you can also switch to useReducer instead of useState and read 'activeDispute.claim_amount' in the reducer  react-hooks/exhaustive-deps
+  129:25  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+  202:30  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+  238:25  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+  282:42  error    'err' is defined but never used                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+
+C:\Projects\my-matching-app\src\components\NormalDealBoard.tsx
+   16:11   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   22:23   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   23:43   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  156:34   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  196:29   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  385:110  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projects\my-matching-app\src\components\OfferModal.tsx
+  22:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Projects\my-matching-app\src\components\OfferModal.tsx:22:13
+  20 |     useEffect(() => {
+  21 |         if (isOpen && invoice) {
+> 22 |             setRender(true);
+     |             ^^^^^^^^^ Avoid calling setState() directly within an effect
+  23 |             setAmount(invoice.requestedAmount?.toString() || invoice.amount.toString());
+  24 |             setMessage('縺ｯ縺倥ａ縺ｾ縺励※縲よ軸霈画｡井ｻｶ縺ｫ髢｢蠢・′縺ゅｊ縲√＃騾｣邨｡縺・◆縺励∪縺励◆縲・);
+  25 |         }  react-hooks/set-state-in-effect
+  30:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Projects\my-matching-app\src\components\OfferModal.tsx:30:13
+  28 |     useEffect(() => {
+  29 |         if (!invoice || !amount) {
+> 30 |             setDiscountRate(0);
+     |             ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  31 |             return;
+  32 |         }
+  33 |         const offerVal = Number(amount);                                                                           react-hooks/set-state-in-effect
+
+C:\Projects\my-matching-app\src\components\RegisterInvoiceModal.tsx
+   88:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  204:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  212:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projects\my-matching-app\src\components\SystemFeeModal.tsx
+  71:30  error  'e' is defined but never used             @typescript-eslint/no-unused-vars
+  85:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projects\my-matching-app\src\components\TermsModal.tsx
+  14:21  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Projects\my-matching-app\src\components\TermsModal.tsx:14:21
+  12 |
+  13 |     useEffect(() => {
+> 14 |         if (isOpen) setRender(true);
+     |                     ^^^^^^^^^ Avoid calling setState() directly within an effect
+  15 |     }, [isOpen]);
+  16 |
+  17 |     const handleAnimationEnd = () => {  react-hooks/set-state-in-effect
+
+C:\Projects\my-matching-app\src\contexts\AuthContext.tsx
+   11:63  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+   34:28  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+   35:68  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+   86:30  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  304:31  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  315:33  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  383:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Projects\my-matching-app\src\contexts\DataContext.tsx
+   91:50  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  130:26  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  163:38  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  224:35  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  252:32  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  263:32  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  273:38  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  293:64  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  294:56  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  318:22  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  334:26  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  478:26  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  554:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Projects\my-matching-app\src\contexts\MarketContext.tsx
+  60:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Projects\my-matching-app\src\pages\BuyerDashboard.tsx
+  32:39  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `invoices`, but the source dependencies were [deals, user, negotiatingSortOrder, activeTab]. Inferred different dependency than source.
+
+C:\Projects\my-matching-app\src\pages\BuyerDashboard.tsx:32:39
+  30 |     };
+  31 |
+> 32 |     const activeDeals = React.useMemo(() => {
+     |                                       ^^^^^^^
+> 33 |         if (!user) return [];
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 34 |         let filtered = deals.filter(d => d.buyerId === user.id);
+     窶ｦ
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 71 |         return filtered;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 72 |     }, [deals, user, negotiatingSortOrder, activeTab]);
+     | ^^^^^^ Could not preserve existing manual memoization
+  73 |
+  74 |     const hasUnreadNegotiating = React.useMemo(() => {
+  75 |         return activeDeals.some(deal => hasUnreadMessages(deal.id, messages, user?.id));  react-hooks/preserve-manual-memoization
+  32:39  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `invoices`, but the source dependencies were [deals, user, negotiatingSortOrder, activeTab]. Inferred different dependency than source.
+
+C:\Projects\my-matching-app\src\pages\BuyerDashboard.tsx:32:39
+  30 |     };
+  31 |
+> 32 |     const activeDeals = React.useMemo(() => {
+     |                                       ^^^^^^^
+> 33 |         if (!user) return [];
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 34 |         let filtered = deals.filter(d => d.buyerId === user.id);
+     窶ｦ
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 71 |         return filtered;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 72 |     }, [deals, user, negotiatingSortOrder, activeTab]);
+     | ^^^^^^ Could not preserve existing manual memoization
+  73 |
+  74 |     const hasUnreadNegotiating = React.useMemo(() => {
+  75 |         return activeDeals.some(deal => hasUnreadMessages(deal.id, messages, user?.id));  react-hooks/preserve-manual-memoization
+  32:39  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `invoices`, but the source dependencies were [deals, user, negotiatingSortOrder, activeTab]. Inferred different dependency than source.
+
+C:\Projects\my-matching-app\src\pages\BuyerDashboard.tsx:32:39
+  30 |     };
+  31 |
+> 32 |     const activeDeals = React.useMemo(() => {
+     |                                       ^^^^^^^
+> 33 |         if (!user) return [];
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 34 |         let filtered = deals.filter(d => d.buyerId === user.id);
+     窶ｦ
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 71 |         return filtered;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 72 |     }, [deals, user, negotiatingSortOrder, activeTab]);
+     | ^^^^^^ Could not preserve existing manual memoization
+  73 |
+  74 |     const hasUnreadNegotiating = React.useMemo(() => {
+  75 |         return activeDeals.some(deal => hasUnreadMessages(deal.id, messages, user?.id));  react-hooks/preserve-manual-memoization
+  32:39  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `invoices`, but the source dependencies were [deals, user, negotiatingSortOrder, activeTab]. Inferred different dependency than source.
+
+C:\Projects\my-matching-app\src\pages\BuyerDashboard.tsx:32:39
+  30 |     };
+  31 |
+> 32 |     const activeDeals = React.useMemo(() => {
+     |                                       ^^^^^^^
+> 33 |         if (!user) return [];
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 34 |         let filtered = deals.filter(d => d.buyerId === user.id);
+     窶ｦ
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 71 |         return filtered;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 72 |     }, [deals, user, negotiatingSortOrder, activeTab]);
+     | ^^^^^^ Could not preserve existing manual memoization
+  73 |
+  74 |     const hasUnreadNegotiating = React.useMemo(() => {
+  75 |         return activeDeals.some(deal => hasUnreadMessages(deal.id, messages, user?.id));  react-hooks/preserve-manual-memoization
+  32:39  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `invoices`, but the source dependencies were [deals, user, negotiatingSortOrder, activeTab]. Inferred different dependency than source.
+
+C:\Projects\my-matching-app\src\pages\BuyerDashboard.tsx:32:39
+  30 |     };
+  31 |
+> 32 |     const activeDeals = React.useMemo(() => {
+     |                                       ^^^^^^^
+> 33 |         if (!user) return [];
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 34 |         let filtered = deals.filter(d => d.buyerId === user.id);
+     窶ｦ
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 71 |         return filtered;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 72 |     }, [deals, user, negotiatingSortOrder, activeTab]);
+     | ^^^^^^ Could not preserve existing manual memoization
+  73 |
+  74 |     const hasUnreadNegotiating = React.useMemo(() => {
+  75 |         return activeDeals.some(deal => hasUnreadMessages(deal.id, messages, user?.id));  react-hooks/preserve-manual-memoization
+  72:8   warning  React Hook React.useMemo has a missing dependency: 'invoices'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          react-hooks/exhaustive-deps
+
+C:\Projects\my-matching-app\src\pages\BuyerInvoiceDetail.tsx
+  25:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Projects\my-matching-app\src\pages\BuyerInvoiceDetail.tsx:25:13
+  23 |         if (id && invoices.length > 0) {
+  24 |             const foundInvoice = invoices.find(i => i.id === id);
+> 25 |             setInvoice(foundInvoice || null);
+     |             ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  26 |
+  27 |             // Check if this buyer already has a deal for this invoice
+  28 |             if (user) {  react-hooks/set-state-in-effect
+
+C:\Projects\my-matching-app\src\pages\ChatPage.tsx
+   73:11  warning  The 'deal' conditional could make the dependencies of useEffect Hook (at line 255) change on every render. To fix this, wrap the initialization of 'deal' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  125:8   warning  React Hook useEffect has a missing dependency: 'deal'. Either include it or remove the dependency array                                                                              react-hooks/exhaustive-deps
+  177:65  error    Unexpected any. Specify a different type                                                                                                                                             @typescript-eslint/no-explicit-any
+  185:53  error    Unexpected any. Specify a different type                                                                                                                                             @typescript-eslint/no-explicit-any
+  186:55  error    Unexpected any. Specify a different type                                                                                                                                             @typescript-eslint/no-explicit-any
+  187:55  error    Unexpected any. Specify a different type                                                                                                                                             @typescript-eslint/no-explicit-any
+  188:69  error    Unexpected any. Specify a different type                                                                                                                                             @typescript-eslint/no-explicit-any
+  196:72  error    Unexpected any. Specify a different type                                                                                                                                             @typescript-eslint/no-explicit-any
+  230:8   warning  React Hook useEffect has a missing dependency: 'markMessagesAsRead'. Either include it or remove the dependency array                                                                react-hooks/exhaustive-deps
+  479:25  error    Unexpected any. Specify a different type                                                                                                                                             @typescript-eslint/no-explicit-any
+
+C:\Projects\my-matching-app\src\pages\ContractPrintPage.tsx
+  24:17  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Projects\my-matching-app\src\pages\ContractPrintPage.tsx:24:17
+  22 |             const foundDeal = deals.find(d => d.id === dealId);
+  23 |             if (foundDeal) {
+> 24 |                 setDeal(foundDeal);
+     |                 ^^^^^^^ Avoid calling setState() directly within an effect
+  25 |                 setInvoice(invoices.find(i => i.id === foundDeal.invoiceId) || null);
+  26 |                 setSeller(users.find(u => u.id === foundDeal.sellerId) || null);
+  27 |                 setBuyer(users.find(u => u.id === foundDeal.buyerId) || null);  react-hooks/set-state-in-effect
+
+C:\Projects\my-matching-app\src\pages\ProfilePage.tsx
+   35:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   73:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   98:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  462:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projects\my-matching-app\src\pages\RegisterPage.tsx
+   74:49   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   93:9    error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  185:62   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  186:50   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  190:67   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  191:207  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  195:67   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  219:33   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  228:106  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  633:177  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+
+C:\Projects\my-matching-app\src\pages\SellerInvoiceDetail.tsx
+  25:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Projects\my-matching-app\src\pages\SellerInvoiceDetail.tsx:25:13
+  23 |         if (id && invoices.length > 0) {
+  24 |             const foundInvoice = invoices.find(i => i.id === id);
+> 25 |             setInvoice(foundInvoice || null);
+     |             ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  26 |
+  27 |             // Find deals for this invoice and sort properly
+  28 |             const relevantDeals = deals.filter(d => d.invoiceId === id);  react-hooks/set-state-in-effect
+
+C:\Projects\my-matching-app\src\utils\chat.ts
+  7:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  8:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projects\my-matching-app\supabase\functions\create-checkout-session\index.ts
+  61:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projects\my-matching-app\supabase\functions\send-email\index.ts
+  143:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projects\my-matching-app\supabase\functions\stripe-webhook\index.ts
+  29:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  67:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+笨・81 problems (76 errors, 5 warnings)
+

@@ -13,14 +13,14 @@ import type { Deal, Invoice, User as UserType } from '../types';
 interface NormalDealBoardProps {
     deal: Deal;
     invoice: Invoice;
-    user: any;
+    user: { id: string } | null;
     isBuyer: boolean;
     effectivelyMatched: boolean;
     isDealExpired: boolean;
     activeDealsForInvoice: Deal[];
     users: UserType[];
-    addMessage: (msg: any) => Promise<void>;
-    updateDeal: (dealId: string, updates: any) => Promise<void>;
+    addMessage: (msg: import('../types').Message) => Promise<void>;
+    updateDeal: (dealId: string, updates: Partial<Deal>) => Promise<void>;
     proposedPrice: string;
     setProposedPrice: React.Dispatch<React.SetStateAction<string>>;
     isPriceUnlocked: boolean;
@@ -153,7 +153,7 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                     isSystemMessage: true
                 });
                 
-                const dbUpdates: any = {};
+                const dbUpdates: Partial<Deal> & Record<string, unknown> = {};
                 if (isBuyer) {
                     dbUpdates.buyer_agreed_at = now;
                 } else {
@@ -193,9 +193,10 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                 // --- ULTIMATE ESCAPE: 3. Browser-level hard navigation ---
                 window.location.href = window.location.pathname + window.location.search;
 
-            } catch (error: any) {
+            } catch (error: unknown) {
                 console.error('Supabase Error Details:', error);
-                alert('合意処理に失敗しました: ' + (error.message || '不明なエラー'));
+                const errMsg = error instanceof Error ? error.message : String(error);
+                alert('合意処理に失敗しました: ' + errMsg);
                 
                 const overlayElement = document.getElementById('ultimate-escape-overlay');
                 if (overlayElement) overlayElement.remove();
@@ -382,7 +383,7 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                                                         isSystemMessage: true
                                                     });
                                                     
-                                                    await updateDeal(cDeal.id, { currentSellerPrice: null as any });
+                                                    await updateDeal(cDeal.id, { currentSellerPrice: null as unknown as number });
                                                 }
                                                 if (invoice?.sellingAmount) {
                                                     setProposedPrice(String(invoice.sellingAmount));

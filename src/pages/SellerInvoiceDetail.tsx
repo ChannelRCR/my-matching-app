@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -6,7 +6,7 @@ import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { ArrowLeft, MessageCircle, FileText, CheckCircle2, CreditCard, DollarSign, XCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import type { Invoice, Deal } from '../types';
+import type { Deal } from '../types';
 import { hasUnreadMessages } from '../utils/chat';
 import { translateCompanySize } from '../utils/translations';
 
@@ -16,30 +16,20 @@ export const SellerInvoiceDetail: React.FC = () => {
     const { invoices, deals, users, acceptDeal, messages } = useData();
     const { user } = useAuth();
 
-    const [invoice, setInvoice] = useState<Invoice | null>(null);
-    const [invoiceDeals, setInvoiceDeals] = useState<Deal[]>([]);
-
-    useEffect(() => {
-        if (id && invoices.length > 0) {
-            const foundInvoice = invoices.find(i => i.id === id);
-            setInvoice(foundInvoice || null);
-
-            // Find deals for this invoice and sort properly
-            const relevantDeals = deals.filter(d => d.invoiceId === id);
-
-            // Sort: Amount DESC, then CreatedAt ASC
-            const sortedDeals = relevantDeals.sort((a, b) => {
-                const amountA = a.currentBuyerPrice || a.currentAmount || 0;
-                const amountB = b.currentBuyerPrice || b.currentAmount || 0;
-                if (amountB !== amountA) {
-                    return amountB - amountA; // DESC
-                }
-                return new Date(a.lastMessageAt).getTime() - new Date(b.lastMessageAt).getTime(); // Note: leveraging lastMessageAt as a proxy for created if created_at missing in type, but usually acceptable for MVP
-            });
-
-            setInvoiceDeals(sortedDeals);
-        }
-    }, [id, invoices, deals]);
+    const invoice = (id && invoices.length > 0) ? invoices.find(i => i.id === id) || null : null;
+    
+    const invoiceDeals = React.useMemo(() => {
+        if (!id || invoices.length === 0) return [];
+        const relevantDeals = deals.filter(d => d.invoiceId === id);
+        return relevantDeals.sort((a, b) => {
+            const amountA = a.currentBuyerPrice || a.currentAmount || 0;
+            const amountB = b.currentBuyerPrice || b.currentAmount || 0;
+            if (amountB !== amountA) {
+                return amountB - amountA; // DESC
+            }
+            return new Date(a.lastMessageAt).getTime() - new Date(b.lastMessageAt).getTime();
+        });
+    }, [id, invoices.length, deals]);
 
     if (!invoice) {
         return <div className="p-8 text-center">読み込み中...</div>;

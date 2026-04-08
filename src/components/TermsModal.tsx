@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { X, ScrollText } from 'lucide-react';
 import { Button } from './ui/Button';
 
@@ -8,11 +8,15 @@ interface TermsModalProps {
 }
 
 export const TermsModal: React.FC<TermsModalProps> = ({ isOpen, onClose }) => {
+    const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
     const [render, setRender] = useState(isOpen);
 
-    useEffect(() => {
-        if (isOpen) setRender(true);
-    }, [isOpen]);
+    if (isOpen && !prevIsOpen) {
+        setPrevIsOpen(true);
+        setRender(true);
+    } else if (!isOpen && prevIsOpen) {
+        setPrevIsOpen(false);
+    }
 
     const handleAnimationEnd = () => {
         if (!isOpen) setRender(false);

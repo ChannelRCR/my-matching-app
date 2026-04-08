@@ -71,7 +71,7 @@ export const RegisterPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [isConfirming, setIsConfirming] = useState(false);
 
-    const handleChange = (field: string, value: any) => {
+    const handleChange = (field: keyof typeof formData, value: string | boolean | File | null) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
@@ -89,8 +89,7 @@ export const RegisterPage: React.FC = () => {
         }
     };
 
-    const togglePrivacy = (field: string) => {
-        // @ts-ignore
+    const togglePrivacy = (field: keyof typeof privacySettings) => {
         setPrivacySettings(prev => ({ ...prev, [field]: !prev[field] }));
     };
 
@@ -153,10 +152,11 @@ export const RegisterPage: React.FC = () => {
 
         if (signUpError) {
             console.error(signUpError);
-            if (signUpError.message?.includes('already registered') || signUpError.message?.includes('already in use') || signUpError.status === 422) {
+            const errObj = signUpError as { message?: string, status?: number };
+            if (errObj.message?.includes('already registered') || errObj.message?.includes('already in use') || errObj.status === 422) {
                 setError('このメールアドレスは既に登録されています。ログインするか、別のアドレスを使用してください。');
             } else {
-                setError(signUpError.message || '登録に失敗しました。');
+                setError(errObj.message || '登録に失敗しました。');
             }
             setLoading(false);
         } else {
@@ -182,17 +182,17 @@ export const RegisterPage: React.FC = () => {
                 <label className="text-sm font-medium text-gray-700">{label}</label>
                 {(field in privacySettings) && (
                     <div className="flex items-center gap-2 text-xs">
-                        <span className={(privacySettings as any)[field] ? "text-blue-600 font-bold" : "text-slate-400"}>
-                            {(privacySettings as any)[field] ? "公開" : "非公開"}
+                        <span className={privacySettings[field as keyof typeof privacySettings] ? "text-blue-600 font-bold" : "text-slate-400"}>
+                            {privacySettings[field as keyof typeof privacySettings] ? "公開" : "非公開"}
                         </span>
                         <button
                             type="button"
-                            onClick={() => togglePrivacy(field as any)}
-                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${(privacySettings as any)[field] ? 'bg-primary' : 'bg-slate-200'
+                            onClick={() => togglePrivacy(field as keyof typeof privacySettings)}
+                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${privacySettings[field as keyof typeof privacySettings] ? 'bg-primary' : 'bg-slate-200'
                                 }`}
                         >
                             <span
-                                className={`${(privacySettings as any)[field] ? 'translate-x-5' : 'translate-x-1'
+                                className={`${privacySettings[field as keyof typeof privacySettings] ? 'translate-x-5' : 'translate-x-1'
                                     } inline-block h-3 w-3 transform rounded-full bg-white transition-transform`}
                             />
                         </button>
@@ -203,7 +203,7 @@ export const RegisterPage: React.FC = () => {
                 <textarea
                     value={String(formData[field] || '')}
                     maxLength={maxLength}
-                    onChange={(e) => handleChange(field as string, e.target.value)}
+                    onChange={(e) => handleChange(field as keyof typeof formData, e.target.value)}
                     placeholder={placeholder}
                     required
                     className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none resize-none h-24 text-slate-800"
@@ -216,23 +216,22 @@ export const RegisterPage: React.FC = () => {
                         onChange={(e) => {
                             const file = e.target.files?.[0] || null;
                             if (customOnChange) {
-                                // @ts-ignore
                                 customOnChange(e);
                             } else {
-                                handleChange(field as string, file);
+                                handleChange(field as keyof typeof formData, file);
                             }
                         }}
                         className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                     />
                     {formData[field] && formData[field] instanceof File && (
-                        <div className="text-xs text-slate-600 truncate mt-1">選択済み: {(formData[field] as any as File).name}</div>
+                        <div className="text-xs text-slate-600 truncate mt-1">選択済み: {(formData[field] as File).name}</div>
                     )}
                 </div>
             ) : (
                 <Input
                     value={String(formData[field] || '')}
                     maxLength={maxLength}
-                    onChange={customOnChange || ((e) => handleChange(field as string, e.target.value))}
+                    onChange={customOnChange || ((e) => handleChange(field as keyof typeof formData, e.target.value))}
                     placeholder={placeholder}
                     type={type}
                     required={field !== 'appealPoint' && field !== 'budget' && field !== 'companyNameKana' && field !== 'representativeNameKana' && field !== 'contactPerson' && field !== 'bankAccountInfo' && field !== 'corporateNumber' && field !== 'websiteUrl' && field !== 'idDocumentUrl' && field !== 'idDocumentFile'}
@@ -630,7 +629,7 @@ export const RegisterPage: React.FC = () => {
                                     {role === 'buyer' && (
                                         <>
                                             <div className="text-slate-500 font-medium mt-2">想定買取可能額（予算）:</div>
-                                            <div className="font-bold mt-2">{formData.budget || '-'} <span className="text-xs text-slate-400 font-normal">({(privacySettings as any).budget === false ? '非公開' : '公開'})</span></div>
+                                            <div className="font-bold mt-2">{formData.budget || '-'} <span className="text-xs text-slate-400 font-normal">({(privacySettings as Record<string, boolean>).budget === false ? '非公開' : '公開'})</span></div>
                                         </>
                                     )}
 

@@ -1,0 +1,100 @@
+
+> my-matching-app@0.0.0 lint
+> eslint .
+
+
+C:\Projects\my-matching-app\src\components\DisputeBoard.tsx
+   24:11  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   29:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  129:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  202:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  238:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  282:42  error  'err' is defined but never used           @typescript-eslint/no-unused-vars
+
+C:\Projects\my-matching-app\src\components\NormalDealBoard.tsx
+   16:11   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   22:23   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   23:43   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  156:34   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  196:29   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  385:110  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projects\my-matching-app\src\components\RegisterInvoiceModal.tsx
+   88:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  204:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  212:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projects\my-matching-app\src\components\SystemFeeModal.tsx
+  71:30  error  'e' is defined but never used             @typescript-eslint/no-unused-vars
+  85:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projects\my-matching-app\src\contexts\AuthContext.tsx
+   11:63  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+   34:28  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+   35:68  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+   86:30  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  304:31  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  315:33  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  383:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Projects\my-matching-app\src\contexts\DataContext.tsx
+   91:50  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  130:26  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  163:38  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  224:35  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  252:32  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  263:32  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  273:38  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  293:64  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  294:56  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  318:22  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  334:26  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  478:26  error  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  554:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Projects\my-matching-app\src\contexts\MarketContext.tsx
+  60:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Projects\my-matching-app\src\pages\ChatPage.tsx
+  179:65  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  187:53  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  188:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  189:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  190:69  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  198:72  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  481:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projects\my-matching-app\src\pages\ProfilePage.tsx
+   35:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   73:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   98:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  462:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projects\my-matching-app\src\pages\RegisterPage.tsx
+   74:49   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   93:9    error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  185:62   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  186:50   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  190:67   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  191:207  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  195:67   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  219:33   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  228:106  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  633:177  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+
+C:\Projects\my-matching-app\src\utils\chat.ts
+  7:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  8:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projects\my-matching-app\supabase\functions\create-checkout-session\index.ts
+  61:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projects\my-matching-app\supabase\functions\send-email\index.ts
+  143:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projects\my-matching-app\supabase\functions\stripe-webhook\index.ts
+  29:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  67:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+笨・65 problems (65 errors, 0 warnings)
+

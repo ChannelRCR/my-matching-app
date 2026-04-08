@@ -69,7 +69,7 @@ export const BuyerDashboard: React.FC = () => {
         });
 
         return filtered;
-    }, [deals, user, negotiatingSortOrder, activeTab]);
+    }, [deals, user, negotiatingSortOrder, activeTab, invoices]);
 
     const hasUnreadNegotiating = React.useMemo(() => {
         return activeDeals.some(deal => hasUnreadMessages(deal.id, messages, user?.id));

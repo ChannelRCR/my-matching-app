@@ -88,6 +88,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const sellersMap = new Map((sellersData || []).map(s => [s.id, s]));
         const buyersMap = new Map((buyersData || []).map(b => [b.id, b]));
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const processedUsers = usersData.map((u: any) => {
             const roleData = u.role === 'seller' ? sellersMap.get(u.id) : buyersMap.get(u.id);
             // Fallback to empty object if no role data found yet
@@ -127,7 +128,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSellers(prev => prev.map(u => u.id === userId ? { ...u, ...updates } : u));
         setBuyers(prev => prev.map(u => u.id === userId ? { ...u, ...updates } : u));
 
-        const dbUpdates: any = {};
+        const dbUpdates: Record<string, unknown> = {};
         if (updates.name) dbUpdates.name = updates.name;
         if (updates.companyName) dbUpdates.company_name = updates.companyName;
         if (updates.role) dbUpdates.role = updates.role;
@@ -160,6 +161,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const fetchInvoices = async () => {
         const { data } = await supabase.from('invoices').select('*').order('created_at', { ascending: false });
         if (data) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             setInvoices(data.map((i: any) => ({
                 id: i.id, sellerId: i.seller_id, amount: i.amount, sellingAmount: i.selling_amount,
                 dueDate: i.due_date, debtorName: i.debtor_name, debtorAddress: i.debtor_address,
@@ -221,6 +223,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const fetchDeals = async () => {
         const { data } = await supabase.from('deals').select('*').order('started_at', { ascending: false });
         if (data) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             setDeals(data.map((d: any) => ({
                 id: d.id,
                 invoiceId: d.invoice_id,
@@ -249,6 +252,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data } = await supabase.from('seller_uncompleted_stats').select('*');
         if (data) {
             const stats: Record<string, number> = {};
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             data.forEach((row: any) => {
                 stats[row.seller_id] = Number(row.uncompleted_count);
             });
@@ -260,6 +264,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data } = await supabase.from('invoice_offer_stats').select('*');
         if (data) {
             const stats: Record<string, {offerCount: number, maxOffer: number}> = {};
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             data.forEach((row: any) => {
                 stats[row.invoice_id] = { offerCount: Number(row.offer_count), maxOffer: Number(row.max_offer) };
             });
@@ -270,6 +275,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const fetchMessages = async () => {
         const { data } = await supabase.from('messages').select('*').order('timestamp', { ascending: true });
         if (data) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             setMessages(data.map((m: any) => ({
                 id: m.id,
                 dealId: m.deal_id,
@@ -290,7 +296,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Optimistically update local state so badges clear instantly
         let updated = false;
         setMessages(prev => prev.map(m => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const receiverIdStr = String(m.receiverId || (m as any).receiver_id);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const dealIdStr = String(m.dealId || (m as any).deal_id);
             if (dealIdStr === dealId && receiverIdStr === userId && m.isRead === false) {
                 updated = true;
@@ -315,7 +323,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const addMessage = async (message: Message) => {
-        const dbMsg: any = {
+        const dbMsg: Record<string, unknown> = {
             deal_id: message.dealId,
             sender_id: message.senderId,
             receiver_id: message.receiverId,
@@ -331,7 +339,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const updateDeal = async (dealId: string, updates: Partial<Deal>) => {
-        const dbUpdates: any = {};
+        const dbUpdates: Record<string, unknown> = {};
         if (updates.status) dbUpdates.status = updates.status;
         if (updates.currentAmount !== undefined) dbUpdates.current_amount = updates.currentAmount;
         if (updates.currentSellerPrice !== undefined) dbUpdates.current_seller_price = updates.currentSellerPrice;
@@ -475,7 +483,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (error || !dbDeal || !authUser) return;
 
         const now = new Date().toISOString();
-        const dbUpdates: any = {};
+        const dbUpdates: Record<string, unknown> = {};
         const stateUpdates: Partial<Deal> = {};
 
         if (isBuyer) {
@@ -551,6 +559,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useData = () => {
     const context = useContext(DataContext);
     if (context === undefined) {

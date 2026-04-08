@@ -21,12 +21,12 @@ interface ChatMessage {
 interface DisputeBoardProps {
     deal: Deal;
     invoice: Invoice;
-    user: any;
+    user: { id: string } | null;
     isBuyer: boolean;
     activeDispute: Dispute | null;
     setActiveDispute: React.Dispatch<React.SetStateAction<Dispute | null>>;
     messages: ChatMessage[];
-    addMessage: (msg: any) => Promise<void>;
+    addMessage: (msg: import('../types').Message) => Promise<void>;
     users: UserType[];
 }
 
@@ -48,27 +48,27 @@ export const DisputeBoard: React.FC<DisputeBoardProps> = ({
     const [disputeMonthlyPayment, setDisputeMonthlyPayment] = useState(activeDispute?.settlement_amount ? String(activeDispute.settlement_amount) : '');
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
-    // 1. Real-time sync for disagreements/updates via Supabase Channel
+    // 1-A. Sync inputs from activeDispute initially
+    useEffect(() => {
+        if (activeDispute?.claim_amount) setDisputeClaimAmount(String(activeDispute.claim_amount));
+        if (activeDispute?.settlement_amount) setDisputeMonthlyPayment(String(activeDispute.settlement_amount));
+    }, [activeDispute?.claim_amount, activeDispute?.settlement_amount]);
+
+    // 1-B. Real-time sync for disagreements/updates via Supabase Channel
     useEffect(() => {
         if (!deal?.id) return;
         
-        // Ensure inputs are kept in sync on first load or when activeDispute is fetched globally
-        if (activeDispute?.claim_amount) setDisputeClaimAmount(String(activeDispute.claim_amount));
-        if (activeDispute?.settlement_amount) setDisputeMonthlyPayment(String(activeDispute.settlement_amount));
-
         const channel = supabase.channel(`public:disputes:deal_id=${deal.id}`)
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'disputes', filter: `deal_id=eq.${deal.id}` }, (payload) => {
                 const newData = payload.new as Dispute;
                 setActiveDispute(newData);
-                if (newData.claim_amount) setDisputeClaimAmount(String(newData.claim_amount));
-                if (newData.settlement_amount) setDisputeMonthlyPayment(String(newData.settlement_amount));
             })
             .subscribe();
 
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [deal?.id, activeDispute?.id, setActiveDispute]);
+    }, [deal?.id, setActiveDispute]);
 
     // 2. Identify the last proposer to prevent self-agreement
     const lastProposalMsg = messages.slice().reverse().find(m => m.text?.includes('和解条件の提示】'));
@@ -126,9 +126,10 @@ export const DisputeBoard: React.FC<DisputeBoardProps> = ({
             });
             
             alert("和解案を提示しました。");
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Dispute update error:", error);
-            alert("和解提案の送信に失敗しました：" + (error.message || "不明なエラー"));
+            const errMsg = error instanceof Error ? error.message : String(error);
+            alert("和解提案の送信に失敗しました：" + errMsg);
         }
     };
 
@@ -199,7 +200,7 @@ export const DisputeBoard: React.FC<DisputeBoardProps> = ({
             }
 
             // Update Deals Table to conclude transaction with settlement details
-            const dbUpdates: any = {
+            const dbUpdates: Partial<import('../types').Deal> & Record<string, unknown> = {
                 status: 'concluded',
                 contract_date: now,
                 buyer_agreed_at: now,
@@ -215,7 +216,7 @@ export const DisputeBoard: React.FC<DisputeBoardProps> = ({
 
             // Complete Invoice and DB updates
             await supabase.from('invoices').update({ status: 'sold' }).eq('id', deal.invoiceId);
-            completeDeal(invoice.amount, dbUpdates.current_amount);
+            completeDeal(invoice.amount, dbUpdates.current_amount as number);
 
             // Send Chat Messages
             const receiverId = isBuyer ? deal.sellerId : deal.buyerId;
@@ -235,9 +236,10 @@ export const DisputeBoard: React.FC<DisputeBoardProps> = ({
             // --- ULTIMATE ESCAPE: 3. Browser-level hard navigation to reload fully into Concluded state ---
             window.location.href = window.location.pathname + window.location.search;
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Dispute agree error:", error);
-            alert("合意処理に失敗しました：" + (error.message || "不明なエラー"));
+            const errMsg = error instanceof Error ? error.message : String(error);
+            alert("合意処理に失敗しました：" + errMsg);
             
             // Cleanup on failure
             const overlayElement = document.getElementById('ultimate-escape-overlay');
@@ -279,7 +281,7 @@ export const DisputeBoard: React.FC<DisputeBoardProps> = ({
                                     document.body.appendChild(a);
                                     a.click();
                                     document.body.removeChild(a);
-                                } catch (err) {
+                                } catch {
                                     window.open(deal.settlement_url, '_blank');
                                 }
                             }}

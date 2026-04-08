@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { ArrowLeft, MessageCircle, FileText, Calendar, CreditCard, DollarSign, AlertCircle, CheckCircle } from 'lucide-react';
-import type { Invoice, Deal } from '../types';
+
 import { calculateAnnualYield } from '../utils/calculations';
 import { translateCompanySize } from '../utils/translations';
 import { supabase } from '../lib/supabase';
@@ -16,22 +16,8 @@ export const BuyerInvoiceDetail: React.FC = () => {
     const { invoices, deals, users, invoiceStats, sellerUncompletedCounts, createChatRoom } = useData();
     const { user } = useAuth();
 
-    const [invoice, setInvoice] = useState<Invoice | null>(null);
-    const [existingDeal, setExistingDeal] = useState<Deal | null>(null);
-
-    useEffect(() => {
-        if (id && invoices.length > 0) {
-            const foundInvoice = invoices.find(i => i.id === id);
-            setInvoice(foundInvoice || null);
-
-            // Check if this buyer already has a deal for this invoice
-            if (user) {
-                const myDeal = deals.find(d => d.invoiceId === id && d.buyerId === user.id);
-                setExistingDeal(myDeal || null);
-            }
-        }
-    }, [id, invoices, deals, user]);
-
+    const invoice = (id && invoices.length > 0) ? invoices.find(i => i.id === id) || null : null;
+    const existingDeal = (id && invoices.length > 0 && user) ? deals.find(d => d.invoiceId === id && d.buyerId === user.id) || null : null;
 
     if (!invoice) {
         return <div className="p-8 text-center">読み込み中...</div>;

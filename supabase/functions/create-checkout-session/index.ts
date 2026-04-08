@@ -58,10 +58,10 @@ serve(async (req: Request) => {
         status: 200,
       }
     );
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Stripe session creation error:", err);
     return new Response(
-      JSON.stringify({ error: err.message }),
+      JSON.stringify({ error: err instanceof Error ? err.message : String(err) }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,

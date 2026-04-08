@@ -32,7 +32,7 @@ export const ProfilePage: React.FC = () => {
     });
 
     // Privacy Settings State
-    const [privacySettings, setPrivacySettings] = useState<any>({
+    const [privacySettings, setPrivacySettings] = useState<Record<string, boolean>>({
         companyName: true,
         representativeName: true,
         contactPerson: false,
@@ -70,7 +70,7 @@ export const ProfilePage: React.FC = () => {
             });
 
             if (profile.privacySettings) {
-                setPrivacySettings((prev: any) => ({ ...prev, ...profile.privacySettings }));
+                setPrivacySettings(prev => ({ ...prev, ...profile.privacySettings }));
             }
         }
     }, [profile]);
@@ -94,8 +94,8 @@ export const ProfilePage: React.FC = () => {
         }
     };
 
-    const handleTogglePrivacy = (field: string) => {
-        setPrivacySettings((prev: any) => ({ ...prev, [field]: !prev[field] }));
+    const handleTogglePrivacy = (field: keyof typeof privacySettings) => {
+        setPrivacySettings(prev => ({ ...prev, [field]: !prev[field] }));
     };
 
     const handleSubmit = async (e: React.FormEvent | React.MouseEvent) => {
@@ -122,7 +122,8 @@ export const ProfilePage: React.FC = () => {
 
         setSaving(false);
         if (error) {
-            setSaveMessage({ text: '保存に失敗しました: ' + error.message, type: 'error' });
+            const errorMsg = typeof error === 'object' && error !== null && 'message' in error ? String((error as Error).message) : String(error);
+            setSaveMessage({ text: '保存に失敗しました: ' + errorMsg, type: 'error' });
         } else {
             setSaveMessage({ text: 'プロフィール情報を保存しました。', type: 'success' });
             setTimeout(() => setSaveMessage({ text: '', type: '' }), 3000);
@@ -459,9 +460,10 @@ export const ProfilePage: React.FC = () => {
                                                         } else {
                                                             alert('書類のURLが取得できませんでした。');
                                                         }
-                                                    } catch (err: any) {
+                                                    } catch (err: unknown) {
+                                                        const errorMsg = err instanceof Error ? err.message : String(err);
                                                         console.error('Error fetching signed URL for KYC document:', err);
-                                                        alert('書類の読み込みに失敗しました。時間をおいて再試行してください。エラー: ' + (err.message || '不明'));
+                                                        alert('書類の読み込みに失敗しました。時間をおいて再試行してください。エラー: ' + errorMsg);
                                                     }
                                                 }}
                                                 className="flex items-center gap-1.5 text-sm font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 py-1.5 px-3 rounded transition-colors"

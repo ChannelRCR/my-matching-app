@@ -140,8 +140,8 @@ serve(async (req) => {
         console.log("Email sent successfully:", emailResult.id);
         return new Response(JSON.stringify(emailResult), { headers: { "Content-Type": "application/json" } });
 
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("Error sending email:", err);
-        return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+        return new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), { status: 500 });
     }
 });

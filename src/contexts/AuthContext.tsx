@@ -8,7 +8,7 @@ interface AuthContextType {
     user: User | null;
     profile: PublicUser | null;
     loading: boolean;
-    signIn: (email: string, pass: string) => Promise<{ error: any }>;
+    signIn: (email: string, pass: string) => Promise<{ error: unknown }>;
     signUp: (email: string, pass: string, role: UserRole, extraData: {
         name: string;
         companyName: string;
@@ -31,8 +31,8 @@ interface AuthContextType {
         idDocumentUrl?: string;
         idDocumentFile?: File;
         privacySettings: Record<string, boolean>;
-    }) => Promise<{ error: any }>;
-    updateProfile: (data: Partial<PublicUser>) => Promise<{ error: any }>;
+    }) => Promise<{ error: unknown }>;
+    updateProfile: (data: Partial<PublicUser>) => Promise<{ error: unknown }>;
     signOut: () => Promise<void>;
 }
 
@@ -83,7 +83,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (userError) throw userError;
             if (!userData) return;
 
-            let profileData: any = { ...userData };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            let profileData: Record<string, any> = { ...userData };
 
             // 2. Fetch Role-Specific Profile
             if (userData.role === 'seller') {
@@ -301,7 +302,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         try {
             // Update users table for basic fields
-            const commonData: any = {};
+            const commonData: Record<string, unknown> = {};
             if (data.name !== undefined) commonData.name = data.name;
             if (data.companyName !== undefined) commonData.company_name = data.companyName;
             if (data.budget !== undefined) commonData.budget = data.budget;
@@ -312,7 +313,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
 
             // Update role-specific table
-            const specificData: any = {};
+            const specificData: Record<string, unknown> = {};
             if (data.companyName !== undefined) specificData.company_name = data.companyName;
             if (data.representativeName !== undefined) specificData.representative_name = data.representativeName;
             if (data.contactPerson !== undefined) specificData.contact_person = data.contactPerson;
@@ -380,6 +381,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
     const context = useContext(AuthContext);
     if (context === undefined) {

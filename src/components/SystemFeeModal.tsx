@@ -68,7 +68,7 @@ export const SystemFeeModal: React.FC<SystemFeeModalProps> = ({ isOpen, onClose 
                     try {
                         const errData = await funcError.context.json();
                         errorMessage = errData.error || errorMessage;
-                    } catch (e) {
+                    } catch {
                         // Ignored
                     }
                 }
@@ -82,9 +82,9 @@ export const SystemFeeModal: React.FC<SystemFeeModalProps> = ({ isOpen, onClose 
             } else {
                 throw new Error('決済用URLの取得に失敗しました。');
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Payment Error:', err);
-            const msg = err.message || 'システムエラーが発生しました。時間を置いてから再度お試しください。';
+            const msg = err instanceof Error ? err.message : 'システムエラーが発生しました。時間を置いてから再度お試しください。';
             setError(msg);
             alert(`決済エラー: ${msg}`);
         } finally {

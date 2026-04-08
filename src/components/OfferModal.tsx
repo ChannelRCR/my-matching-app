@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, Send } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -12,32 +12,30 @@ interface OfferModalProps {
 }
 
 export const OfferModal: React.FC<OfferModalProps> = ({ isOpen, onClose, invoice, onOffer }) => {
+    const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
     const [render, setRender] = useState(isOpen);
     const [amount, setAmount] = useState('');
     const [message, setMessage] = useState('');
-    const [discountRate, setDiscountRate] = useState<number>(0);
 
-    useEffect(() => {
-        if (isOpen && invoice) {
-            setRender(true);
+    if (isOpen && !prevIsOpen) {
+        setPrevIsOpen(true);
+        setRender(true);
+        if (invoice) {
             setAmount(invoice.requestedAmount?.toString() || invoice.amount.toString());
             setMessage('はじめまして。掲載案件に関心があり、ご連絡いたしました。');
         }
-    }, [isOpen, invoice]);
+    } else if (!isOpen && prevIsOpen) {
+        setPrevIsOpen(false);
+    }
 
-    useEffect(() => {
-        if (!invoice || !amount) {
-            setDiscountRate(0);
-            return;
-        }
+    let discountRate = 0;
+    if (invoice && amount) {
         const offerVal = Number(amount);
         if (offerVal > 0) {
             const rate = ((invoice.amount - offerVal) / invoice.amount) * 100;
-            setDiscountRate(Number(rate.toFixed(2)));
-        } else {
-            setDiscountRate(0);
+            discountRate = Number(rate.toFixed(2));
         }
-    }, [amount, invoice]);
+    }
 
     const handleAnimationEnd = () => {
         if (!isOpen) setRender(false);

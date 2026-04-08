@@ -32,15 +32,7 @@ export interface User {
     industry?: string;
     industryOther?: string;
 
-    privacySettings?: {
-        companyName: boolean;
-        representativeName: boolean;
-        contactPerson: boolean;
-        address: boolean;
-        bankAccountInfo: boolean;
-        phone: boolean;
-        email: boolean;
-    };
+    privacySettings?: Record<string, boolean>;
 }
 
 export interface Invoice {
