@@ -5,6 +5,7 @@ import { FileTextIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { setTransitioning } from '../utils/transitionState';
 import { useMarket } from '../contexts/MarketContext';
+import { sendEmailNotification, getChatUrl } from '../utils/notification';
 import type { Deal, Invoice, Dispute, User as UserType } from '../types';
 
 interface ChatMessage {
@@ -125,6 +126,15 @@ export const DisputeBoard: React.FC<DisputeBoardProps> = ({
                 isSystemMessage: true
             });
             
+            const chatUrl = getChatUrl(deal.id);
+            sendEmailNotification(
+                [receiverId],
+                "和解条件の提案が届きました [FactorMatch]",
+                `<p>お相手より和解条件の提案が届きました。</p>
+                <p>FactorMatchの交渉画面より条件をご確認のうえ、ご対応をお願いいたします。</p>
+                <p><a href="${chatUrl}">交渉画面を開く</a></p>`
+            );
+
             alert("和解案を提示しました。");
         } catch (error: unknown) {
             console.error("Dispute update error:", error);
@@ -229,6 +239,15 @@ export const DisputeBoard: React.FC<DisputeBoardProps> = ({
                 timestamp: now,
                 isSystemMessage: true
             });
+
+            const chatUrl = getChatUrl(deal.id);
+            sendEmailNotification(
+                [deal.buyerId, deal.sellerId],
+                "✅ 和解が成立しました [FactorMatch]",
+                `<p>双方が和解条件に同意し、和解が成立しました。</p>
+                <p>電子署名済みの「和解合意書」が生成されましたので、取引画面よりダウンロード・保管をお願いします。</p>
+                <p><a href="${chatUrl}">取引画面を開く</a></p>`
+            );
 
             // 1. Force navigation delay
             await new Promise(resolve => setTimeout(resolve, 500));

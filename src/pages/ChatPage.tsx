@@ -12,6 +12,7 @@ import { translateCompanySize } from '../utils/translations';
 import type { Deal, Invoice, User as UserType, Dispute } from '../types';
 import { DisputeBoard } from '../components/DisputeBoard';
 import { NormalDealBoard } from '../components/NormalDealBoard';
+import { sendEmailNotification, getChatUrl } from '../utils/notification';
 
 interface ChatMessage {
     id: string;
@@ -249,6 +250,16 @@ export const ChatPage: React.FC = () => {
                 content: matchedPriceMsg,
                 timestamp: new Date().toISOString(),
                 isSystemMessage: true
+            }).then(() => {
+                // Email notification securely triggers asynchronously
+                const chatUrl = getChatUrl(deal.id);
+                sendEmailNotification(
+                    [deal.buyerId, deal.sellerId],
+                    "【金額の合致】自動取引システムより [FactorMatch]",
+                    `<p>お互いの提示金額が合致しました！（¥${deal.currentBuyerPrice?.toLocaleString()}）</p>
+                    <p>速やかにチャット画面へアクセスし、対象債権の契約手続（合意）を行ってください。</p>
+                    <p><a href="${chatUrl}">チャット画面を開く</a></p>`
+                );
             }).catch(err => {
                 hasSentMatchMessageRef.current = false;
                 console.error("Error sending match message:", err);
@@ -305,6 +316,16 @@ export const ChatPage: React.FC = () => {
                 isSystemMessage: true
             });
             
+            const chatUrl = getChatUrl(deal.id);
+            const receiverId = isBuyer ? deal.sellerId : deal.buyerId;
+            sendEmailNotification(
+                [receiverId],
+                "🚨 【重要】お相手が当事者間交渉へ移行しました [FactorMatch]",
+                `<p>お相手が「交渉システム」への移行を選択しました。</p>
+                <p>通常の取引は一時停止され、和解に向けた協議モードとなります。至急チャット画面よりご対応ください。</p>
+                <p><a href="${chatUrl}">チャット画面を開く</a></p>`
+            );
+
             // 4. Update local state and fallback to full reload to guarantee clean layout
             setIsDisputedLocal(true);
             setLocalDealOverride(prev => ({ ...prev, is_disputed: true, isDisputed: true }));
@@ -343,6 +364,16 @@ export const ChatPage: React.FC = () => {
 
         await updateDeal(deal.id, { lastMessageAt: now.toISOString() });
         setInputText('');
+
+        const chatUrl = getChatUrl(deal.id);
+        const myName = myProfile?.companyName || myProfile?.contactPerson || 'ユーザー';
+        sendEmailNotification(
+            [receiverId],
+            "新着メッセージのお知らせ [FactorMatch]",
+            `<p>${myName}様から新しいメッセージが届いています。</p>
+            <p>FactorMatchのチャット画面よりご確認ください。</p>
+            <p><a href="${chatUrl}">チャット画面を開く</a></p>`
+        );
     };
 
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -399,6 +430,16 @@ export const ChatPage: React.FC = () => {
 
             await updateDeal(deal.id, { lastMessageAt: now.toISOString() });
             setInputText('');
+
+            const chatUrl = getChatUrl(deal.id);
+            const myName = myProfile?.companyName || myProfile?.contactPerson || 'ユーザー';
+            sendEmailNotification(
+                [receiverId],
+                "ファイルの受信のお知らせ [FactorMatch]",
+                `<p>${myName}様からファイルが送信されました。</p>
+                <p>FactorMatchのチャット画面よりご確認ください。</p>
+                <p><a href="${chatUrl}">チャット画面を開く</a></p>`
+            );
 
         } catch (error) {
             console.error('File upload error:', error);
@@ -464,7 +505,7 @@ export const ChatPage: React.FC = () => {
                 .eq('id', invoice.id);
             if (invoiceError) throw invoiceError;
 
-            // 2. システムメッセージの送信
+            // システムメッセージの送信
             await addMessage({
                 id: `sys_withdraw_${Date.now()}`,
                 dealId: deal.id,
@@ -474,6 +515,17 @@ export const ChatPage: React.FC = () => {
                 timestamp: now,
                 isSystemMessage: true
             });
+
+            const chatUrl = getChatUrl(deal.id);
+            // 宛先: 相手 (買い手)
+            const receiverId = isBuyer ? deal.sellerId : deal.buyerId;
+            sendEmailNotification(
+                [receiverId],
+                "案件が取り下げられました [FactorMatch]",
+                `<p>交渉中の案件について、売り主より取り下げ（キャンセル）が行われました。</p>
+                <p>この取引は終了となります。</p>
+                <p><a href="${chatUrl}">チャット画面を確認する</a></p>`
+            );
 
             alert("案件を取り下げました。");
             // リロードや遷移ですぐに反映させるか、リアルタイムサブスクリプションに任せる
@@ -511,6 +563,26 @@ export const ChatPage: React.FC = () => {
             timestamp: now.toISOString(),
             isSystemMessage: true
         });
+
+        // メール通知
+        const chatUrl = getChatUrl(deal.id);
+        if (fieldKey === 'debtorInfo') {
+            sendEmailNotification(
+                [deal.buyerId],
+                "売主様が債権情報を開示しました [FactorMatch]",
+                `<p>お相手（売主様）が、取引対象となる債権情報（売掛先や所在地等）を開示しました。</p>
+                <p>FactorMatchのチャット画面より詳細をご確認ください。</p>
+                <p><a href="${chatUrl}">チャット画面を開く</a></p>`
+            );
+        } else {
+            sendEmailNotification(
+                [receiverId],
+                "お相手がプロフィール情報を開示しました [FactorMatch]",
+                `<p>お相手がプロフィール項目「${fieldLabel}」を開示しました。</p>
+                <p>FactorMatchのチャット画面よりご確認ください。</p>
+                <p><a href="${chatUrl}">チャット画面を開く</a></p>`
+            );
+        }
     };
 
     const togglePanel = (key: string) => {

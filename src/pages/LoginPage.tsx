@@ -22,7 +22,8 @@ export const LoginPage: React.FC = () => {
 
         const { error: signInError } = await signIn(email, password);
         if (signInError) {
-            setError(signInError.message || 'ログインに失敗しました');
+            const msg = signInError instanceof Error ? signInError.message : (signInError as { message?: string })?.message || 'ログインに失敗しました';
+            setError(msg);
             setLoading(false);
         } else {
             // Navigation will be handled by DashboardRedirector

@@ -8,6 +8,7 @@ import { setTransitioning } from '../utils/transitionState';
 import { useMarket } from '../contexts/MarketContext';
 import { useAuth } from '../contexts/AuthContext';
 import { DealStepper } from './DealStepper';
+import { sendEmailNotification, getChatUrl } from '../utils/notification';
 import type { Deal, Invoice, User as UserType } from '../types';
 
 interface NormalDealBoardProps {
@@ -91,6 +92,15 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
             timestamp: now.toISOString(),
             isSystemMessage: true
         });
+
+        const chatUrl = getChatUrl(deal.id);
+        sendEmailNotification(
+            [receiverId],
+            "新着オファーのお知らせ [FactorMatch]",
+            `<p>${proposerRole}様より新しい金額の提示（¥${numPrice.toLocaleString()}）がありました。</p>
+            <p>FactorMatchのチャット画面より条件を確認し、検討をお願いいたします。</p>
+            <p><a href="${chatUrl}">チャット画面を開く</a></p>`
+        );
     };
 
     const handleAgree = async () => {
@@ -186,6 +196,25 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                     if (invoiceUpdateError) throw invoiceUpdateError;
                     
                     completeDeal(invoice.amount, deal.currentAmount);
+
+                    const chatUrl = getChatUrl(deal.id);
+                    sendEmailNotification(
+                        [deal.buyerId, deal.sellerId],
+                        "✅ 債権譲渡契約が成立しました [FactorMatch]",
+                        `<p>対象案件の債権譲渡契約が成立（締結）しました。</p>
+                        <p>速やかに決済手続きへ進み、ダッシュボードから相手方への支払い（または回収）を行ってください。</p>
+                        <p><a href="${chatUrl}">チャット画面を開く（契約書PDFもこちらから）</a></p>`
+                    );
+                } else {
+                    const chatUrl = getChatUrl(deal.id);
+                    const receiverId = isBuyer ? deal.sellerId : deal.buyerId;
+                    sendEmailNotification(
+                        [receiverId],
+                        "お相手が契約に同意しました。最終合意をお願いします [FactorMatch]",
+                        `<p>お相手が契約内容に同意しました。</p>
+                        <p>あなたからの最終合意をもって契約成立となります。速やかにチャット画面より同意手続を行ってください。</p>
+                        <p><a href="${chatUrl}">チャット画面を開く</a></p>`
+                    );
                 }
                 
                 await new Promise(resolve => setTimeout(resolve, 500));
@@ -240,6 +269,15 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                 timestamp: new Date().toISOString(),
                 isSystemMessage: true
             });
+
+            const chatUrl = getChatUrl(deal.id);
+            sendEmailNotification(
+                [deal.sellerId],
+                "買い手から振込完了の報告がありました [FactorMatch]",
+                `<p>買い手（譲受人）より、譲渡代金の振込完了報告がありました。</p>
+                <p>ご自身の口座の着金をご確認のうえ、取引画面にて「着金確認」手続を行ってください。</p>
+                <p><a href="${chatUrl}">チャット画面を開く</a></p>`
+            );
         }
     };
 
@@ -256,6 +294,15 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                 timestamp: new Date().toISOString(),
                 isSystemMessage: true
             });
+
+            const chatUrl = getChatUrl(deal.id);
+            sendEmailNotification(
+                [deal.buyerId],
+                "売り手が着金を確認しました（取引継続） [FactorMatch]",
+                `<p>売り手（譲渡人）による譲渡代金の着金確認が完了しました。</p>
+                <p>債権の支払期日後、売り手からの回収・送金完了報告をお待ちください。</p>
+                <p><a href="${chatUrl}">チャット画面を開く</a></p>`
+            );
         }
     };
 
@@ -272,6 +319,15 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                 timestamp: new Date().toISOString(),
                 isSystemMessage: true
             });
+
+            const chatUrl = getChatUrl(deal.id);
+            sendEmailNotification(
+                [deal.buyerId],
+                "回収金送付完了のお知らせ [FactorMatch]",
+                `<p>売り手（譲渡人）より、第三債務者からの回収およびあなたへの送金完了の報告がありました。</p>
+                <p>ご自身の口座への入金をご確認のうえ、取引画面より最終確認（全取引完了）の操作を行ってください。</p>
+                <p><a href="${chatUrl}">チャット画面を開く</a></p>`
+            );
         }
     };
 
@@ -288,6 +344,15 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                 timestamp: new Date().toISOString(),
                 isSystemMessage: true
             });
+
+            const chatUrl = getChatUrl(deal.id);
+            sendEmailNotification(
+                [deal.sellerId, deal.buyerId],
+                "🎊 すべての取引が完了しました [FactorMatch]",
+                `<p>買い手による最終着金確認が完了し、本案件のすべての取引プロセスが完了いたしました。</p>
+                <p>FactorMatchをご利用いただき、誠にありがとうございました。</p>
+                <p><a href="${chatUrl}">取引履歴として詳細を確認する</a></p>`
+            );
         }
     };
 

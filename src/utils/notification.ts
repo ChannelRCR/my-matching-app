@@ -1,0 +1,40 @@
+import { supabase } from '../lib/supabase';
+
+// VITE_APP_URL があれば使用、なければ location.origin をフォールバックとして使用
+const getAppUrl = () => {
+    return import.meta.env.VITE_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+};
+
+export const getChatUrl = (dealId: string) => {
+    return `${getAppUrl()}/chat?dealId=${dealId}`;
+};
+
+export const sendEmailNotification = async (
+    targetUserIds: string[],
+    subject: string,
+    messageHtml: string
+) => {
+    try {
+        if (!targetUserIds || targetUserIds.length === 0) {
+            console.warn("sendEmailNotification: targetUserIds is empty. Skipping notification.");
+            return;
+        }
+
+        const { error } = await supabase.functions.invoke('send-email', {
+            body: {
+                type: 'custom',
+                targetUserIds,
+                subject,
+                messageHtml
+            }
+        });
+
+        if (error) {
+            console.warn("sendEmailNotification: Function invocation error:", error.message);
+        } else {
+            console.log("sendEmailNotification: Notification sent via Edge Function.");
+        }
+    } catch (err: unknown) {
+        console.warn("sendEmailNotification: Failed to invoke send-email correctly.", err);
+    }
+};
