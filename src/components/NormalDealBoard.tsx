@@ -9,6 +9,7 @@ import { useMarket } from '../contexts/MarketContext';
 import { useAuth } from '../contexts/AuthContext';
 import { DealStepper } from './DealStepper';
 import { sendEmailNotification, getChatUrl } from '../utils/notification';
+import { SystemFeeModal } from './SystemFeeModal';
 import type { Deal, Invoice, User as UserType } from '../types';
 
 interface NormalDealBoardProps {
@@ -52,6 +53,7 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
     
     const [isTermsAgreed, setIsTermsAgreed] = useState(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+    const [isFeeModalOpen, setIsFeeModalOpen] = useState(false);
 
     const opponentProfile = isBuyer ? users.find(u => u.id === deal?.sellerId) : users.find(u => u.id === deal?.buyerId);
     const hasMultipleBuyers = activeDealsForInvoice.length > 1;
@@ -652,6 +654,12 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                                     )}
                                 </div>
                             )}
+
+                            <div className="mt-4 pt-4 border-t border-slate-200 flex justify-center w-full">
+                                <Button onClick={() => setIsFeeModalOpen(true)} className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-300 outline-none shadow-sm gap-2 rounded-full py-1.5 px-6 text-sm" variant="outline">
+                                    💰 プラットフォームを支援する（任意）
+                                </Button>
+                            </div>
                         </div>
                     ) : (
                         <span className="bg-slate-100 text-slate-600 px-4 py-2 rounded-full text-sm font-bold border border-slate-200">
@@ -660,6 +668,8 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                     )}
                 </div>
             )}
+            
+            <SystemFeeModal isOpen={isFeeModalOpen} onClose={() => setIsFeeModalOpen(false)} />
         </div>
     );
 };

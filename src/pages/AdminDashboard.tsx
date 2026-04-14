@@ -4,15 +4,42 @@ import { useMarket } from '../contexts/MarketContext';
 import { useData } from '../contexts/DataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { supabase } from '../lib/supabase';
 import type { User } from '../types';
 
-type TabId = 'summary' | 'users' | 'invoices' | 'deals';
+type TabId = 'summary' | 'alerts' | 'users' | 'invoices' | 'deals';
 
 export const AdminDashboard: React.FC = () => {
     const [activeTab, setActiveTab] = useState<TabId>('summary');
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
+    const [alerts, setAlerts] = useState<any[]>([]);
     const { stats } = useMarket();
     const { users, deals, invoices, updateUser, getUserTrackRecord } = useData();
+
+    React.useEffect(() => {
+        const fetchAlerts = async () => {
+            const { data, error } = await supabase
+                .from('admin_alerts')
+                .select('*')
+                .eq('is_resolved', false)
+                .order('created_at', { ascending: false });
+            if (data && !error) {
+                setAlerts(data);
+            }
+        };
+        fetchAlerts();
+    }, [activeTab]);
+
+    const handleResolveAlert = async (alertId: string) => {
+        if (!window.confirm('このアラートを解決済みにしますか？')) return;
+        const { error } = await supabase
+            .from('admin_alerts')
+            .update({ is_resolved: true })
+            .eq('id', alertId);
+        if (!error) {
+            setAlerts(prev => prev.filter(a => a.id !== alertId));
+        }
+    };
 
     const getOngoingDealsCount = (userId: string) => {
         return deals.filter(d =>
@@ -36,8 +63,9 @@ export const AdminDashboard: React.FC = () => {
         }
     };
 
-    const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
+    const tabs: { id: TabId; label: string; icon: React.ReactNode; count?: number }[] = [
         { id: 'summary', label: 'サマリー', icon: <LayoutDashboard className="w-4 h-4" /> },
+        { id: 'alerts', label: 'アラート', icon: <AlertTriangle className="w-4 h-4" />, count: alerts.length },
         { id: 'users', label: 'ユーザー一覧', icon: <Users className="w-4 h-4" /> },
         { id: 'invoices', label: '債権一覧', icon: <FileText className="w-4 h-4" /> },
         { id: 'deals', label: '取引一覧', icon: <Handshake className="w-4 h-4" /> },
@@ -68,6 +96,11 @@ export const AdminDashboard: React.FC = () => {
                     >
                         {tab.icon}
                         {tab.label}
+                        {tab.count !== undefined && tab.count > 0 && (
+                            <span className="ml-1 bg-red-500 text-white text-[10px] items-center justify-center font-bold px-1.5 py-0.5 rounded-full">
+                                {tab.count}
+                            </span>
+                        )}
                     </button>
                 ))}
             </div>
@@ -125,6 +158,86 @@ export const AdminDashboard: React.FC = () => {
                         </Card>
                     </div>
                 </div>
+            )}
+
+            {/* TAB CONTENT: ALERTS */}
+            {activeTab === 'alerts' && (
+                <Card className="overflow-hidden border-red-200 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <CardHeader className="bg-red-50 border-b border-red-100 py-3">
+                        <CardTitle className="flex items-center gap-2 text-base text-red-800">
+                            <ShieldAlert className="h-4 w-4" />
+                            アクションが必要なアラート
+                        </CardTitle>
+                    </CardHeader>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-red-50/50 text-red-700 font-bold border-b border-red-100">
+                                <tr>
+                                    <th className="px-4 py-3">検知日時</th>
+                                    <th className="px-4 py-3">アラート種別</th>
+                                    <th className="px-4 py-3">検知理由・本文プレビュー</th>
+                                    <th className="px-4 py-3">対象ユーザー</th>
+                                    <th className="px-4 py-3 text-right">アクション</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-red-50">
+                                {alerts.map((alert) => {
+                                    const u = users.find(user => user.id === alert.user_id);
+                                    return (
+                                        <tr key={alert.id} className="hover:bg-red-50/30">
+                                            <td className="px-4 py-3 text-slate-600">
+                                                {new Date(alert.created_at).toLocaleString('ja-JP')}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <span className="bg-red-100 text-red-800 text-xs px-2 py-0.5 rounded font-bold uppercase">
+                                                    {alert.alert_type}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-slate-800 break-words max-w-sm">
+                                                {alert.description}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <div className="font-bold text-slate-800">{u?.name || '不明'} ({u?.role || '-'})</div>
+                                                <div className="font-mono text-xs text-slate-500" title={alert.user_id}>{alert.user_id.slice(0, 8)}...</div>
+                                            </td>
+                                            <td className="px-4 py-3 text-right">
+                                                <div className="flex justify-end items-center gap-2">
+                                                    {u && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className={`h-8 text-xs ${u.status === 'suspended' ? 'bg-white border-slate-300 text-slate-600' : 'text-red-600 border-red-200 hover:bg-red-50 hover:border-red-600'}`}
+                                                            onClick={() => handleSuspendUser(u.id, u.status)}
+                                                            disabled={u.isAdmin}
+                                                        >
+                                                            {u.status === 'suspended' ? '利用再開' : '即時利用停止'}
+                                                        </Button>
+                                                    )}
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="h-8 text-xs text-slate-600 border-slate-300 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300"
+                                                        onClick={() => handleResolveAlert(alert.id)}
+                                                    >
+                                                        <CheckCircle size={14} className="mr-1" />
+                                                        解決済みにする
+                                                    </Button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                                {alerts.length === 0 && (
+                                    <tr>
+                                        <td colSpan={5} className="px-6 py-12 text-center text-slate-500 font-medium">
+                                            🎉 現在未解決のアラートはありません
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </Card>
             )}
 
             {/* TAB CONTENT: USERS */}

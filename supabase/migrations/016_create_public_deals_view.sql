@@ -10,9 +10,9 @@ SELECT
     d.payment_status,
     i.amount AS invoice_amount,
     COALESCE(d.current_amount, i.amount) AS current_amount,
-    s.company_name AS seller_name,
+    s.trade_name AS seller_name,
     CASE 
-        WHEN COALESCE((b.privacy_settings->>'companyName')::boolean, true) = true THEN b.company_name
+        WHEN COALESCE((b.privacy_settings->>'tradeName')::boolean, true) = true THEN b.trade_name
         ELSE '非公開の投資家'
     END AS buyer_name,
     d.started_at,

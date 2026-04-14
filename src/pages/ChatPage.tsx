@@ -32,7 +32,6 @@ export const ChatPage: React.FC = () => {
     const { deals, invoices, messages: allMessages, users, addMessage, updateDeal, markMessagesAsRead, getUserTrackRecord } = useData();
     const { user } = useAuth(); // Use real auth user
 
-    const [baseDeal, setBaseDeal] = useState<Deal | null>(null);
     const [invoice, setInvoice] = useState<Invoice | null>(null);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [inputText, setInputText] = useState('');
@@ -71,6 +70,7 @@ export const ChatPage: React.FC = () => {
     });
 
     // Compute effective deal state combining global context and local overrides
+    const baseDeal = deals.find(d => d.id === dealId) || null;
     const deal = React.useMemo(() => {
         return baseDeal ? { ...baseDeal, ...localDealOverride } as Deal : null;
     }, [baseDeal, localDealOverride]);
@@ -165,7 +165,6 @@ export const ChatPage: React.FC = () => {
                     }
                 });
 
-                setBaseDeal(foundDeal);
                 const foundInvoice = invoices.find(i => i.id === foundDeal.invoiceId);
                 setInvoice(foundInvoice || null);
 
@@ -184,7 +183,7 @@ export const ChatPage: React.FC = () => {
                         id: m.id,
                         sender: isMe ? 'me' : 'other',
                         text: m.content,
-                        timestamp: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        timestamp: new Date(m.timestamp).toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
                         fileUrl: m.fileUrl || (m as unknown as Record<string, unknown>).file_url as string | undefined,
                         fileName: m.fileName || (m as unknown as Record<string, unknown>).file_name as string | undefined,
                         fileType: m.fileType || (m as unknown as Record<string, unknown>).file_type as string | undefined,
@@ -565,23 +564,27 @@ export const ChatPage: React.FC = () => {
         });
 
         // メール通知
-        const chatUrl = getChatUrl(deal.id);
-        if (fieldKey === 'debtorInfo') {
-            sendEmailNotification(
-                [deal.buyerId],
-                "売主様が債権情報を開示しました [FactorMatch]",
-                `<p>お相手（売主様）が、取引対象となる債権情報（売掛先や所在地等）を開示しました。</p>
-                <p>FactorMatchのチャット画面より詳細をご確認ください。</p>
-                <p><a href="${chatUrl}">チャット画面を開く</a></p>`
-            );
-        } else {
-            sendEmailNotification(
-                [receiverId],
-                "お相手がプロフィール情報を開示しました [FactorMatch]",
-                `<p>お相手がプロフィール項目「${fieldLabel}」を開示しました。</p>
-                <p>FactorMatchのチャット画面よりご確認ください。</p>
-                <p><a href="${chatUrl}">チャット画面を開く</a></p>`
-            );
+        try {
+            const chatUrl = getChatUrl(deal.id);
+            if (fieldKey === 'debtorInfo') {
+                sendEmailNotification(
+                    [deal.buyerId],
+                    "売主様が債権情報を開示しました [FactorMatch]",
+                    `<p>お相手（売主様）が、取引対象となる債権情報（売掛先や所在地等）を開示しました。</p>
+                    <p>FactorMatchのチャット画面より詳細をご確認ください。</p>
+                    <p><a href="${chatUrl}">チャット画面を開く</a></p>`
+                ).catch(err => console.error("Reveal debtor_info email failed:", err));
+            } else {
+                sendEmailNotification(
+                    [receiverId],
+                    "お相手がプロフィール情報を開示しました [FactorMatch]",
+                    `<p>お相手がプロフィール項目「${fieldLabel}」を開示しました。</p>
+                    <p>FactorMatchのチャット画面よりご確認ください。</p>
+                    <p><a href="${chatUrl}">チャット画面を開く</a></p>`
+                ).catch(err => console.error("Reveal field email failed:", err));
+            }
+        } catch (e) {
+            console.error("Reveal email scheduling error:", e);
         }
     };
 

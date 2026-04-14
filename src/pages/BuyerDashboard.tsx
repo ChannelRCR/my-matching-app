@@ -102,7 +102,7 @@ export const BuyerDashboard: React.FC = () => {
         if (activeTab === 'all') {
             const todayStr = new Date().toISOString().split('T')[0];
             return filtered.filter(inv => 
-                (inv.status === 'open' || inv.status === 'pending') && 
+                (inv.status === 'open' || inv.status === 'pending' || inv.status === 'negotiating') && 
                 (!inv.dueDate || inv.dueDate >= todayStr)
             );
         }

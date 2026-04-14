@@ -205,7 +205,7 @@ export const RegisterPage: React.FC = () => {
                     maxLength={maxLength}
                     onChange={(e) => handleChange(field as keyof typeof formData, e.target.value)}
                     placeholder={placeholder}
-                    required
+                    required={field !== 'appealPoint'}
                     className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none resize-none h-24 text-slate-800"
                 />
             ) : type === 'file' ? (
@@ -617,11 +617,26 @@ export const RegisterPage: React.FC = () => {
                                         <span className="text-xs text-slate-400 font-normal">({privacySettings.representativeName ? '公開' : '非公開'})</span>
                                     </div>
 
+                                    <div className="text-slate-500 font-medium">担当者名:</div>
+                                    <div className="font-bold">{formData.contactPerson || '-'} <span className="text-xs text-slate-400 font-normal">({privacySettings.contactPerson ? '公開' : '非公開'})</span></div>
+
+                                    <div className="text-slate-500 font-medium">法人番号:</div>
+                                    <div className="font-bold">{formData.corporateNumber || '-'} <span className="text-xs text-slate-400 font-normal">(非公開)</span></div>
+
+                                    <div className="text-slate-500 font-medium mt-2">業種:</div>
+                                    <div className="font-bold mt-2">{formData.industry === 'その他' ? `その他 (${formData.industryOther})` : (formData.industry || '-')}</div>
+
                                     <div className="text-slate-500 font-medium">連絡先電話番号:</div>
                                     <div className="font-bold">{formData.phone || '-'} <span className="text-xs text-slate-400 font-normal">({privacySettings.phone ? '公開' : '非公開'})</span></div>
 
                                     <div className="text-slate-500 font-medium mt-2">住所:</div>
                                     <div className="font-bold mt-2">{formData.address || '-'} <span className="text-xs text-slate-400 font-normal">({privacySettings.address ? '公開' : '非公開'})</span></div>
+
+                                    <div className="text-slate-500 font-medium">ホームページURL:</div>
+                                    <div className="font-bold">{formData.websiteUrl || '-'}</div>
+
+                                    <div className="text-slate-500 font-medium mt-2">アピールポイント:</div>
+                                    <div className="font-bold mt-2">{formData.appealPoint || '-'}</div>
 
                                     <div className="text-slate-500 font-medium">入金口座:</div>
                                     <div className="font-bold">{formData.bankAccountInfo || '-'} <span className="text-xs text-slate-400 font-normal">({privacySettings.bankAccountInfo ? '公開' : '非公開'})</span></div>

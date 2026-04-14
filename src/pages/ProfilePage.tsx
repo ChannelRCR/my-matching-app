@@ -65,7 +65,7 @@ export const ProfilePage: React.FC = () => {
                 appealPoint: profile.appealPoint || '',
                 industry: profile.industry || '',
                 industryOther: profile.industryOther || '',
-                budget: profile.budget?.toString() || '',
+                budget: profile.budget ? profile.budget.toLocaleString() : '',
                 idDocumentFile: null,
             });
 
@@ -114,6 +114,7 @@ export const ProfilePage: React.FC = () => {
 
         const updateData = {
             ...formData,
+            budget: formData.budget ? Number(String(formData.budget).replace(/,/g, '')) : undefined,
             idDocumentFile: formData.idDocumentFile || undefined,
             privacySettings
         };
@@ -133,7 +134,7 @@ export const ProfilePage: React.FC = () => {
     if (authLoading) return <div className="p-8 text-center text-slate-500">読み込み中...</div>;
     if (!profile) return <div className="p-8 text-center text-slate-500">プロファイルが見つかりません。</div>;
 
-    const renderField = (name: keyof typeof formData, label: string, icon: React.ReactNode, type = "text", isTextarea = false, customOnChange?: (e: React.ChangeEvent<HTMLInputElement>) => void, disabled?: boolean) => {
+    const renderField = (name: keyof typeof formData, label: string, icon: React.ReactNode, type = "text", isTextarea = false, customOnChange?: (e: React.ChangeEvent<HTMLInputElement>) => void, disabled?: boolean, isRequired?: boolean) => {
         const isPublic = privacySettings[name];
         const isPrivacyApplicable = name in privacySettings;
 
@@ -147,6 +148,7 @@ export const ProfilePage: React.FC = () => {
                 <div className="sm:w-1/3 flex items-center gap-2 pt-2 text-slate-700 font-medium">
                     {icon}
                     <span>{label}</span>
+                    {isRequired && <span className="ml-1 text-[10px] font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded border border-red-200 shrink-0">必須</span>}
                 </div>
 
                 <div className="sm:w-2/3 flex flex-col gap-3">
@@ -158,6 +160,7 @@ export const ProfilePage: React.FC = () => {
                                 value={String(formData[name])}
                                 onChange={handleChange}
                                 disabled={disabled}
+                                required={isRequired}
                                 className={`flex-1 px-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none resize-none h-24 text-slate-800 ${disabled ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}`}
                                 placeholder={
                                     name === 'appealPoint'
@@ -173,6 +176,7 @@ export const ProfilePage: React.FC = () => {
                                 value={String(formData[name])}
                                 onChange={customOnChange || handleChange}
                                 disabled={disabled || (name === 'companyName' && formData.hasNoTradeName)}
+                                required={isRequired}
                                 className="flex-1 px-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none text-slate-800 disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed"
                                 placeholder={`${label}を入力`}
                             />
@@ -315,8 +319,7 @@ export const ProfilePage: React.FC = () => {
                     {renderField('representativeName', formData.entityType === 'corporate' ? '代表者名' : '代表者名（個人名）', <UserIcon size={18} className="text-slate-400" />)}
                     {renderField('representativeNameKana', '代表者名（フリガナ）', <UserIcon size={18} className="text-slate-400" />)}
 
-                    {formData.entityType === 'corporate' && (
-                        <div className="flex flex-col sm:flex-row sm:items-start gap-4 p-4 border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                    <div className="flex flex-col sm:flex-row sm:items-start gap-4 p-4 border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
                             <div className="sm:w-1/3 flex items-center gap-2 pt-2 text-slate-700 font-medium">
                                 <UserIcon size={18} className="text-slate-400" />
                                 <span>担当者名</span>
@@ -352,7 +355,6 @@ export const ProfilePage: React.FC = () => {
                                 </div>
                             </div>
                         </div>
-                    )}
 
                     <div className="flex flex-col sm:flex-row sm:items-start gap-4 p-4 border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
                         <div className="sm:w-1/3 flex items-center gap-2 pt-2 text-slate-700 font-medium">
@@ -388,6 +390,7 @@ export const ProfilePage: React.FC = () => {
                         <div className="sm:w-1/3 flex items-center gap-2 pt-2 text-slate-700 font-medium">
                             <MapPin size={18} className="text-slate-400" />
                             <span>郵便番号（7桁）</span>
+                            <span className="ml-1 text-[10px] font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded border border-red-200 shrink-0">必須</span>
                         </div>
                         <div className="sm:w-2/3 flex flex-col gap-3">
                             <div className="flex gap-2">
@@ -397,6 +400,7 @@ export const ProfilePage: React.FC = () => {
                                     name="postalCode"
                                     value={formData.postalCode}
                                     onChange={handlePostalCodeChange}
+                                    required={true}
                                     className="flex-1 px-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none text-slate-800"
                                     placeholder="郵便番号（7桁）を入力"
                                 />
@@ -419,7 +423,7 @@ export const ProfilePage: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                    {renderField('address', '所在地', <MapPin size={18} className="text-slate-400" />)}
+                    {renderField('address', '所在地', <MapPin size={18} className="text-slate-400" />, 'text', false, undefined, false, true)}
                     {renderField('phone', '電話番号', <Phone size={18} className="text-slate-400" />, 'tel')}
                     {renderField('email', '連絡先メールアドレス', <Mail size={18} className="text-slate-400" />, 'email', false, undefined, true)}
 
@@ -431,11 +435,36 @@ export const ProfilePage: React.FC = () => {
                         true
                     )}
 
-                    {profile?.role === 'buyer' && renderField(
-                        'budget',
-                        '想定買取可能額（予算）',
-                        <CreditCard size={18} className="text-slate-400" />,
-                        'text'
+                    {profile?.role === 'buyer' && (
+                        <div className="flex flex-col sm:flex-row sm:items-start gap-4 p-4 border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                            <div className="sm:w-1/3 flex items-center gap-2 pt-2 text-slate-700 font-medium">
+                                <CreditCard size={18} className="text-slate-400" />
+                                <span>想定買取可能額（予算）</span>
+                            </div>
+                            <div className="sm:w-2/3 flex flex-col gap-3">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-slate-500 font-bold">〜</span>
+                                    <input
+                                        type="text"
+                                        maxLength={20}
+                                        name="budget"
+                                        value={String(formData.budget)}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/[^0-9]/g, '');
+                                            if (val === '') {
+                                                setFormData(prev => ({ ...prev, budget: '' }));
+                                            } else {
+                                                setFormData(prev => ({ ...prev, budget: parseInt(val, 10).toLocaleString() }));
+                                            }
+                                        }}
+                                        className="flex-1 px-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none text-slate-800 font-mono"
+                                        placeholder="例: 1,000,000"
+                                    />
+                                    <span className="text-slate-500 font-bold">円 (上限額)</span>
+                                </div>
+                                <p className="text-[11px] text-slate-500 mt-1">※この項目は公開されません。任意ですが、設定するとマッチしやすくなります。</p>
+                            </div>
+                        </div>
                     )}
 
                     <div className="flex flex-col sm:flex-row sm:items-start gap-4 p-4 border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors">

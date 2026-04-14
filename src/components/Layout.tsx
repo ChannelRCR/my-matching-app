@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Briefcase, Coins, Menu, X, ChevronRight, Settings } from 'lucide-react';
+import { Briefcase, Coins, Menu, X, ChevronRight, Settings, CheckCircle, AlertTriangle } from 'lucide-react';
 import { SystemFeeModal } from './SystemFeeModal';
 import { useAuth } from '../contexts/AuthContext';
 import { getDisplayName } from '../utils/displayName';
@@ -8,7 +8,27 @@ import { getDisplayName } from '../utils/displayName';
 export const Layout: React.FC = () => {
     const [isSystemFeeModalOpen, setIsSystemFeeModalOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [paymentResult, setPaymentResult] = useState<'success' | 'cancel' | null>(null);
     const location = useLocation();
+
+    // Check for payment status in URL
+    React.useEffect(() => {
+        const searchParams = new URLSearchParams(location.search);
+        const payment = searchParams.get('payment');
+        if (payment === 'success' || payment === 'cancel') {
+            setPaymentResult(payment);
+            
+            // Remove the parameter from URL
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.delete('payment');
+            window.history.replaceState({ path: newUrl.toString() }, '', newUrl.toString());
+            
+            // Auto hide
+            setTimeout(() => {
+                setPaymentResult(null);
+            }, 5000);
+        }
+    }, [location.search]);
 
     // Close menu when route changes
     React.useEffect(() => {
@@ -26,6 +46,27 @@ export const Layout: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900">
+            {paymentResult && (
+                <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full shadow-lg border flex items-center gap-3 animate-in fade-in slide-in-from-top-4 ${
+                    paymentResult === 'success' 
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                        : 'bg-amber-50 border-amber-200 text-amber-800'
+                }`}>
+                    {paymentResult === 'success' ? (
+                        <CheckCircle className="w-5 h-5 text-emerald-600" />
+                    ) : (
+                        <AlertTriangle className="w-5 h-5 text-amber-600" />
+                    )}
+                    <span className="font-bold text-sm">
+                        {paymentResult === 'success' 
+                            ? 'ご支援ありがとうございます！決済が正常に完了しました。' 
+                            : '決済処理がキャンセルされました。'}
+                    </span>
+                    <button onClick={() => setPaymentResult(null)} className="ml-2 hover:opacity-70">
+                        <X size={16} />
+                    </button>
+                </div>
+            )}
             <header className="sticky top-0 z-40 w-full border-b bg-white/95 backdrop-blur shadow-sm">
                 <div className="container mx-auto flex h-16 items-center justify-between px-4">
                     <Link to="/" className="flex items-center gap-2 font-bold text-xl text-primary tracking-tight">

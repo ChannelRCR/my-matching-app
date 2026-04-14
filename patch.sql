@@ -1,30 +1,3 @@
--- Migration: Create invoice_offer_stats view for offer aggregation and implement deal exclusive lock trigger
-
--- Fix overly restrictive constraint missing 'open' and 'pending'
-ALTER TABLE public.deals DROP CONSTRAINT IF EXISTS deals_status_check;
-ALTER TABLE public.deals ADD CONSTRAINT deals_status_check CHECK (status in ('open', 'pending', 'negotiating', 'agreed', 'rejected', 'concluded', 'withdrawn', 'cancelled'));
-
--- 1. Create a view to aggregate offers and max pricing for each invoice
--- This bypasses the RLS on deals intentionally to provide aggregated data without exposing buyer identities.
-CREATE OR REPLACE VIEW invoice_offer_stats AS
-SELECT 
-    invoice_id,
-    COUNT(id) as offer_count,
-    MAX(
-        CASE 
-            WHEN status IN ('open', 'pending', 'negotiating') 
-            THEN COALESCE(current_buyer_price, initial_offer_amount, 0)
-            ELSE 0 
-        END
-    ) as max_offer
-FROM deals
-WHERE status IN ('open', 'pending', 'negotiating')
-GROUP BY invoice_id;
-
--- Grant read access to authenticated and anon users
-GRANT SELECT ON invoice_offer_stats TO anon, authenticated;
-
--- 2. Create a trigger function to handle exclusive locking when a deal is concluded
 CREATE OR REPLACE FUNCTION handle_deal_concluded()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -67,10 +40,3 @@ BEGIN
     RETURN NEW;
 END;
 $$;
-
--- Attach the trigger to the deals table
-DROP TRIGGER IF EXISTS trigger_deal_concluded ON deals;
-CREATE TRIGGER trigger_deal_concluded
-AFTER UPDATE OF status ON deals
-FOR EACH ROW
-EXECUTE FUNCTION handle_deal_concluded();

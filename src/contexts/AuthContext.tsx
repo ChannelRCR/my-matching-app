@@ -242,7 +242,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (role === 'seller') {
             const sellerProfile = {
                 id: userId,
-                company_name: extraData.companyName,
+                trade_name: extraData.companyName,
                 representative_name: extraData.representativeName,
                 contact_person: extraData.contactPerson,
                 address: extraData.address,
@@ -266,7 +266,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else if (role === 'buyer') {
             const buyerProfile = {
                 id: userId,
-                company_name: extraData.companyName,
+                trade_name: extraData.companyName,
                 representative_name: extraData.representativeName,
                 contact_person: extraData.contactPerson,
                 address: extraData.address,
@@ -314,7 +314,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             // Update role-specific table
             const specificData: Record<string, unknown> = {};
-            if (data.companyName !== undefined) specificData.company_name = data.companyName;
+            if (data.companyName !== undefined) specificData.trade_name = data.companyName;
             if (data.representativeName !== undefined) specificData.representative_name = data.representativeName;
             if (data.contactPerson !== undefined) specificData.contact_person = data.contactPerson;
             if (data.address !== undefined) specificData.address = data.address;

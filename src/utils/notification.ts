@@ -15,15 +15,19 @@ export const sendEmailNotification = async (
     messageHtml: string
 ) => {
     try {
-        if (!targetUserIds || targetUserIds.length === 0) {
-            console.warn("sendEmailNotification: targetUserIds is empty. Skipping notification.");
+        const cleanTargets = (targetUserIds || []).filter(id => id && typeof id === 'string' && id.trim() !== '');
+        
+        if (cleanTargets.length === 0) {
+            console.warn("sendEmailNotification: targetUserIds empty or contained only invalid values. Skipping notification.", targetUserIds);
             return;
         }
+
+        console.log(`sendEmailNotification: Dispatching email to targets: ${cleanTargets.join(', ')}. Subject: ${subject}`);
 
         const { error } = await supabase.functions.invoke('send-email', {
             body: {
                 type: 'custom',
-                targetUserIds,
+                targetUserIds: cleanTargets,
                 subject,
                 messageHtml
             }

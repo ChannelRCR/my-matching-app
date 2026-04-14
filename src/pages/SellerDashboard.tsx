@@ -210,7 +210,7 @@ export const SellerDashboard: React.FC = () => {
                             if (['withdrawn', 'cancelled', 'rejected'].includes(inv.status as string)) {
                                 isUncompleted = false;
                             } else if (inv.status !== 'sold') {
-                                isUncompleted = true;
+                                isUncompleted = false;
                             } else {
                                 const associatedDeal = deals.find(d => d.invoiceId === inv.id && d.status === 'concluded');
                                 if (associatedDeal && associatedDeal.paymentStatus !== 'fully_settled') {
@@ -256,24 +256,27 @@ export const SellerDashboard: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    {/* 第2層：自社（Seller）の情報ブロック */}
+                                    {/* 第2層：自社、または出品企業の（Seller）の情報ブロック */}
                                     <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 mb-4">
                                         <div className="flex items-center gap-1.5 mb-2 text-slate-500 font-bold text-xs">
-                                            <User className="w-4 h-4" /> <span>出品企業（自社）</span>
+                                            <User className="w-4 h-4" /> <span>{inv.sellerId === user?.id ? '出品企業（自社）' : '出品企業'}</span>
                                         </div>
                                         <div className="flex items-center justify-between flex-wrap gap-2">
-                                            <span className="font-bold text-slate-800 text-sm truncate max-w-full" title={myProfile?.companyName || myProfile?.name || '自社'}>
-                                                {myProfile?.companyName || myProfile?.name || '自社'}
-                                            </span>
-                                            {user && (
-                                                <div className="text-[10px] font-bold bg-white inline-flex px-1.5 py-0.5 rounded border border-slate-200 shrink-0">
-                                                    {getUserTrackRecord(user.id, 'seller') === 0 ? (
-                                                        <span className="text-blue-600">🔰 初回</span>
-                                                    ) : (
-                                                        <span className="text-emerald-600">🏆 成約 {getUserTrackRecord(user.id, 'seller')}件</span>
-                                                    )}
-                                                </div>
-                                            )}
+                                            {(() => {
+                                                const sellerProfile = users.find(u => u.id === inv.sellerId) || myProfile;
+                                                return (
+                                                    <span className="font-bold text-slate-800 text-sm truncate max-w-full" title={sellerProfile?.companyName || sellerProfile?.name || '不明な企業'}>
+                                                        {sellerProfile?.companyName || sellerProfile?.name || '不明な企業'}
+                                                    </span>
+                                                );
+                                            })()}
+                                            <div className="text-[10px] font-bold bg-white inline-flex px-1.5 py-0.5 rounded border border-slate-200 shrink-0">
+                                                {getUserTrackRecord(inv.sellerId, 'seller') === 0 ? (
+                                                    <span className="text-blue-600">🔰 初回</span>
+                                                ) : (
+                                                    <span className="text-emerald-600">🏆 成約 {getUserTrackRecord(inv.sellerId, 'seller')}件</span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
 

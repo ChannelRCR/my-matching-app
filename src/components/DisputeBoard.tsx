@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { setTransitioning } from '../utils/transitionState';
 import { useMarket } from '../contexts/MarketContext';
 import { sendEmailNotification, getChatUrl } from '../utils/notification';
+import { SystemFeeModal } from './SystemFeeModal';
 import type { Deal, Invoice, Dispute, User as UserType } from '../types';
 
 interface ChatMessage {
@@ -43,6 +44,7 @@ export const DisputeBoard: React.FC<DisputeBoardProps> = ({
     users
 }) => {
     const { completeDeal } = useMarket();
+    const [isFeeModalOpen, setIsFeeModalOpen] = useState(false);
     
     // In ChatPage, these were managed centrally, but it's cleaner to manage them here if we initialize from activeDispute.
     const [disputeClaimAmount, setDisputeClaimAmount] = useState(activeDispute?.claim_amount ? String(activeDispute.claim_amount) : '');
@@ -308,6 +310,12 @@ export const DisputeBoard: React.FC<DisputeBoardProps> = ({
                             <FileTextIcon className="w-4 h-4 mr-2" /> ダウンロード
                         </Button>
                     </div>
+
+                    <div className="mt-4 pt-4 border-t border-red-200 flex justify-center w-full max-w-sm">
+                        <Button onClick={() => setIsFeeModalOpen(true)} className="bg-white text-red-700 hover:bg-red-100 border border-red-300 outline-none shadow-sm gap-2 rounded-full py-1.5 px-6 text-sm w-full" variant="outline">
+                            💰 プラットフォームを支援する（任意）
+                        </Button>
+                    </div>
                 </div>
             )}
 
@@ -448,6 +456,8 @@ export const DisputeBoard: React.FC<DisputeBoardProps> = ({
                     </div>
                 )}
             </div>
+            
+            <SystemFeeModal isOpen={isFeeModalOpen} onClose={() => setIsFeeModalOpen(false)} />
         </div>
     );
 };

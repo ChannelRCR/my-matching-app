@@ -41,6 +41,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [sellerUncompletedCounts, setSellerUncompletedCounts] = useState<Record<string, number>>({});
 
     useEffect(() => {
+        if (!authUser) {
+            setInvoices([]);
+            setDeals([]);
+            setUsers([]);
+            setBuyers([]);
+            setSellers([]);
+            setMessages([]);
+            setSellerUncompletedCounts({});
+            setInvoiceStats({});
+            setLoading(false);
+            return;
+        }
+
         const initialize = async () => {
             setLoading(true);
             try {
@@ -75,7 +88,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             supabase.removeChannel(dealsSub);
             supabase.removeChannel(msgsSub);
         };
-    }, []);
+    }, [authUser?.id]);
 
     const fetchUsers = async () => {
         const { data: usersData } = await supabase.from('users').select('*');
@@ -184,6 +197,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return false;
         }
         const dbInvoice = {
+            id: invoice.id || `inv_${Date.now()}`,
             seller_id: authUser.id,
             amount: invoice.amount,
             selling_amount: invoice.sellingAmount || invoice.amount,
@@ -221,7 +235,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // --- Deals/Messages Real Implementation ---
     const fetchDeals = async () => {
-        const { data } = await supabase.from('deals').select('*').order('started_at', { ascending: false });
+        if (!authUser) return;
+        const { data } = await supabase.from('deals')
+            .select('*')
+            .or(`seller_id.eq.${authUser.id},buyer_id.eq.${authUser.id}`)
+            .order('started_at', { ascending: false });
         if (data) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             setDeals(data.map((d: any) => ({
@@ -273,7 +291,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const fetchMessages = async () => {
-        const { data } = await supabase.from('messages').select('*').order('timestamp', { ascending: true });
+        if (!authUser) return;
+        const { data } = await supabase.from('messages')
+            .select('*')
+            .or(`sender_id.eq.${authUser.id},receiver_id.eq.${authUser.id}`)
+            .order('timestamp', { ascending: true });
         if (data) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             setMessages(data.map((m: any) => ({
@@ -324,6 +346,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const addMessage = async (message: Message) => {
         const dbMsg: Record<string, unknown> = {
+            id: message.id || `msg_${Date.now()}`,
             deal_id: message.dealId,
             sender_id: message.senderId,
             receiver_id: message.receiverId,
@@ -404,6 +427,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
 
         const dbMsg = {
+            id: `msg_${Date.now()}`,
             deal_id: data.id,
             sender_id: buyerId,
             receiver_id: sellerId,
@@ -458,6 +482,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
 
         const dbMsg = {
+            id: `msg_${Date.now()}`,
             deal_id: data.id,
             sender_id: buyerId,
             receiver_id: sellerId,
@@ -509,6 +534,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             // Add a system message for contract conclusion
             const dbMsg = {
+                id: `msg_${Date.now()}`,
                 deal_id: dealId,
                 sender_id: authUser.id,
                 receiver_id: isBuyer ? dbDeal.seller_id : dbDeal.buyer_id,
