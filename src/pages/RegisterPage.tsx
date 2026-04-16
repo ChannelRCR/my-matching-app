@@ -547,6 +547,13 @@ export const RegisterPage: React.FC = () => {
                             {renderInputWithPrivacy(<>自社ホームページURL<OptionalBadge /></>, "websiteUrl", "例: https://example.com/ (任意)", "url")}
 
                             {renderInputWithPrivacy(<>本人確認書類 (登記簿、身分証明書等)<ConditionalBadge text={role === 'seller' ? '案件登録に必須' : '取引に必須'} /></>, "idDocumentFile", "ファイルをアップロード", "file")}
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 flex items-start gap-2">
+                                <span className="text-red-500 mt-0.5 shrink-0">⚠️</span>
+                                <span>
+                                    <strong>※注意:</strong> 本人確認書類（特に個人の身分証など）の一般公開には個人情報保護のリスクが伴います。
+                                    デフォルトは「非公開」に設定されています。全体公開せず、交渉開始後にチャット内で特定の相手のみに開示することも可能です。
+                                </span>
+                            </div>
 
                             {renderInputWithPrivacy(<>入金口座（本人名義）<ConditionalBadge text={role === 'seller' ? '案件登録に必須' : '取引に必須'} /></>, "bankAccountInfo", "例: ○○銀行 ××支店 普通 1234567")}
                         </div>
@@ -607,7 +614,8 @@ export const RegisterPage: React.FC = () => {
                                     <div className="text-slate-500 font-medium">{formData.entityType === 'corporate' ? '法人名' : '屋号'}:</div>
                                     <div className="font-bold">
                                         {companyName}
-                                        <span className="text-xs text-slate-400 font-normal ml-2">({privacySettings.companyName ? '公開' : '非公開'})</span>
+                                        {formData.companyNameKana && <span className="text-xs text-slate-500 block">({formData.companyNameKana})</span>}
+                                        <span className="text-xs text-slate-400 font-normal">({privacySettings.companyName ? '公開' : '非公開'})</span>
                                     </div>
 
                                     <div className="text-slate-500 font-medium mt-2">代表者名:</div>

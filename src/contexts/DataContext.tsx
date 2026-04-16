@@ -3,6 +3,7 @@ import type { Invoice, Deal, User, Message } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { isTransitioning } from '../utils/transitionState';
+import { sendEmailNotification } from '../utils/notification';
 
 interface DataContextType {
     invoices: Invoice[];
@@ -114,11 +115,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
                 // Fields from specialized tables
                 representativeName: profile.representative_name,
+                representativeNameKana: profile.representative_name_kana,
                 contactPerson: profile.contact_person,
                 address: profile.address,
                 bankAccountInfo: profile.bank_account_info,
                 phone: profile.phone_number,
                 email: u.email,
+                companyNameKana: profile.company_name_kana,
+                corporateNumber: profile.corporate_number,
+                postalCode: profile.postal_code,
+                industry: profile.industry,
+                entityType: profile.entity_type,
                 privacySettings: profile.privacy_settings || {
                     companyName: true,
                     representativeName: true,
@@ -257,6 +264,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 sellerAgreedAt: d.seller_agreed_at,
                 buyerAgreedAt: d.buyer_agreed_at,
                 contractDate: d.contract_date,
+                sellerRevealedFields: d.seller_revealed_fields || {},
                 buyerRevealedFields: d.buyer_revealed_fields || {},
                 paymentStatus: d.payment_status || 'pending',
                 is_disputed: d.is_disputed,
@@ -295,7 +303,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data } = await supabase.from('messages')
             .select('*')
             .or(`sender_id.eq.${authUser.id},receiver_id.eq.${authUser.id}`)
-            .order('timestamp', { ascending: true });
+            .order('created_at', { ascending: true });
         if (data) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             setMessages(data.map((m: any) => ({
@@ -390,7 +398,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const sellerId = invoice?.sellerId;
         if (!sellerId) return null;
 
+        // 【重複防止】既に同じ invoiceId と buyerId の Deal が存在するかチェック
+        const existingLocalDeal = deals.find(d => d.invoiceId === invoiceId && d.buyerId === buyerId);
+        if (existingLocalDeal) return existingLocalDeal;
 
+        const { data: existingData } = await supabase.from('deals')
+            .select('id, invoice_id, buyer_id, seller_id, status')
+            .eq('invoice_id', invoiceId)
+            .eq('buyer_id', buyerId)
+            .maybeSingle();
+
+        if (existingData) {
+            fetchDeals(); // sync to get full deal obj
+            return { id: existingData.id, invoiceId: existingData.invoice_id, buyerId: existingData.buyer_id, sellerId: existingData.seller_id, status: existingData.status } as Deal;
+        }
+
+        // 関連する単一のInvoiceのステータスを更新
+        await supabase.from('invoices').update({ status: 'negotiating' }).eq('id', invoiceId);
 
         const dbDeal = {
             invoice_id: invoiceId,
@@ -436,7 +460,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         await supabase.from('messages').insert([dbMsg]);
 
-        fetchDeals(); fetchMessages();
+        fetchDeals(); fetchMessages(); fetchInvoices();
+        
+        // Edge Functionを利用して売り手へメール通知
+        const myName = authUser?.user_metadata?.company_name || '買主';
+        const chatUrl = `${import.meta.env.VITE_APP_URL || window.location.origin}/chat?dealId=${data.id}`;
+        sendEmailNotification(
+            [sellerId],
+            "【FactorMatch】新しい交渉が開始されました",
+            `<p>ご登録の債権に対して、${myName}様より新しく交渉（チャット）が開始されました。</p>
+             <p>FactorMatchのチャット画面よりご確認ください。</p>
+             <p><a href="${chatUrl}">チャット画面を開く</a></p>`
+        ).catch(err => console.error("Email notification failed:", err));
+
         return newDeal;
     };
 
@@ -445,7 +481,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const sellerId = invoice?.sellerId;
         if (!sellerId) return null;
 
+        // 【重複防止】既に同じ invoiceId と buyerId の Deal が存在するかチェック
+        const existingLocalDeal = deals.find(d => d.invoiceId === invoiceId && d.buyerId === buyerId);
+        if (existingLocalDeal) return existingLocalDeal;
 
+        const { data: existingData } = await supabase.from('deals')
+            .select('id, invoice_id, buyer_id, seller_id, status')
+            .eq('invoice_id', invoiceId)
+            .eq('buyer_id', buyerId)
+            .maybeSingle();
+
+        if (existingData) {
+            fetchDeals(); // sync to get full deal obj
+            return { id: existingData.id, invoiceId: existingData.invoice_id, buyerId: existingData.buyer_id, sellerId: existingData.seller_id, status: existingData.status } as Deal;
+        }
+
+        // 関連する単一のInvoiceのステータスを更新
+        await supabase.from('invoices').update({ status: 'negotiating' }).eq('id', invoiceId);
 
         const dbDeal = {
             invoice_id: invoiceId,
@@ -491,7 +543,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         await supabase.from('messages').insert([dbMsg]);
 
-        fetchDeals(); fetchMessages();
+        fetchDeals(); fetchMessages(); fetchInvoices();
+        
+        // Edge Functionを利用して売り手へメール通知
+        const myName = authUser?.user_metadata?.company_name || '買主';
+        const chatUrl = `${import.meta.env.VITE_APP_URL || window.location.origin}/chat?dealId=${data.id}`;
+        sendEmailNotification(
+            [sellerId],
+            "【FactorMatch】新しい交渉・オファーが開始されました",
+            `<p>ご登録の債権に対して、${myName}様より新しくオファー（交渉）が届きました。</p>
+             <p>提示額: ¥${offerAmount.toLocaleString()} 円</p>
+             <p>FactorMatchのチャット画面よりご確認ください。</p>
+             <p><a href="${chatUrl}">チャット画面を開く</a></p>`
+        ).catch(err => console.error("Email notification failed:", err));
+
         return newDeal;
     };
 

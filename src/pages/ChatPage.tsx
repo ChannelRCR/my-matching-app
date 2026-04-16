@@ -667,9 +667,10 @@ export const ChatPage: React.FC = () => {
                 // My Profile (Value Exists)
                 if (isPublic) {
                     displayValue = valueStr;
+                    actionElement = <span className="text-[10px] text-slate-500 font-bold bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">全体公開中</span>;
                 } else if (!isPublic && isRevealed) {
                     displayValue = valueStr;
-                    actionElement = <span className="text-[10px] text-green-600 font-bold bg-green-50 px-1.5 py-0.5 rounded border border-green-200">開示済み ✓</span>;
+                    actionElement = <span className="text-[10px] text-green-600 font-bold bg-green-50 px-1.5 py-0.5 rounded border border-green-200">個別開示済み ✓</span>;
                 } else {
                     displayValue = valueStr;
                     if (['open', 'pending', 'negotiating'].includes(deal?.status || '')) {
@@ -694,6 +695,76 @@ export const ChatPage: React.FC = () => {
                 <span className="text-slate-500 shrink-0 mr-2">{field.label}</span>
                 <div className="flex-1 flex justify-end items-center gap-2 text-right">
                     <span className={`truncate ${isMasked || isEmpty ? 'text-slate-400 italic' : 'text-slate-800'}`}>
+                        {displayValue}
+                    </span>
+                    {actionElement}
+                </div>
+            </div>
+        );
+    };
+
+    const renderInvoicePrivateField = (
+        fieldKey: string,
+        fieldLabel: string,
+        displayRaw: string | undefined | null,
+        isPublic: boolean,
+        isMine: boolean,
+        isRevealed: boolean
+    ) => {
+        const isEmpty = displayRaw === undefined || displayRaw === null || displayRaw === '';
+        const valueStr = isEmpty ? '未設定' : String(displayRaw);
+
+        let displayValue = '';
+        let isMasked = false;
+        let actionElement: React.ReactNode = null;
+
+        if (isEmpty) {
+            displayValue = '未設定';
+            isMasked = true;
+        } else {
+            if (!isMine) {
+                // Opponent viewer
+                if (isPublic) {
+                    displayValue = valueStr;
+                } else if (!isPublic && isRevealed) {
+                    displayValue = valueStr;
+                } else {
+                    displayValue = '*** (非公開)';
+                    isMasked = true;
+                }
+            } else {
+                // My view (Seller view for Invoice)
+                if (isPublic) {
+                    displayValue = valueStr;
+                    actionElement = <span className="text-[10px] text-slate-500 font-bold bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">全体公開中</span>;
+                } else if (!isPublic && isRevealed) {
+                    displayValue = valueStr;
+                    actionElement = <span className="text-[10px] text-green-600 font-bold bg-green-50 px-1.5 py-0.5 rounded border border-green-200">個別開示済み ✓</span>;
+                } else {
+                    displayValue = valueStr;
+                    if (['open', 'pending', 'negotiating'].includes(deal?.status || '')) {
+                        // The button shares the same debtorInfo key to reveal all related invoice fields together
+                        actionElement = (
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-6 text-[10px] px-2 border-blue-200 text-blue-600 hover:bg-blue-50 disabled:opacity-50"
+                                onClick={() => handleRevealField(fieldKey, '案件の売掛先 企業名と所在地')}
+                                disabled={invoice?.status === 'withdrawn' || isDealExpired}
+                            >
+                                開示する
+                            </Button>
+                        );
+                    }
+                }
+            }
+        }
+
+        return (
+            <div key={fieldLabel} className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
+                <span className="text-slate-500 shrink-0 mr-2">{fieldLabel}</span>
+                <div className="flex-1 flex justify-end items-center gap-2 text-right">
+                    <span className={`truncate ${(isMasked && !isMine && !isPublic && !isRevealed) ? 'text-slate-500' : isMasked ? 'text-slate-400 italic' : 'text-slate-800 font-medium'}`}>
                         {displayValue}
                     </span>
                     {actionElement}
@@ -945,27 +1016,9 @@ export const ChatPage: React.FC = () => {
                                             <span className="text-slate-500 shrink-0 mr-2">入金期日</span>
                                             <div className="flex-1 text-right font-medium text-slate-800">{invoice.dueDate}</div>
                                         </div>
-                                        <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
-                                            <span className="text-slate-500 shrink-0 mr-2">企業名</span>
-                                            <div className="flex-1 text-right font-medium text-slate-800">{invoice.isClientNamePublic || (!isBuyer ? true : opponentRevealedFields['debtorInfo']) ? (invoice.debtorName || '未設定') : '*** (非公開)'}</div>
-                                        </div>
-                                        <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
-                                            <span className="text-slate-500 shrink-0 mr-2">所在地</span>
-                                            <div className="flex-1 text-right font-medium text-slate-800">{invoice.isClientAddressPublic || (!isBuyer ? true : opponentRevealedFields['debtorInfo']) ? (invoice.debtorAddress || '未設定') : '*** (非公開)'}</div>
-                                        </div>
-                                        {!isBuyer && !invoice.isClientNamePublic && !myRevealedFields['debtorInfo'] && (
-                                            <div className="pt-2">
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    className="w-full text-blue-600 border-blue-200 hover:bg-blue-50"
-                                                    disabled={invoice?.status === 'withdrawn' || isDealExpired}
-                                                    onClick={() => handleRevealField('debtorInfo', '案件の売掛先 企業名と所在地')}
-                                                >
-                                                    企業名と所在地を公開する
-                                                </Button>
-                                            </div>
-                                        )}
+                                        {renderInvoicePrivateField('debtorInfo', '企業名', invoice.debtorName, invoice.isClientNamePublic, !isBuyer, isBuyer ? opponentRevealedFields['debtorInfo'] : myRevealedFields['debtorInfo'])}
+                                        {renderInvoicePrivateField('debtorInfo', '郵便番号', invoice.debtorPostalCode ? `〒${invoice.debtorPostalCode}` : null, invoice.isClientAddressPublic, !isBuyer, isBuyer ? opponentRevealedFields['debtorInfo'] : myRevealedFields['debtorInfo'])}
+                                        {renderInvoicePrivateField('debtorInfo', '所在地', invoice.debtorAddress, invoice.isClientAddressPublic, !isBuyer, isBuyer ? opponentRevealedFields['debtorInfo'] : myRevealedFields['debtorInfo'])}
                                         <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
                                             <span className="text-slate-500 shrink-0 mr-2">業種 / 規模</span>
                                             <div className="flex-1 text-right font-medium text-slate-800">{invoice.industry} / {invoice.companySize ? translateCompanySize(invoice.companySize) : '未設定'}</div>

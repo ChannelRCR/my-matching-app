@@ -349,7 +349,7 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
                                                     onChange={handleInputChange}
                                                     className="rounded border-slate-300 text-primary focus:ring-primary h-4 w-4"
                                                 />
-                                                <span className="text-sm text-slate-600 font-medium">所在地を全体に公開する</span>
+                                                <span className="text-sm text-slate-600 font-medium">所在地（郵便番号含む）を全体に公開する</span>
                                             </label>
                                         </div>
                                     </div>
@@ -529,6 +529,7 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
 
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-slate-700">証拠書類（請求書等）のアップロード<OptionalBadge /></label>
+                                <p className="text-xs text-red-600 font-bold -mt-1 mb-2">※証拠書類は、買い手から閲覧可能です。</p>
                                 <div className="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center hover:bg-slate-50 transition-colors">
                                     <input
                                         type="file"
@@ -609,6 +610,16 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
                                         <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${formData.isClientNamePublic ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'}`}>
                                             {formData.isClientNamePublic ? '公開' : '非公開'}
                                         </span>
+                                    </div>
+
+                                    <div className="text-slate-500 font-medium">取引先郵便番号:</div>
+                                    <div className="font-bold">
+                                        {formData.debtorPostalCode || '（未入力）'}
+                                        {formData.debtorPostalCode && (
+                                            <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${formData.isClientAddressPublic ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'}`}>
+                                                {formData.isClientAddressPublic ? '公開' : '非公開'}
+                                            </span>
+                                        )}
                                     </div>
 
                                     <div className="text-slate-500 font-medium">取引先所在地:</div>

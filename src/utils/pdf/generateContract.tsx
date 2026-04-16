@@ -137,8 +137,13 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
                 <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000', fontSize: '12px', marginBottom: '40px' }}>
                     <tbody>
                         <tr><td style={{ border: '1px solid #000', padding: '8px', width: '25%', backgroundColor: '#f9f9f9' }}>企業名 / 氏名</td><td style={{ border: '1px solid #000', padding: '8px' }}>{seller.companyName || seller.name}</td></tr>
+                        <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>フリガナ</td><td style={{ border: '1px solid #000', padding: '8px' }}>{seller.companyNameKana || '-'}</td></tr>
+                        <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>法人番号</td><td style={{ border: '1px solid #000', padding: '8px' }}>{seller.corporateNumber || '-'}</td></tr>
+                        <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>業種</td><td style={{ border: '1px solid #000', padding: '8px' }}>{seller.industry || '-'}</td></tr>
                         <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>代表者名</td><td style={{ border: '1px solid #000', padding: '8px' }}>{seller.representativeName || '未設定'}</td></tr>
+                        <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>代表者名（フリガナ）</td><td style={{ border: '1px solid #000', padding: '8px' }}>{seller.representativeNameKana || '-'}</td></tr>
                         <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>担当者名</td><td style={{ border: '1px solid #000', padding: '8px' }}>{seller.contactPerson || '-'}</td></tr>
+                        <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>郵便番号</td><td style={{ border: '1px solid #000', padding: '8px' }}>{seller.postalCode || '-'}</td></tr>
                         <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>所在地</td><td style={{ border: '1px solid #000', padding: '8px' }}>{seller.address || '未設定'}</td></tr>
                         <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>電話番号</td><td style={{ border: '1px solid #000', padding: '8px' }}>{seller.phone || '未設定'}</td></tr>
                         <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>メールアドレス</td><td style={{ border: '1px solid #000', padding: '8px' }}>{seller.email || '未設定'}</td></tr>
@@ -153,8 +158,13 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
                 <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000', fontSize: '12px', marginBottom: '40px' }}>
                     <tbody>
                         <tr><td style={{ border: '1px solid #000', padding: '8px', width: '25%', backgroundColor: '#f9f9f9' }}>企業名 / 氏名</td><td style={{ border: '1px solid #000', padding: '8px' }}>{buyer.companyName || buyer.name}</td></tr>
+                        <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>フリガナ</td><td style={{ border: '1px solid #000', padding: '8px' }}>{buyer.companyNameKana || '-'}</td></tr>
+                        <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>法人番号</td><td style={{ border: '1px solid #000', padding: '8px' }}>{buyer.corporateNumber || '-'}</td></tr>
+                        <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>業種</td><td style={{ border: '1px solid #000', padding: '8px' }}>{buyer.industry || '-'}</td></tr>
                         <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>代表者名</td><td style={{ border: '1px solid #000', padding: '8px' }}>{buyer.representativeName || '未設定'}</td></tr>
+                        <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>代表者名（フリガナ）</td><td style={{ border: '1px solid #000', padding: '8px' }}>{buyer.representativeNameKana || '-'}</td></tr>
                         <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>担当者名</td><td style={{ border: '1px solid #000', padding: '8px' }}>{buyer.contactPerson || '-'}</td></tr>
+                        <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>郵便番号</td><td style={{ border: '1px solid #000', padding: '8px' }}>{buyer.postalCode || '-'}</td></tr>
                         <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>所在地</td><td style={{ border: '1px solid #000', padding: '8px' }}>{buyer.address || '未設定'}</td></tr>
                         <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>電話番号</td><td style={{ border: '1px solid #000', padding: '8px' }}>{buyer.phone || '未設定'}</td></tr>
                         <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>メールアドレス</td><td style={{ border: '1px solid #000', padding: '8px' }}>{buyer.email || '未設定'}</td></tr>
@@ -172,7 +182,10 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
                 <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000', fontSize: '12px', marginBottom: '40px' }}>
                     <tbody>
                         <tr><td style={{ border: '1px solid #000', padding: '8px', width: '25%', backgroundColor: '#f9f9f9' }}>取引先（第三債務者）</td><td style={{ border: '1px solid #000', padding: '8px' }}>{invoice.debtorName || '未設定'}</td></tr>
+                        <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>取引先郵便番号</td><td style={{ border: '1px solid #000', padding: '8px' }}>{invoice.debtorPostalCode || '-'}</td></tr>
                         <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>取引先所在地</td><td style={{ border: '1px solid #000', padding: '8px' }}>{invoice.debtorAddress || '未設定'}</td></tr>
+                        <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>取引先の業種</td><td style={{ border: '1px solid #000', padding: '8px' }}>{invoice.industry || '-'}</td></tr>
+                        <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>債権の種類</td><td style={{ border: '1px solid #000', padding: '8px' }}>{invoice.claimType === 'その他' ? `${invoice.claimType}（${invoice.claimTypeOther}）` : (invoice.claimType || '-')}</td></tr>
                         <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>請求額面額</td><td style={{ border: '1px solid #000', padding: '8px' }}>金 {invoice.amount.toLocaleString()} 円</td></tr>
                         <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>譲渡の範囲</td><td style={{ border: '1px solid #000', padding: '8px', fontWeight: 'bold' }}>{targetAmountText}</td></tr>
                         <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>入金期日（支払期日）</td><td style={{ border: '1px solid #000', padding: '8px' }}>{invoice.dueDate || '未設定'}</td></tr>

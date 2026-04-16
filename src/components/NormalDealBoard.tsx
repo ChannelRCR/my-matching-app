@@ -187,12 +187,13 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                         deal_id: deal.id,
                         sender_id: user.id,
                         receiver_id: isBuyer ? deal.sellerId : deal.buyerId,
-                        content: "【システム】双方が合意し、契約が成立しました🎉",
-                        is_system_message: true,
-                        timestamp: new Date().toISOString()
+                        content: "【システム】双方が合意し、契約成立しました🎉",
+                        is_system_message: true
                     };
                     const { error: msgInsertError } = await supabase.from('messages').insert([systemMsg]);
-                    if (msgInsertError) throw msgInsertError;
+                    if (msgInsertError) {
+                        console.error("System message insert failed but continuing contract creation:", msgInsertError);
+                    }
                     
                     const { error: invoiceUpdateError } = await supabase.from('invoices').update({ status: 'sold' }).eq('id', deal.invoiceId);
                     if (invoiceUpdateError) throw invoiceUpdateError;

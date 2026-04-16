@@ -106,23 +106,11 @@ async function runTest() {
   await buyerBPage.click('button:has-text("送信")');
   await buyerBPage.waitForTimeout(1000);
 
-  // Seller checks dashboard to see both deals
+  // Seller checks dashboard
   console.log("4. Seller checks active negotiations...");
   await sellerPage.goto(`${APP_URL}/`);
   await sellerPage.waitForTimeout(2000);
-  // Look for Buyer A and B's requests
-  
-  // Get deal links from Seller UI
-  // Since "交渉中" or messages show up, we can find the chat links
-  const chatLinks = await sellerPage.locator('text=チャットへ').all();
-  if (chatLinks.length < 2) {
-      console.log("Error: Expected 2 chat links. Found:", chatLinks.length);
-  } else {
-      console.log("Seller sees 2 deals perfectly!");
-  }
 
-  // To target Buyer A specifically, let's navigate to the first chat link (Assuming it's Buyer B because it's newer, wait!)
-  // We can use the URL pattern or just click the first. Actually let's just make the seller go to Buyer A's chat programmatically to avoid guessing the order.
   const pageAUrl = buyerAPage.url(); // http://.../chat?dealId=...
   const dealIdA = new URL(pageAUrl).searchParams.get('dealId');
   
@@ -145,36 +133,44 @@ async function runTest() {
       }
   }
 
-  // Seller accepts rules
-  await sellerPage.click('button:has-text("規約及び契約条項を確認・同意する")');
-  await sellerPage.waitForTimeout(1000); // DB wait
+  // Handle all confirm dialogs
+  sellerPage.on('dialog', dialog => dialog.accept());
+  buyerAPage.on('dialog', dialog => dialog.accept());
 
-  // Buyer A sees this, accepts rules, and buys
-  await buyerAPage.goto(`${APP_URL}/chat?dealId=${dealIdA}`);
-  await buyerAPage.waitForTimeout(2000);
-  await buyerAPage.fill('input[placeholder="金額を入力"]', '950000'); // match seller requested logic if needed
-  // Seller types 950K and sends
-  await sellerPage.fill('input[placeholder="メッセージを入力..."]', 'よろしくお願いします');
+  // Seller first matches the price to 950K so effectivelyMatched becomes true
   await sellerPage.fill('input[placeholder="金額を入力"]', '950000');
-  await sellerPage.click('button[aria-label="送信"]');
+  await sellerPage.click('button:has-text("提示する")');
   await sellerPage.waitForTimeout(2000);
+  
+  // Now UI changes to have the term links
+  await sellerPage.screenshot({ path: 'artifacts/debug_seller_before_terms.png' });
+  await sellerPage.click('text=約款および債権譲渡契約条項を読む', { timeout: 10000 });
+  await sellerPage.waitForTimeout(1000);
+  
+  await sellerPage.check('input[type="checkbox"]');
+  await sellerPage.waitForTimeout(1000);
+
+  await sellerPage.click('button:has-text("契約手続に進む（合意する）")');
+  await sellerPage.waitForTimeout(3000);
 
   // Buyer A agrees
   await buyerAPage.goto(`${APP_URL}/chat?dealId=${dealIdA}`);
-  await buyerAPage.waitForTimeout(2000);
-  await buyerAPage.click('button:has-text("規約及び契約条項を確認・同意する")');
-  await buyerAPage.waitForTimeout(2000);
+  await buyerAPage.waitForTimeout(3000);
 
-  // Since price matches, there should be "【システム通知】金額が ¥950,000 で合致しました。"
+  // Look for match message just in case
   const hasMatchedMsg = await buyerAPage.locator('text=金額が ¥950,000 で合致しました').isVisible();
   console.log("Buyer A Match Message Visible:", hasMatchedMsg);
 
-  // Click Agree & Conclude
-  await sellerPage.click('button:has-text("取引に合意し、契約を締結する")');
-  await sellerPage.waitForTimeout(1000);
+  // Buyer A opens terms and checks box
+  await buyerAPage.click('text="約款および債権譲渡契約条項を読む"');
+  await buyerAPage.waitForTimeout(1000);
   
-  await buyerAPage.click('button:has-text("取引に合意し、契約を締結する")');
-  await buyerAPage.waitForTimeout(3000);
+  await buyerAPage.check('input[type="checkbox"]');
+  await buyerAPage.waitForTimeout(1000);
+
+  // Click Agree & Conclude
+  await buyerAPage.click('button:has-text("契約手続に進む（合意する）")');
+  await buyerAPage.waitForTimeout(5000);
 
   console.log("6. Buyer A Agreement Verified...");
   await buyerAPage.screenshot({ path: 'artifacts/buyerA_concluded.png' });

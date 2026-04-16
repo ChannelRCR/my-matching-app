@@ -190,6 +190,10 @@ export const BuyerInvoiceDetail: React.FC = () => {
                                 <span className="font-bold">{invoice.isClientNamePublic ? (invoice.debtorName || '未設定') : '*** (非公開)'}</span>
                             </div>
                             <div className="flex justify-between border-b border-slate-100 pb-2">
+                                <span className="text-slate-500">取引先郵便番号</span>
+                                <span className="font-medium">{invoice.isClientAddressPublic ? (invoice.debtorPostalCode ? `〒 ${invoice.debtorPostalCode}` : '未設定') : '*** (非公開)'}</span>
+                            </div>
+                            <div className="flex justify-between border-b border-slate-100 pb-2">
                                 <span className="text-slate-500">取引先所在地</span>
                                 <span className="font-medium">{invoice.isClientAddressPublic ? (invoice.debtorAddress || '未設定') : '*** (非公開)'}</span>
                             </div>
