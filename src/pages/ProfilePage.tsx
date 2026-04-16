@@ -213,7 +213,7 @@ export const ProfilePage: React.FC = () => {
                     登録情報および、買い手・売り手に対して公開する項目を設定できます。
                     <br />
                     <span className="inline-flex items-center gap-1 text-emerald-600 text-sm mt-1 bg-emerald-50 px-2 py-0.5 rounded">
-                        <Eye size={14} /> 「公開」に設定した項目のみ、取引相手の画面に表示されます。
+                        <Eye size={14} /> 「公開」に設定した項目のみ、取引相手の画面に表示されます。契約締結の際には、買い手側に開示されます。
                     </span>
                 </p>
             </div>
