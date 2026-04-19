@@ -10,6 +10,7 @@ export const INDUSTRY_OPTIONS = [
     '宿泊・飲食サービス業',
     '医療・福祉',
     '投資業',
+    '公共団体',
     'その他'
 ];
 

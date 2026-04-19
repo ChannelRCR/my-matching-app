@@ -99,7 +99,7 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
         });
 
         const chatUrl = getChatUrl(deal.id);
-        sendEmailNotification(
+        await sendEmailNotification(
             [receiverId],
             "新着オファーのお知らせ [FactorMatch]",
             `<p>${proposerRole}様より新しい金額の提示（¥${numPrice.toLocaleString()}）がありました。</p>
@@ -204,17 +204,30 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                     completeDeal(invoice.amount, deal.currentAmount);
 
                     const chatUrl = getChatUrl(deal.id);
-                    sendEmailNotification(
+                    await sendEmailNotification(
                         [deal.buyerId, deal.sellerId],
                         "✅ 債権譲渡契約が成立しました [FactorMatch]",
                         `<p>対象案件の債権譲渡契約が成立（締結）しました。</p>
                         <p>速やかに決済手続きへ進み、ダッシュボードから相手方への支払い（または回収）を行ってください。</p>
                         <p><a href="${chatUrl}">チャット画面を開く（契約書PDFもこちらから）</a></p>`
                     );
+                    
+                    const competingDealsToReject = activeDealsForInvoice.filter(d => d.id !== deal.id && !['rejected', 'withdrawn', 'cancelled'].includes(d.status));
+                    const competitorBuyerIds = competingDealsToReject.map(d => d.buyerId);
+                    if (competitorBuyerIds.length > 0) {
+                        const dashboardUrl = `${import.meta.env.VITE_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '')}/`;
+                        await sendEmailNotification(
+                            competitorBuyerIds,
+                            "【お知らせ】交渉中の案件が他の方と成約・募集終了となりました [FactorMatch]",
+                            `<p>誠に残念ながら、交渉いただいていた対象案件につきまして、売主様が他の方との契約に合意されたため、募集が終了（自動取り下げ）となりました。</p>
+                            <p>またの機会にご利用をお待ちしております。</p>
+                            <p><a href="${dashboardUrl}">ダッシュボードへ戻る</a></p>`
+                        ).catch(err => console.error("Competitor rejection email failed:", err));
+                    }
                 } else {
                     const chatUrl = getChatUrl(deal.id);
                     const receiverId = isBuyer ? deal.sellerId : deal.buyerId;
-                    sendEmailNotification(
+                    await sendEmailNotification(
                         [receiverId],
                         "お相手が契約に同意しました。最終合意をお願いします [FactorMatch]",
                         `<p>お相手が契約内容に同意しました。</p>
@@ -315,6 +328,14 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                     timestamp: new Date().toISOString(),
                     isSystemMessage: true
                 });
+                const chatUrl = getChatUrl(deal.id);
+                await sendEmailNotification(
+                    [deal.buyerId, deal.sellerId],
+                    "【自動移行】フェーズ2（回収・引渡し）へ進行しました [FactorMatch]",
+                    `<p>買主様からの送金報告から24時間が経過したため、自動的にフェーズ2（回収待ち）へ移行しました。</p>
+                    <p>対象案件の着金状況をご確認ください。</p>
+                    <p><a href="${chatUrl}">チャット画面を開く</a></p>`
+                );
                 shouldRefresh = true;
             }
             // Phase 2 Auto
@@ -329,6 +350,13 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                     timestamp: new Date().toISOString(),
                     isSystemMessage: true
                 });
+                const chatUrl = getChatUrl(deal.id);
+                await sendEmailNotification(
+                    [deal.buyerId, deal.sellerId],
+                    "【自動完了】すべての取引が完了しました [FactorMatch]",
+                    `<p>売主様からの送金報告から24時間が経過したため、自動的に着金確認とみなされ、すべての取引が完了いたしました。</p>
+                    <p><a href="${chatUrl}">チャット画面を開く</a></p>`
+                );
                 shouldRefresh = true;
             }
             if (shouldRefresh) {
@@ -357,7 +385,7 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                 isSystemMessage: true
             });
             const chatUrl = getChatUrl(deal.id);
-            sendEmailNotification(
+            await sendEmailNotification(
                 [deal.sellerId],
                 "買主から送金報告がありました [FactorMatch]",
                 `<p>買主から送金報告がありました。直ちに入金を確認し、「着金確認」操作を行ってください。</p>
@@ -379,6 +407,14 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                 timestamp: new Date().toISOString(),
                 isSystemMessage: true
             });
+            const chatUrl = getChatUrl(deal.id);
+            await sendEmailNotification(
+                [deal.buyerId],
+                "【重要】売主様より譲渡代金のお支払いについて督促がありました [FactorMatch]",
+                `<p>売主様が譲渡代金の着金を確認できておりません。直ちにお支払い状況をご確認ください。</p>
+                <p>未払いが続く場合、取引がキャンセルされる可能性があります。</p>
+                <p><a href="${chatUrl}">チャット画面を開いて状況を確認する</a></p>`
+            );
         }
     };
 
@@ -396,6 +432,14 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                 timestamp: new Date().toISOString(),
                 isSystemMessage: true
             });
+            const chatUrl = getChatUrl(deal.id);
+            await sendEmailNotification(
+                [deal.buyerId],
+                "【重要】取引がキャンセルされました [FactorMatch]",
+                `<p>督促後も代金の確認ができなかったため、売主様により本案件の取引がキャンセル（中止）されました。</p>
+                <p>本取引はこれ以上進行できません。</p>
+                <p><a href="${chatUrl}">チャット画面を開く</a></p>`
+            );
             window.location.reload();
         }
     };
@@ -413,6 +457,14 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                 timestamp: new Date().toISOString(),
                 isSystemMessage: true
             });
+            const chatUrl = getChatUrl(deal.id);
+            await sendEmailNotification(
+                [deal.buyerId],
+                "【フェーズ移行】売主様が着金を確認しました [FactorMatch]",
+                `<p>売主様が買取代金の着金を確認しました。</p>
+                <p>以降はフェーズ2となり、期日後の売主様からの回収金送金をお待ちいただく状態となります。</p>
+                <p><a href="${chatUrl}">チャット画面を開く</a></p>`
+            );
         }
     };
 
@@ -435,7 +487,7 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                 isSystemMessage: true
             });
             const chatUrl = getChatUrl(deal.id);
-            sendEmailNotification(
+            await sendEmailNotification(
                 [deal.buyerId],
                 "売主から回収・送金報告がありました [FactorMatch]",
                 `<p>売主より、最終的な回収・送金報告がありました。ご自身の口座入金をご確認のうえ、最終確認を行ってください。</p>
@@ -457,6 +509,14 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                 timestamp: new Date().toISOString(),
                 isSystemMessage: true
             });
+            const chatUrl = getChatUrl(deal.id);
+            await sendEmailNotification(
+                [deal.sellerId],
+                "【重要】買主様より回収金の送金について督促がありました [FactorMatch]",
+                `<p>買主様が回収金の着金を確認できておりません。直ちにご送金ください。</p>
+                <p>迅速な対応がない場合、買主様から直接第三債務者（取引先）へ連絡が行く可能性があります。至急状況をご確認ください。</p>
+                <p><a href="${chatUrl}">チャット画面を開いて状況を確認する</a></p>`
+            );
         }
     };
 
@@ -474,7 +534,7 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                 isSystemMessage: true
             });
             const chatUrl = getChatUrl(deal.id);
-            sendEmailNotification(
+            await sendEmailNotification(
                 [deal.sellerId, deal.buyerId],
                 "🎊 すべての取引が完了しました [FactorMatch]",
                 `<p>買主による最終着金確認が完了し、本案件のすべての取引プロセスが完了いたしました。</p>
@@ -582,6 +642,15 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                                                     });
                                                     
                                                     await updateDeal(cDeal.id, { currentSellerPrice: null as unknown as number });
+                                                    
+                                                    const chatUrl = getChatUrl(cDeal.id);
+                                                    await sendEmailNotification(
+                                                        [cDeal.buyerId],
+                                                        "【重要】売主様より条件の再提示（再オファー）のお願い [FactorMatch]",
+                                                        `<p>現在、他の買主様と同額の最高額オファーとなっております。</p>
+                                                        <p>売主様より、条件の再提示（金額の再検討）のお願いが届いています。チャット画面より新しいオファーをご提示ください。</p>
+                                                        <p><a href="${chatUrl}">チャット画面を開いて再提示する</a></p>`
+                                                    );
                                                 }
                                                 if (invoice?.sellingAmount) {
                                                     setProposedPrice(String(invoice.sellingAmount));

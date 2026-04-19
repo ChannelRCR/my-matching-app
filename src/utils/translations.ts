@@ -4,6 +4,7 @@ export const translateCompanySize = (size: string | undefined): string => {
         case 'Large': return '大手企業';
         case 'SMB': return '中小企業';
         case 'Individual': return '個人（企業）';
+        case 'Public': return '公共団体';
         default: return size || '不明';
     }
 };

@@ -50,7 +50,7 @@ export interface Invoice {
     industry: string;
     industryOther?: string;
     saleType?: 'full' | 'partial';
-    companySize?: 'Listed' | 'Large' | 'SMB' | 'Individual'; // Updated enum
+    companySize?: 'Listed' | 'Large' | 'SMB' | 'Individual' | 'Public'; // Updated enum
     companyCredit: string; // Credit info of the debtor company
     claimType?: string;
     claimTypeOther?: string;

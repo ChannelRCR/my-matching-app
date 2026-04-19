@@ -257,10 +257,10 @@ export const ChatPage: React.FC = () => {
                 content: matchedPriceMsg,
                 timestamp: new Date().toISOString(),
                 isSystemMessage: true
-            }).then(() => {
+            }).then(async () => {
                 // Email notification securely triggers asynchronously
                 const chatUrl = getChatUrl(deal.id);
-                sendEmailNotification(
+                await sendEmailNotification(
                     [deal.buyerId, deal.sellerId],
                     "【金額の合致】自動取引システムより [FactorMatch]",
                     `<p>お互いの提示金額が合致しました！（¥${deal.currentBuyerPrice?.toLocaleString()}）</p>
@@ -325,7 +325,7 @@ export const ChatPage: React.FC = () => {
             
             const chatUrl = getChatUrl(deal.id);
             const receiverId = isBuyer ? deal.sellerId : deal.buyerId;
-            sendEmailNotification(
+            await sendEmailNotification(
                 [receiverId],
                 "🚨 【重要】お相手が当事者間交渉へ移行しました [FactorMatch]",
                 `<p>お相手が「交渉システム」への移行を選択しました。</p>
@@ -374,7 +374,7 @@ export const ChatPage: React.FC = () => {
 
         const chatUrl = getChatUrl(deal.id);
         const myName = myProfile?.companyName || myProfile?.contactPerson || 'ユーザー';
-        sendEmailNotification(
+        await sendEmailNotification(
             [receiverId],
             "新着メッセージのお知らせ [FactorMatch]",
             `<p>${myName}様から新しいメッセージが届いています。</p>
@@ -440,7 +440,7 @@ export const ChatPage: React.FC = () => {
 
             const chatUrl = getChatUrl(deal.id);
             const myName = myProfile?.companyName || myProfile?.contactPerson || 'ユーザー';
-            sendEmailNotification(
+            await sendEmailNotification(
                 [receiverId],
                 "ファイルの受信のお知らせ [FactorMatch]",
                 `<p>${myName}様からファイルが送信されました。</p>
@@ -526,7 +526,7 @@ export const ChatPage: React.FC = () => {
             const chatUrl = getChatUrl(deal.id);
             // 宛先: 相手 (買い手)
             const receiverId = isBuyer ? deal.sellerId : deal.buyerId;
-            sendEmailNotification(
+            await sendEmailNotification(
                 [receiverId],
                 "案件が取り下げられました [FactorMatch]",
                 `<p>交渉中の案件について、売り主より取り下げ（キャンセル）が行われました。</p>
@@ -571,11 +571,10 @@ export const ChatPage: React.FC = () => {
             isSystemMessage: true
         });
 
-        // メール通知
         try {
             const chatUrl = getChatUrl(deal.id);
             if (fieldKey === 'debtorInfo') {
-                sendEmailNotification(
+                await sendEmailNotification(
                     [deal.buyerId],
                     "売主様が債権情報を開示しました [FactorMatch]",
                     `<p>お相手（売主様）が、取引対象となる債権情報（売掛先や所在地等）を開示しました。</p>
@@ -583,7 +582,7 @@ export const ChatPage: React.FC = () => {
                     <p><a href="${chatUrl}">チャット画面を開く</a></p>`
                 ).catch(err => console.error("Reveal debtor_info email failed:", err));
             } else {
-                sendEmailNotification(
+                await sendEmailNotification(
                     [receiverId],
                     "お相手がプロフィール情報を開示しました [FactorMatch]",
                     `<p>お相手がプロフィール項目「${fieldLabel}」を開示しました。</p>

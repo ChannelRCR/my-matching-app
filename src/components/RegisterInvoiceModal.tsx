@@ -209,7 +209,7 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
             isClientAddressPublic: formData.isClientAddressPublic,
             industry: formData.industry,
             industryOther: formData.industryOther,
-            companySize: formData.companySize as 'Listed' | 'Large' | 'SMB' | 'Individual',
+            companySize: formData.companySize as 'Listed' | 'Large' | 'SMB' | 'Individual' | 'Public',
             companyCredit: formData.companyCredit,
             claimType: formData.claimType,
             claimTypeOther: formData.claimTypeOther,
@@ -386,6 +386,7 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
                                             <option value="Large">大手企業（資本金1億以上、従業員1000人以上）</option>
                                             <option value="SMB">中小企業</option>
                                             <option value="Individual">個人（企業）</option>
+                                            <option value="Public">公共団体</option>
                                         </select>
                                         <p className="text-xs text-slate-500 mt-1">※売却対象の取引先企業について選択してください</p>
                                     </div>
