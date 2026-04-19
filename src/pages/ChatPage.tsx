@@ -193,6 +193,14 @@ export const ChatPage: React.FC = () => {
 
                 setMessages(chatMessages);
 
+                // 過去のチャット履歴から約款確認済みかどうかを復元する
+                const roleName = isBuyer ? '買い手' : '売り手';
+                const hasViewedFromHistory = chatMessages.some(m => 
+                    m.isSystemMessage === true && 
+                    m.text.includes(`${roleName}が、約款および債権譲渡契約条項を確認しました`)
+                );
+                if (hasViewedFromHistory) setHasViewedTerms(true);
+
                 // Mark deal as read ONLY if there are actually unread messages for me
                 const hasUnread = dealMessages.some(m => {
                     const receiverIdStr = String(m.receiverId || (m as unknown as Record<string, unknown>).receiver_id);

@@ -237,8 +237,26 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
         }
 
         // 6. Save the final multi-page PDF
-        pdf.save(`債権譲渡契約書_${deal.id}.pdf`);
+        const blob = pdf.output('blob');
+        const url = URL.createObjectURL(blob);
+        try {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `債権譲渡契約書_${deal.id}.pdf`;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        } catch (downloadError) {
+            console.error("PDF download failed:", downloadError);
+            throw new Error("DOWNLOAD_FAILED");
+        } finally {
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+        }
     } catch (error) {
+        if (error instanceof Error && error.message === "DOWNLOAD_FAILED") {
+            throw error;
+        }
         console.error("PDF canvas generation failed:", error);
         throw new Error("PDF画像の生成に失敗しました。詳細: " + String(error));
     } finally {

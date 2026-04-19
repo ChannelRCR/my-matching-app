@@ -10,6 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { DealStepper } from './DealStepper';
 import { sendEmailNotification, getChatUrl } from '../utils/notification';
 import { SystemFeeModal } from './SystemFeeModal';
+import { isLineBrowser } from '../utils/browser';
 import type { Deal, Invoice, User as UserType } from '../types';
 
 interface NormalDealBoardProps {
@@ -56,7 +57,9 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
     const [isFeeModalOpen, setIsFeeModalOpen] = useState(false);
 
     const opponentProfile = isBuyer ? users.find(u => u.id === deal?.sellerId) : users.find(u => u.id === deal?.buyerId);
-    const hasMultipleBuyers = activeDealsForInvoice.length > 1;
+    const highestOfferAmount = activeDealsForInvoice.length > 0 ? Math.max(...activeDealsForInvoice.map(d => d.currentBuyerPrice || 0)) : 0;
+    const highestBuyersCount = activeDealsForInvoice.filter(d => (d.currentBuyerPrice || 0) === highestOfferAmount && highestOfferAmount > 0).length;
+    const hasMultipleHighestBuyers = highestBuyersCount > 1;
 
     const handleProposePrice = async () => {
         if (!deal || !user || !proposedPrice || !invoice) return;
@@ -239,6 +242,10 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
 
     const handlePrintContract = async () => {
         if (!deal || !invoice) return;
+        if (isLineBrowser()) {
+            alert("※LINEアプリ内ではPDFのダウンロードが制限されています。画面右上（または右下）のメニューから『デフォルトのブラウザで開く（Safari / Chrome等）』を選択し、標準ブラウザから再度お試しください。");
+            return;
+        }
         const buyer = users.find(u => u.id === deal.buyerId);
         const seller = users.find(u => u.id === deal.sellerId);
         if (!buyer || !seller) {
@@ -252,108 +259,225 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
             await generateContractPDF(deal, invoice, seller, buyer);
         } catch (e) {
             console.error("PDF Error:", e);
-            alert(`PDF生成に失敗しました。\n詳細: ${e instanceof Error ? e.message : String(e)}`);
+            if (e instanceof Error && e.message === "DOWNLOAD_FAILED") {
+                alert("ダウンロードに失敗しました。標準ブラウザ（Safari等）でお試しください。");
+            } else {
+                alert(`PDF生成に失敗しました。\n詳細: ${e instanceof Error ? e.message : String(e)}`);
+            }
         } finally {
             setIsGeneratingPdf(false);
         }
     };
 
-    // Payment step handlers
+    // Helpers for Time / Timer Logic
+    const getJSTDate = (dateParam?: string | number | Date) => {
+        const d = dateParam ? new Date(dateParam) : new Date();
+        const jstStr = d.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' });
+        return new Date(jstStr);
+    };
+
+    const is24HoursPassed = (timestamp: string) => {
+        const date = getJSTDate(timestamp);
+        const now = getJSTDate();
+        return (now.getTime() - date.getTime()) >= 24 * 60 * 60 * 1000;
+    };
+
+    const canSellerCancel = () => {
+        if (!deal?.buyer_urged_at) return false;
+        const urgedAt = getJSTDate(deal.buyer_urged_at);
+        const now = getJSTDate();
+        const urgedHour = urgedAt.getHours();
+
+        if (urgedHour >= 16) {
+            const nextDay9am = new Date(urgedAt);
+            nextDay9am.setDate(nextDay9am.getDate() + 1);
+            nextDay9am.setHours(9, 0, 0, 0);
+            return now >= nextDay9am;
+        } else {
+            return (now.getTime() - urgedAt.getTime()) >= 2 * 60 * 60 * 1000;
+        }
+    };
+
+    // Lazy Evaluation 24H auto confirm
+    React.useEffect(() => {
+        if (!deal || !user) return;
+        const checkAutoConfirm = async () => {
+            let shouldRefresh = false;
+            // Phase 1 Auto
+            if (deal.paymentStatus === 'buyer_paid' && deal.buyer_reported_at && is24HoursPassed(deal.buyer_reported_at) && !deal.buyer_urged_at) {
+                await updateDeal(deal.id, { paymentStatus: 'seller_received' });
+                await addMessage({
+                    id: `sys_auto_${Date.now()}`,
+                    dealId: deal.id,
+                    senderId: user.id,
+                    receiverId: deal.buyerId,
+                    content: "【システム通知】買主の送金報告から24時間が経過したため、自動的に着金とみなしフェーズ2へ移行しました。",
+                    timestamp: new Date().toISOString(),
+                    isSystemMessage: true
+                });
+                shouldRefresh = true;
+            }
+            // Phase 2 Auto
+            if (deal.paymentStatus === 'seller_repaid' && deal.seller_reported_at && is24HoursPassed(deal.seller_reported_at) && !deal.seller_urged_at) {
+                await updateDeal(deal.id, { paymentStatus: 'fully_settled' });
+                await addMessage({
+                    id: `sys_auto_${Date.now()}`,
+                    dealId: deal.id,
+                    senderId: user.id,
+                    receiverId: deal.sellerId,
+                    content: "【システム通知】売主の送金報告から24時間が経過したため、自動的に着金とみなし全取引を完了しました。",
+                    timestamp: new Date().toISOString(),
+                    isSystemMessage: true
+                });
+                shouldRefresh = true;
+            }
+            if (shouldRefresh) {
+                window.location.reload();
+            }
+        };
+        checkAutoConfirm();
+    }, [deal?.paymentStatus, deal?.buyer_reported_at, deal?.seller_reported_at, deal?.buyer_urged_at, deal?.seller_urged_at]);
+
+    // ===== Phase 1 Handlers (Buyer to Seller) =====
     const handleBuyerPaymentReport = async () => {
         if (!deal || !user) return;
-        if (window.confirm("本当に振込を完了しましたか？売主に報告が行われます。")) {
-            await updateDeal(deal.id, { paymentStatus: 'buyer_paid' });
+        if (window.confirm("本当に送金を報告しますか？\n（24時間経過した場合は、自動で着金確認したものと処理されます）")) {
+            await updateDeal(deal.id, { 
+                paymentStatus: 'buyer_paid',
+                buyer_reported_at: new Date().toISOString(),
+                buyer_urged_at: null as unknown as string
+            });
             await addMessage({
                 id: `sys_${Date.now()}`,
                 dealId: deal.id,
                 senderId: user.id,
                 receiverId: deal.sellerId,
-                content: "【システム通知】買い手が譲渡代金の振込完了を報告しました。",
+                content: "【システム通知】買主が譲渡代金の送金完了を報告しました。着金確認をお願いします。（なお、24時間経過した場合は自動で着金確認したものとみなします）",
                 timestamp: new Date().toISOString(),
                 isSystemMessage: true
             });
-
             const chatUrl = getChatUrl(deal.id);
             sendEmailNotification(
                 [deal.sellerId],
-                "買い手から振込完了の報告がありました [FactorMatch]",
-                `<p>買い手（譲受人）より、譲渡代金の振込完了報告がありました。</p>
-                <p>ご自身の口座の着金をご確認のうえ、取引画面にて「着金確認」手続を行ってください。</p>
+                "買主から送金報告がありました [FactorMatch]",
+                `<p>買主から送金報告がありました。直ちに入金を確認し、「着金確認」操作を行ってください。</p>
                 <p><a href="${chatUrl}">チャット画面を開く</a></p>`
             );
+        }
+    };
+
+    const handleSellerUrgePayment = async () => {
+        if (!deal || !user) return;
+        if (window.confirm("買主に支払いの督促を行いますか？自動着金タイマーが中止され、警告が送信されます。")) {
+            await updateDeal(deal.id, { buyer_urged_at: new Date().toISOString(), buyer_reported_at: null as unknown as string });
+            await addMessage({
+                id: `sys_${Date.now()}`,
+                dealId: deal.id,
+                senderId: user.id,
+                receiverId: deal.buyerId,
+                content: "【警告】売主から未確認/督促がありました。直ちにお支払願います。支払がない場合、売主からキャンセルされる場合があります。",
+                timestamp: new Date().toISOString(),
+                isSystemMessage: true
+            });
+        }
+    };
+
+    const handleSellerCancel = async () => {
+        if (!deal || !user) return;
+        if (window.confirm("買主からの着金が確認できないため、この取引を強制キャンセルしますか？\n中止案件（Rejected）になり復旧できなくなります。")) {
+            await updateDeal(deal.id, { status: 'rejected' });
+            await supabase.from('invoices').update({ status: 'withdrawn' }).eq('id', deal.invoiceId);
+            await addMessage({
+                id: `sys_${Date.now()}`,
+                dealId: deal.id,
+                senderId: user.id,
+                receiverId: deal.buyerId,
+                content: "【システム通知】督促後も支払いが確認できなかったため、売主が一方的なキャンセルを実行しました。取引は中止されました。",
+                timestamp: new Date().toISOString(),
+                isSystemMessage: true
+            });
+            window.location.reload();
         }
     };
 
     const handleSellerPaymentConfirm = async () => {
         if (!deal || !user) return;
-        if (window.confirm("着金を確認し、取引を継続しますか？この操作で買い手に実績が付与され、第三債務者からの回収フェーズに移行します。")) {
-            await updateDeal(deal.id, { paymentStatus: 'seller_received' });
+        if (window.confirm("着金を確認し、取引をフェーズ2（回収金の引渡し待ち）に進めますか？")) {
+            await updateDeal(deal.id, { paymentStatus: 'seller_received', buyer_urged_at: null as unknown as string, buyer_reported_at: null as unknown as string });
             await addMessage({
                 id: `sys_${Date.now()}`,
                 dealId: deal.id,
                 senderId: user.id,
                 receiverId: deal.buyerId,
-                content: "【システム通知】売り手が譲渡代金の着金を確認しました。期日後の「回収・送金報告」をお待ちください。",
+                content: "【システム通知】売主が譲渡代金の着金を確認しました。期日後の最終回収金送金をお待ちください。",
                 timestamp: new Date().toISOString(),
                 isSystemMessage: true
             });
-
-            const chatUrl = getChatUrl(deal.id);
-            sendEmailNotification(
-                [deal.buyerId],
-                "売り手が着金を確認しました（取引継続） [FactorMatch]",
-                `<p>売り手（譲渡人）による譲渡代金の着金確認が完了しました。</p>
-                <p>債権の支払期日後、売り手からの回収・送金完了報告をお待ちください。</p>
-                <p><a href="${chatUrl}">チャット画面を開く</a></p>`
-            );
         }
     };
 
+    // ===== Phase 2 Handlers (Seller to Buyer) =====
     const handleSellerRepaymentReport = async () => {
         if (!deal || !user) return;
-        if (window.confirm("第三債務者からの回収および買い手への送金を完了しましたか？買い手に報告が行われます。")) {
-            await updateDeal(deal.id, { paymentStatus: 'seller_repaid' });
+        if (window.confirm("第三債務者からの回収および買主への送金完了を報告しますか？")) {
+            await updateDeal(deal.id, { 
+                paymentStatus: 'seller_repaid',
+                seller_reported_at: new Date().toISOString(),
+                seller_urged_at: null as unknown as string
+            });
             await addMessage({
                 id: `sys_${Date.now()}`,
                 dealId: deal.id,
                 senderId: user.id,
                 receiverId: deal.buyerId,
-                content: "【システム通知】売り手が回収および買い手への送金完了を報告しました。着金をご確認ください。",
+                content: "【システム通知】売主が回収および送金完了を報告しました。着金確認をお願いします。（24時間後自動完了となります）",
                 timestamp: new Date().toISOString(),
                 isSystemMessage: true
             });
-
             const chatUrl = getChatUrl(deal.id);
             sendEmailNotification(
                 [deal.buyerId],
-                "回収金送付完了のお知らせ [FactorMatch]",
-                `<p>売り手（譲渡人）より、第三債務者からの回収およびあなたへの送金完了の報告がありました。</p>
-                <p>ご自身の口座への入金をご確認のうえ、取引画面より最終確認（全取引完了）の操作を行ってください。</p>
+                "売主から回収・送金報告がありました [FactorMatch]",
+                `<p>売主より、最終的な回収・送金報告がありました。ご自身の口座入金をご確認のうえ、最終確認を行ってください。</p>
                 <p><a href="${chatUrl}">チャット画面を開く</a></p>`
             );
         }
     };
 
-    const handleBuyerRepaymentConfirm = async () => {
+    const handleBuyerUrgeRepayment = async () => {
         if (!deal || !user) return;
-        if (window.confirm("着金を確認し、全取引を完了しますか？この操作は取り消せず、売り手に実績が付与されます。")) {
-            await updateDeal(deal.id, { paymentStatus: 'fully_settled' });
+        if (window.confirm("売主に回収金の送金督促を行いますか？")) {
+            await updateDeal(deal.id, { seller_urged_at: new Date().toISOString(), seller_reported_at: null as unknown as string });
             await addMessage({
                 id: `sys_${Date.now()}`,
                 dealId: deal.id,
                 senderId: user.id,
                 receiverId: deal.sellerId,
-                content: "【システム通知】買い手が着金を確認しました。これにて本取引は全て完了となります。",
+                content: "【警告】買主から未確認/督促がありました。直ちに支払願います。支払がない場合、買主が直接第三債務者に問い合わせを行う場合があります。",
                 timestamp: new Date().toISOString(),
                 isSystemMessage: true
             });
+        }
+    };
 
+    const handleBuyerRepaymentConfirm = async () => {
+        if (!deal || !user) return;
+        if (window.confirm("着金を確認し、全取引を完了しますか？この操作は取り消せません。")) {
+            await updateDeal(deal.id, { paymentStatus: 'fully_settled', seller_urged_at: null as unknown as string, seller_reported_at: null as unknown as string });
+            await addMessage({
+                id: `sys_${Date.now()}`,
+                dealId: deal.id,
+                senderId: user.id,
+                receiverId: deal.sellerId,
+                content: "【システム通知】買主が最終的な着金を確認しました。これにて本取引は全て完了となります。",
+                timestamp: new Date().toISOString(),
+                isSystemMessage: true
+            });
             const chatUrl = getChatUrl(deal.id);
             sendEmailNotification(
                 [deal.sellerId, deal.buyerId],
                 "🎊 すべての取引が完了しました [FactorMatch]",
-                `<p>買い手による最終着金確認が完了し、本案件のすべての取引プロセスが完了いたしました。</p>
-                <p>FactorMatchをご利用いただき、誠にありがとうございました。</p>
+                `<p>買主による最終着金確認が完了し、本案件のすべての取引プロセスが完了いたしました。</p>
                 <p><a href="${chatUrl}">取引履歴として詳細を確認する</a></p>`
             );
         }
@@ -391,18 +515,24 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                     <div className="text-[11px] font-bold text-slate-600 tracking-wide">入札・金額提示</div>
                     <form onSubmit={(e) => { e.preventDefault(); handleProposePrice(); }} className="flex gap-2">
                         <Input
-                            type="number"
+                            type="text"
+                            pattern="\d*"
+                            inputMode="numeric"
                             value={proposedPrice}
-                            onChange={(e) => setProposedPrice(e.target.value)}
+                            onChange={(e) => {
+                                let val = e.target.value;
+                                val = val.replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)).replace(/[^0-9]/g, '');
+                                setProposedPrice(val);
+                            }}
                             placeholder="金額を入力"
                             className="flex-1 h-9 font-mono text-base border-slate-300 focus:border-blue-500 focus:ring-blue-500 placeholder:text-slate-300"
-                            min="1"
                             disabled={isDealExpired || (invoice.status as string) === 'withdrawn'}
                         />
                         <Button type="submit" size="sm" className="h-9 bg-slate-800 hover:bg-slate-700 text-white shadow font-bold tracking-wide shrink-0 transition-colors px-4" disabled={!proposedPrice || isDealExpired || (invoice.status as string) === 'withdrawn'}>
                             提示する
                         </Button>
                     </form>
+                    <p className="text-[10px] text-slate-500 mt-0.5">※半角数字で入力してください</p>
                 </div>
             )}
 
@@ -427,7 +557,7 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                                 🎉 金額が合致しました！
                             </div>
 
-                            {!isBuyer && hasMultipleBuyers && !deal.sellerAgreedAt && (
+                            {!isBuyer && hasMultipleHighestBuyers && !deal.sellerAgreedAt && (
                                 <div className="mb-4 text-center">
                                     <p className="text-xs text-slate-500 mb-2">最高額オファーの買主が複数います。金額を再提示できます。</p>
                                     <Button 
@@ -567,7 +697,8 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                             </div>
 
                             {isBuyer ? (
-                                <div className="w-full font-medium text-sm text-left">
+                                <div className="w-full font-medium text-sm text-left flex flex-col gap-3">
+                                    {/* PHASE 1 (支払い待ち) */}
                                     {(!deal.paymentStatus || deal.paymentStatus === 'pending') && (
                                         <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg shadow-sm">
                                             <p className="font-bold text-blue-800 mb-2">
@@ -577,30 +708,56 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                                                 <p><strong>振込先口座:</strong></p>
                                                 <p>{opponentProfile?.bankAccountInfo || '口座情報が未設定です。売主にお問い合わせください。'}</p>
                                             </div>
-                                            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold shadow" onClick={handleBuyerPaymentReport}>
-                                                振込を完了し、売り手に報告する
+                                            {deal.buyer_urged_at && (
+                                                <div className="bg-red-50 border border-red-200 p-3 rounded mb-3 text-red-700 font-bold text-xs shadow-inner">
+                                                    ⚠️ 売主から支払いの督促がありました。直ちに支払願います。支払がない場合、取引がキャンセルされる可能性があります。
+                                                </div>
+                                            )}
+                                            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold shadow transition-all" onClick={handleBuyerPaymentReport}>
+                                                振込を完了し、売主に報告する
                                             </Button>
                                         </div>
                                     )}
                                     
                                     {deal.paymentStatus === 'buyer_paid' && (
                                         <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg shadow-sm text-center text-slate-600 font-bold">
-                                            <p>振込完了を報告しました。売り手の着金確認をお待ちください。</p>
+                                            <p>売主の着金確認をお待ちください。（24時間経過で自動着金完了となります）</p>
+                                            {deal.buyer_urged_at && (
+                                                <div className="bg-red-50 border border-red-200 p-3 rounded mt-3 text-red-700 font-bold text-xs shadow-inner">
+                                                    ⚠️ 売主が着金を確認できていません。支払い状況をご確認ください。
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                     
+                                    {/* PHASE 2 (回収・手渡し待ち) */}
                                     {deal.paymentStatus === 'seller_received' && (
-                                        <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg shadow-sm text-center text-blue-800 font-bold">
-                                            <p>売り手が着金を確認しました。期日の回収と送金をお待ちください。</p>
+                                        <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg shadow-sm text-center font-bold relative">
+                                            <p className="text-blue-800 mb-2">フェーズ2: 売主からの回収金引渡しをお待ちください</p>
+                                            <p className="text-xs text-blue-600 font-normal">引渡しの報告後、ここで最終確認を行います。</p>
                                         </div>
                                     )}
                                     
                                     {deal.paymentStatus === 'seller_repaid' && (
-                                        <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg shadow-sm">
-                                            <p className="text-orange-800 font-bold mb-3 text-center">📢 売り手から回収・送金完了の報告がありました。</p>
-                                            <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold shadow" onClick={handleBuyerRepaymentConfirm}>
-                                                着金を確認し、全取引を完了する
-                                            </Button>
+                                        <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg shadow-sm flex flex-col gap-3">
+                                            <p className="text-orange-800 font-bold text-center">📢 売主から引渡し/送金完了の報告がありました</p>
+                                            <p className="text-xs text-orange-700 text-center">着金を確認し、全取引を完了するか、着金していない場合は督促してください。</p>
+                                            <div className="flex gap-2 w-full mt-2">
+                                                <Button className="flex-1 bg-white border-red-300 text-red-600 hover:bg-red-50 font-bold shadow-sm" variant="outline" onClick={handleBuyerUrgeRepayment}>
+                                                    着金未確認 (督促する)
+                                                </Button>
+                                                <Button className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold shadow" onClick={handleBuyerRepaymentConfirm}>
+                                                    すべて完了する
+                                                </Button>
+                                            </div>
+                                            {deal.seller_urged_at && (
+                                                <div className="mt-3 text-center border-t border-orange-200 pt-3">
+                                                    <p className="text-xs text-red-600 font-bold mb-2">解決しない場合は仲裁チャットへ移行できます</p>
+                                                    <Button variant="outline" className="w-full text-slate-600 border-slate-300 text-xs py-1 h-8" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                                                        仲裁チャットを開く
+                                                    </Button>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                     
@@ -611,46 +768,82 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                                     )}
                                 </div>
                             ) : (
-                                <div className="w-full font-medium text-sm text-left">
+                                <div className="w-full font-medium text-sm text-left flex flex-col gap-3">
+                                    {/* PHASE 1 (支払い待ち) */}
                                     {(!deal.paymentStatus || deal.paymentStatus === 'pending') && (
-                                        <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg shadow-sm text-center">
-                                            <p className="font-bold text-blue-800">契約が成立しました。買い手からの譲渡代金の入金をお待ちください。</p>
+                                        <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg shadow-sm text-center flex flex-col gap-3">
+                                            <p className="font-bold text-blue-800 mb-2">フェーズ1: 買主の支払い待ち</p>
+                                            <p className="text-xs text-blue-700">買主からの譲渡代金の入金をお待ちください。</p>
+                                            <Button className="w-full bg-white border border-red-300 text-red-600 hover:bg-red-50 font-bold shadow-sm mt-2" variant="outline" onClick={handleSellerUrgePayment}>
+                                                着金未確認 (督促する)
+                                            </Button>
+                                            {canSellerCancel() && (
+                                                <Button className="w-full bg-red-600 hover:bg-red-700 text-white font-bold shadow-sm text-xs mt-1" onClick={handleSellerCancel}>
+                                                    取引を強制キャンセルする
+                                                </Button>
+                                            )}
                                         </div>
                                     )}
                                     
                                     {deal.paymentStatus === 'buyer_paid' && (
                                         <div className="bg-green-50 border border-green-200 p-4 rounded-lg shadow-sm">
-                                            <p className="text-green-800 font-bold mb-3 text-center">✅ 買い手から譲渡代金の振込完了報告がありました。</p>
-                                            <Button className="w-full bg-green-600 hover:bg-green-700 text-white font-bold shadow" onClick={handleSellerPaymentConfirm}>
-                                                着金を確認し、取引を継続する
-                                            </Button>
+                                            <p className="text-green-800 font-bold mb-3 text-center">✅ 買主から送金報告がありました</p>
+                                            <div className="flex gap-2 w-full">
+                                                <Button className="flex-1 bg-white border-red-300 text-red-600 hover:bg-red-50 font-bold shadow-sm text-xs" variant="outline" onClick={handleSellerUrgePayment}>
+                                                    未確認 (督促)
+                                                </Button>
+                                                <Button className="flex-[2] bg-green-600 hover:bg-green-700 text-white font-bold shadow" onClick={handleSellerPaymentConfirm}>
+                                                    着金を確認した
+                                                </Button>
+                                            </div>
+                                            {canSellerCancel() && (
+                                                <Button className="w-full bg-red-600 hover:bg-red-700 text-white font-bold shadow-sm text-xs mt-3" onClick={handleSellerCancel}>
+                                                    取引を強制キャンセルする
+                                                </Button>
+                                            )}
                                         </div>
                                     )}
                                     
+                                    {/* PHASE 2 (回収・手渡し待ち) */}
                                     {deal.paymentStatus === 'seller_received' && (
                                         <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg shadow-sm">
                                             <p className="text-blue-800 font-bold mb-3 text-center">
-                                                最初の着金を確認済みです。期日に第三債務者から回収後、速やかに買い手へ送金してください。
+                                                フェーズ2へ移行しました：期日に第三債務者から回収後、速やかに買主へ引渡し（送金）してください。
                                             </p>
+                                            {deal.seller_urged_at && (
+                                                <div className="bg-red-50 border border-red-200 p-3 rounded mb-3 text-red-700 font-bold text-xs shadow-inner">
+                                                    ⚠️ 買主から送金報告の督促がありました。直ちに支払願います。支払がない場合、買主が第三債務者に問い合わせる場合があります。
+                                                </div>
+                                            )}
                                             <div className="bg-white p-3 rounded border border-blue-100 mb-3 space-y-1 text-slate-700">
                                                 <p><strong>買主（送金先）口座:</strong></p>
                                                 <p>{opponentProfile?.bankAccountInfo || '口座情報が未設定です。買主にお問い合わせください。'}</p>
                                             </div>
                                             <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold shadow" onClick={handleSellerRepaymentReport}>
-                                                回収完了および買い手への送金報告
+                                                買主へ送金し、報告する
                                             </Button>
                                         </div>
                                     )}
                                     
                                     {deal.paymentStatus === 'seller_repaid' && (
                                         <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg shadow-sm text-center text-slate-600 font-bold">
-                                            <p>回収・買主への送金完了を報告しました。買主の最終着金確認をお待ちください。</p>
+                                            <p>引渡し（送金）を報告しました。買主の最終確認をお待ち下さい。</p>
+                                            {deal.seller_urged_at && (
+                                                <div className="bg-red-50 border border-red-200 p-3 rounded mt-3 text-red-700 font-bold text-xs shadow-inner">
+                                                    ⚠️ 買主が着金を確認できていません。状況をご確認ください。
+                                                    <div className="mt-2 text-center border-t border-red-200 pt-2">
+                                                        <Button variant="outline" className="w-full bg-white text-slate-600 border-slate-300 text-xs py-1 h-8" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                                                            仲裁チャットを開く
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                     
                                     {deal.paymentStatus === 'fully_settled' && (
                                         <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-lg shadow-sm text-center font-bold text-emerald-800">
-                                            <p>買い手の最終着金確認済み。全取引が完了しました。</p>
+                                            <p>買主の最終確認済み。全取引が完了しました。</p>
                                         </div>
                                     )}
                                 </div>

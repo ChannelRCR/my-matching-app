@@ -33,9 +33,13 @@ export const generateSettlementPDFBlob = async (_deal: Deal, dispute: Dispute, s
     const monthlyAmountStr = (dispute.settlement_amount || 0).toLocaleString();
     const installmentsCount = dispute.installments_count || 1;
     
-    // 甲乙の固定：甲（債権者・お金をもらう側）を「買主」、乙（債務者・お金を払う側）を「売主」
-    const sellerName = seller.companyName || seller.name; // 乙（債務者・支払義務者）
-    const buyerName = buyer.companyName || buyer.name;    // 甲（債権者・受領権者）
+    // 甲乙の定義を要件通りに設定
+    const partyA = seller.companyName || seller.name; // 甲（譲渡人 / 売主）
+    const partyB = buyer.companyName || buyer.name;   // 乙（譲受人 / 買主）
+
+    // 支払管理用の変数
+    const startMonth = dispute.start_month || '〇年〇月';
+    const finalAmountStr = ((dispute.claim_amount || 0) % (dispute.settlement_amount || 0) || (dispute.settlement_amount || 0)).toLocaleString();
 
     const SettlementComponent = () => (
         <div style={{ fontFamily: '"Noto Serif JP", "Hiragino Mincho ProN", "MS PMincho", serif', color: '#000' }}>
@@ -49,43 +53,63 @@ export const generateSettlementPDFBlob = async (_deal: Deal, dispute: Dispute, s
                 </div>
 
                 <div style={{ fontSize: '13px', marginBottom: '30px', lineHeight: 1.8, textIndent: '1em' }}>
-                    譲受人（以下「甲」という。）と譲渡人（以下「乙」という。）は、原契約（債権譲渡契約）に関する紛争について、本日以下の通り和解が成立したことを確認する。
+                    本和解合意書は、当事者間において以下の通り和解が成立したことを証するものである。
                 </div>
 
                 <h2 style={{ fontSize: '15px', fontWeight: 'bold', borderBottom: '1px solid #000', paddingBottom: '5px', marginBottom: '15px', marginTop: '30px' }}>
-                    第1条（和解金の支払い）
+                    第1条（契約の存在確認）
                 </h2>
                 <div style={{ fontSize: '13px', marginLeft: '20px', marginBottom: '20px', lineHeight: 1.8 }}>
-                    {installmentsCount === 1 ? (
-                        <>乙は甲に対し、本件解決金として金 {claimAmountStr} 円の支払義務があることを認め、これを別途合意する期日までに甲指定の口座に振り込んで支払う。</>
-                    ) : (
-                        <>乙は甲に対し、本件解決金として金 {claimAmountStr} 円の支払義務があることを認め、これを {installmentsCount} 回に分割し、毎月末日までに各分割金 {monthlyAmountStr} 円（ただし最終回は残金全額）を甲指定の口座に振り込んで支払う。</>
-                    )}
+                    譲渡人（以下「甲」という。）と譲受人（以下「乙」という。）は、本件債権譲渡契約が存在したことを相互に確認する。
                 </div>
 
-                {installmentsCount >= 2 && (
-                    <>
-                        <h2 style={{ fontSize: '15px', fontWeight: 'bold', borderBottom: '1px solid #000', paddingBottom: '5px', marginBottom: '15px', marginTop: '30px' }}>
-                            第2条（期限の利益喪失）
-                        </h2>
-                        <div style={{ fontSize: '13px', marginLeft: '20px', marginBottom: '20px', lineHeight: 1.8 }}>
-                            乙が前条の分割金の支払いを1回でも怠ったときは、当然に期限の利益を失い、未払金残額およびこれに対する遅延損害金を直ちに一括して甲へ支払うものとする。
-                        </div>
-                    </>
-                )}
+                <h2 style={{ fontSize: '15px', fontWeight: 'bold', borderBottom: '1px solid #000', paddingBottom: '5px', marginBottom: '15px', marginTop: '30px' }}>
+                    第2条（不履行の確認）
+                </h2>
+                <div style={{ fontSize: '13px', marginLeft: '20px', marginBottom: '20px', lineHeight: 1.8 }}>
+                    甲は、本件債権譲渡契約に基づく債務不履行が存在することを認める。
+                </div>
 
                 <h2 style={{ fontSize: '15px', fontWeight: 'bold', borderBottom: '1px solid #000', paddingBottom: '5px', marginBottom: '15px', marginTop: '30px' }}>
-                    第{installmentsCount >= 2 ? '3' : '2'}条（清算条項）
+                    第3条（支払義務の確認）
+                </h2>
+                <div style={{ fontSize: '13px', marginLeft: '20px', marginBottom: '20px', lineHeight: 1.8 }}>
+                    甲は、乙に対し、解決金として金 {claimAmountStr} 円の支払義務を負うことを確認する。
+                </div>
+
+                <h2 style={{ fontSize: '15px', fontWeight: 'bold', borderBottom: '1px solid #000', paddingBottom: '5px', marginBottom: '15px', marginTop: '30px' }}>
+                    第4条（分割支払詳細）
+                </h2>
+                <div style={{ fontSize: '13px', marginLeft: '20px', marginBottom: '20px', lineHeight: 1.8 }}>
+                    前項の金額について、甲は乙に対し、{startMonth}以降、毎月末日限り金 {monthlyAmountStr} 円ずつ支払う。ただし、最終月の支払は端数を調整した金 {finalAmountStr} 円とする。振込手数料は甲の負担とする。
+                </div>
+
+                <h2 style={{ fontSize: '15px', fontWeight: 'bold', borderBottom: '1px solid #000', paddingBottom: '5px', marginBottom: '15px', marginTop: '30px' }}>
+                    第5条（期限の利益喪失）
+                </h2>
+                <div style={{ fontSize: '13px', marginLeft: '20px', marginBottom: '20px', lineHeight: 1.8 }}>
+                    甲が前項の支払を一度でも怠ったときは、当然に期限の利益を失い、未払金残額を直ちに一括して支払う。
+                </div>
+
+                <h2 style={{ fontSize: '15px', fontWeight: 'bold', borderBottom: '1px solid #000', paddingBottom: '5px', marginBottom: '15px', marginTop: '30px' }}>
+                    第6条（遅延損害金）
+                </h2>
+                <div style={{ fontSize: '13px', marginLeft: '20px', marginBottom: '20px', lineHeight: 1.8 }}>
+                    期限の利益を失った場合、以後完済に至るまで残金に対する年3％の割合による遅延損害金を付加して支払う。
+                </div>
+
+                <h2 style={{ fontSize: '15px', fontWeight: 'bold', borderBottom: '1px solid #000', paddingBottom: '5px', marginBottom: '15px', marginTop: '30px' }}>
+                    第7条（清算条項）
                 </h2>
                 <div style={{ fontSize: '13px', marginLeft: '20px', marginBottom: '60px', lineHeight: 1.8 }}>
-                    甲および乙は、本件に関し、本合意書に定めるもののほか、何らの債権債務がないことを相互に確認する。
+                    甲および乙は、本件に関し、本和解合意書に定めるもののほかに何らの債権債務がないことを相互に確認する。
                 </div>
 
                 {/* 署名欄 */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '60px', padding: '0 20px' }}>
                     <div style={{ width: '45%' }}>
-                        <div style={{ fontSize: '13px', marginBottom: '20px' }}>【甲】譲受人（債権者）</div>
-                        <div style={{ fontSize: '13px', marginBottom: '10px' }}>{buyerName}</div>
+                        <div style={{ fontSize: '13px', marginBottom: '20px' }}>【甲】譲渡人 / 売主</div>
+                        <div style={{ fontSize: '13px', marginBottom: '10px' }}>{partyA}</div>
                         <div style={{ fontSize: '13px', lineHeight: 2, borderBottom: '1px dotted #999', marginBottom: '10px', height: '26px' }}></div>
                         <div style={{ fontSize: '13px', lineHeight: 2, borderBottom: '1px dotted #999', marginBottom: '10px', position: 'relative', height: '26px' }}>
                             <div style={{ position: 'absolute', right: '10px', top: '-10px', color: '#ccc', border: '1px solid #ccc', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px' }}>印</div>
@@ -93,8 +117,8 @@ export const generateSettlementPDFBlob = async (_deal: Deal, dispute: Dispute, s
                     </div>
 
                     <div style={{ width: '45%' }}>
-                        <div style={{ fontSize: '13px', marginBottom: '20px' }}>【乙】譲渡人（債務者）</div>
-                        <div style={{ fontSize: '13px', marginBottom: '10px' }}>{sellerName}</div>
+                        <div style={{ fontSize: '13px', marginBottom: '20px' }}>【乙】譲受人 / 買主</div>
+                        <div style={{ fontSize: '13px', marginBottom: '10px' }}>{partyB}</div>
                         <div style={{ fontSize: '13px', lineHeight: 2, borderBottom: '1px dotted #999', marginBottom: '10px', height: '26px' }}></div>
                         <div style={{ fontSize: '13px', lineHeight: 2, borderBottom: '1px dotted #999', marginBottom: '10px', position: 'relative', height: '26px' }}>
                             <div style={{ position: 'absolute', right: '10px', top: '-10px', color: '#ccc', border: '1px solid #ccc', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px' }}>印</div>

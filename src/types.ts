@@ -102,6 +102,10 @@ export interface Deal {
     contractDate?: string;
     sellerRevealedFields?: Record<string, boolean>;
     buyerRevealedFields?: Record<string, boolean>;
+    buyer_reported_at?: string;
+    buyer_urged_at?: string;
+    seller_reported_at?: string;
+    seller_urged_at?: string;
     paymentStatus?: 'pending' | 'buyer_paid' | 'seller_received' | 'seller_repaid' | 'fully_settled';
     is_disputed?: boolean;
     isDisputed?: boolean;
@@ -118,5 +122,6 @@ export interface Dispute {
     claim_amount?: number;
     settlement_amount?: number;
     installments_count?: number;
+    start_month?: string;
     created_at?: string;
 }

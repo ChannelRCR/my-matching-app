@@ -7,6 +7,7 @@ import { setTransitioning } from '../utils/transitionState';
 import { useMarket } from '../contexts/MarketContext';
 import { sendEmailNotification, getChatUrl } from '../utils/notification';
 import { SystemFeeModal } from './SystemFeeModal';
+import { isLineBrowser } from '../utils/browser';
 import type { Deal, Invoice, Dispute, User as UserType } from '../types';
 
 interface ChatMessage {
@@ -49,13 +50,15 @@ export const DisputeBoard: React.FC<DisputeBoardProps> = ({
     // In ChatPage, these were managed centrally, but it's cleaner to manage them here if we initialize from activeDispute.
     const [disputeClaimAmount, setDisputeClaimAmount] = useState(activeDispute?.claim_amount ? String(activeDispute.claim_amount) : '');
     const [disputeMonthlyPayment, setDisputeMonthlyPayment] = useState(activeDispute?.settlement_amount ? String(activeDispute.settlement_amount) : '');
+    const [disputeStartMonth, setDisputeStartMonth] = useState(activeDispute?.start_month || '');
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
     // 1-A. Sync inputs from activeDispute initially
     useEffect(() => {
         if (activeDispute?.claim_amount) setDisputeClaimAmount(String(activeDispute.claim_amount));
         if (activeDispute?.settlement_amount) setDisputeMonthlyPayment(String(activeDispute.settlement_amount));
-    }, [activeDispute?.claim_amount, activeDispute?.settlement_amount]);
+        if (activeDispute?.start_month) setDisputeStartMonth(activeDispute.start_month);
+    }, [activeDispute?.claim_amount, activeDispute?.settlement_amount, activeDispute?.start_month]);
 
     // 1-B. Real-time sync for disagreements/updates via Supabase Channel
     useEffect(() => {
@@ -97,22 +100,28 @@ export const DisputeBoard: React.FC<DisputeBoardProps> = ({
             alert(`和解請求額は対象債権額（¥${maxAllowed.toLocaleString()}）を超えることはできません。`);
             return;
         }
+        
+        if (!disputeStartMonth) {
+            alert("支払開始月を入力してください");
+            return;
+        }
 
         const count = Math.ceil(claimAmt / monthlyAmt);
 
-        if (!window.confirm(`請求総額 ¥${claimAmt.toLocaleString()} を ${count}回分割（月額 ¥${monthlyAmt.toLocaleString()}）で和解提案しますか？`)) return;
+        if (!window.confirm(`請求総額 ¥${claimAmt.toLocaleString()} を ${disputeStartMonth}以降、${count}回分割（月額 ¥${monthlyAmt.toLocaleString()}）で和解提案しますか？`)) return;
 
         try {
             const { error } = await supabase.from('disputes').update({
                 claim_amount: claimAmt,
                 settlement_amount: monthlyAmt,
-                installments_count: count
+                installments_count: count,
+                start_month: disputeStartMonth
             }).eq('id', activeDispute.id);
 
             if (error) throw error;
             
             // local update
-            setActiveDispute(prev => prev ? { ...prev, claim_amount: claimAmt, settlement_amount: monthlyAmt, installments_count: count } : null);
+            setActiveDispute(prev => prev ? { ...prev, claim_amount: claimAmt, settlement_amount: monthlyAmt, installments_count: count, start_month: disputeStartMonth } : null);
 
             // send system message
             const now = new Date();
@@ -123,7 +132,7 @@ export const DisputeBoard: React.FC<DisputeBoardProps> = ({
                 dealId: deal.id,
                 senderId: user.id,
                 receiverId: receiverId,
-                content: `【システム通知・和解条件の提示】\n${proposerRole}から和解提案がありました。\n総額: ¥${claimAmt.toLocaleString()}\n月額(分割): ¥${monthlyAmt.toLocaleString()} (${count}回払い)`,
+                content: `【システム通知・和解条件の提示】\n${proposerRole}から和解提案がありました。\n総額: ¥${claimAmt.toLocaleString()}\n開始月: ${disputeStartMonth}\n月額(分割): ¥${monthlyAmt.toLocaleString()} (${count}回払い)`,
                 timestamp: now.toISOString(),
                 isSystemMessage: true
             });
@@ -148,6 +157,10 @@ export const DisputeBoard: React.FC<DisputeBoardProps> = ({
     // 3. Agreement and PDF Generation
     const handleAgreeSettlement = async () => {
         if (!deal || !user || !activeDispute) return;
+        if (isLineBrowser()) {
+            alert("※LINEアプリ内では和解合意書の正常な生成・ダウンロードができない場合があります。画面右上（または右下）のメニューから『デフォルトのブラウザで開く（Safari / Chrome等）』を選択して、標準ブラウザに切り替えてから再度お試しください。");
+            return;
+        }
         if (!window.confirm("現在表示されている和解条件に同意し、法的拘束力のある和解合意を形成しますか？")) return;
 
         const roleName = isBuyer ? '買い手' : '売り手';
@@ -293,6 +306,10 @@ export const DisputeBoard: React.FC<DisputeBoardProps> = ({
                             onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
+                                if (isLineBrowser()) {
+                                    alert("※LINEアプリ内ではPDFのダウンロードが制限されています。画面右上（または右下）のメニューから『デフォルトのブラウザで開く（Safari / Chrome等）』を選択し、標準ブラウザから再度お試しください。");
+                                    return;
+                                }
                                 try {
                                     const url = new URL(deal.settlement_url as string);
                                     url.searchParams.set('download', `settlement_agreement_${deal.id}.pdf`);
@@ -303,6 +320,7 @@ export const DisputeBoard: React.FC<DisputeBoardProps> = ({
                                     a.click();
                                     document.body.removeChild(a);
                                 } catch {
+                                    alert("ダウンロードに失敗しました。標準ブラウザ（Safari等）でお試しください。");
                                     window.open(deal.settlement_url, '_blank');
                                 }
                             }}
@@ -339,6 +357,10 @@ export const DisputeBoard: React.FC<DisputeBoardProps> = ({
                         variant="outline"
                         className="flex-1 border-slate-300 hover:bg-slate-50 text-slate-700 font-bold shadow-sm"
                         onClick={async () => {
+                            if (isLineBrowser()) {
+                                alert("※LINEアプリ内ではPDFのダウンロードが制限されています。画面右上（または右下）のメニューから『デフォルトのブラウザで開く（Safari / Chrome等）』を選択し、標準ブラウザから再度お試しください。");
+                                return;
+                            }
                             try {
                                 setIsGeneratingPdf(true);
                                 const { generateContractPDF } = await import('../utils/pdfGenerator');
@@ -351,7 +373,11 @@ export const DisputeBoard: React.FC<DisputeBoardProps> = ({
                                 }
                             } catch(e) {
                                 console.error(e);
-                                alert("PDFの生成に失敗しました");
+                                if (e instanceof Error && e.message === "DOWNLOAD_FAILED") {
+                                    alert("ダウンロードに失敗しました。標準ブラウザ（Safari等）でお試しください。");
+                                } else {
+                                    alert("PDFの生成に失敗しました");
+                                }
                             } finally {
                                 setIsGeneratingPdf(false);
                             }
@@ -367,6 +393,18 @@ export const DisputeBoard: React.FC<DisputeBoardProps> = ({
                 <div className="text-[11px] font-bold text-red-600 tracking-wide mb-1">和解条件の計算・提示</div>
                 
                 <div className="flex flex-col gap-2 relative">
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-red-800 font-bold w-24 shrink-0">支払開始月:</span>
+                        <div className="flex-1">
+                            <Input
+                                type="month"
+                                value={disputeStartMonth}
+                                onChange={(e) => setDisputeStartMonth(e.target.value)}
+                                className="h-9 font-mono border-red-200 focus:border-red-500 focus:ring-red-500 bg-white w-full"
+                                disabled={activeDispute?.status === 'agreed'}
+                            />
+                        </div>
+                    </div>
                     <div className="flex items-center gap-2">
                         <span className="text-xs text-red-800 font-bold w-24 shrink-0">和解請求総額:</span>
                         <div className="flex-1 relative">
@@ -421,7 +459,7 @@ export const DisputeBoard: React.FC<DisputeBoardProps> = ({
                         size="sm" 
                         onClick={handleProposeSettlement}
                         className="w-full mt-2 bg-red-600 hover:bg-red-700 text-white font-bold shadow-sm"
-                        disabled={!disputeClaimAmount || !disputeMonthlyPayment}
+                        disabled={!disputeClaimAmount || !disputeMonthlyPayment || !disputeStartMonth}
                     >
                         この条件で和解を提案する
                     </Button>

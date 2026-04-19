@@ -16,16 +16,15 @@ export const DealStepper: React.FC<DealStepperProps> = ({ status, paymentStatus 
 
     const steps = [
         { id: 'contracted', label: '契約成立', isCompleted: true, isActive: !paymentStatus || paymentStatus === 'pending' },
-        { id: 'buyer_paid', label: '買主振込', isCompleted: ['buyer_paid', 'seller_received', 'seller_repaid', 'fully_settled'].includes(paymentStatus || ''), isActive: paymentStatus === 'buyer_paid' },
-        { id: 'seller_received', label: '売主着金確認', isCompleted: ['seller_received', 'seller_repaid', 'fully_settled'].includes(paymentStatus || ''), isActive: paymentStatus === 'seller_received' },
-        { id: 'seller_repaid', label: '回収・買主送金', isCompleted: ['seller_repaid', 'fully_settled'].includes(paymentStatus || ''), isActive: paymentStatus === 'seller_repaid' },
-        { id: 'fully_settled', label: '取引完了', isCompleted: paymentStatus === 'fully_settled', isActive: paymentStatus === 'fully_settled' }
+        { id: 'payment', label: '譲渡代金支払', isCompleted: ['seller_received', 'seller_repaid', 'fully_settled'].includes(paymentStatus || ''), isActive: ['pending', 'buyer_paid'].includes(paymentStatus || '') },
+        { id: 'repayment', label: '回収・引渡し', isCompleted: ['fully_settled'].includes(paymentStatus || ''), isActive: ['seller_received', 'seller_repaid'].includes(paymentStatus || '') },
+        { id: 'settled', label: '取引完了', isCompleted: paymentStatus === 'fully_settled', isActive: paymentStatus === 'fully_settled' }
     ];
 
     // Find the highest completed index to draw the connecting lines correctly
     let currentIndex = steps.findIndex(s => s.isActive);
     if (currentIndex === -1) currentIndex = 0;
-    if (paymentStatus === 'fully_settled') currentIndex = 4; // Complete state
+    if (paymentStatus === 'fully_settled') currentIndex = 3; // Complete state
 
     return (
         <div className="w-full px-2 py-4 sm:px-4">
@@ -44,7 +43,7 @@ export const DealStepper: React.FC<DealStepperProps> = ({ status, paymentStatus 
                     const displayActive = step.isActive || (step.id === 'contracted' && !paymentStatus);
 
                     return (
-                        <div key={step.id} className="relative z-10 flex flex-col items-center w-1/5">
+                        <div key={step.id} className="relative z-10 flex flex-col items-center w-1/4">
                             <div 
                                 className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center border-2 transition-colors duration-300
                                     ${isPassed ? 'bg-green-500 border-green-500 text-white' : 

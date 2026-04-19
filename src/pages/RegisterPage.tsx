@@ -250,7 +250,7 @@ export const RegisterPage: React.FC = () => {
 
             <Card className="w-full max-w-2xl">
                 <CardHeader>
-                    <CardTitle className="text-center">新規アカウント登録</CardTitle>
+                    <CardTitle className="text-center">新規登録</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-2 gap-4 mb-6">
@@ -384,7 +384,7 @@ export const RegisterPage: React.FC = () => {
                                                     value={formData.hasNoTradeName ? '屋号無し' : companyName}
                                                     maxLength={50}
                                                     onChange={(e) => setCompanyName(e.target.value)}
-                                                    required
+                                                    required={!formData.hasNoTradeName}
                                                     disabled={formData.hasNoTradeName}
                                                 />
                                             </div>
@@ -481,8 +481,8 @@ export const RegisterPage: React.FC = () => {
                                 {renderInputWithPrivacy(<>連絡先電話番号<RequiredBadge /></>, "phone", "例: 03-1234-5678", "tel")}
                             </div>
 
-                            <div className="flex gap-4 items-start">
-                                <div className="w-1/3 flex items-end gap-1">
+                            <div className="flex flex-col md:flex-row gap-4 md:items-start">
+                                <div className="w-full md:w-1/3 flex items-end gap-1">
                                     <div className="flex-1">
                                         {renderInputWithPrivacy(<>郵便番号（7桁）<RequiredBadge /></>, "postalCode", "例: 1000001", "text", handlePostalCodeChange)}
                                     </div>
@@ -505,13 +505,13 @@ export const RegisterPage: React.FC = () => {
                                         住所検索
                                     </Button>
                                 </div>
-                                <div className="w-2/3">
+                                <div className="w-full md:w-2/3">
                                     {renderInputWithPrivacy(<>所在地<RequiredBadge /></>, "address", "例: 東京都千代田区...")}
                                 </div>
                             </div>
 
                             {renderInputWithPrivacy(
-                                <>{formData.entityType === 'corporate' ? "自社のアピールポイント（最大400文字）" : "貴殿のアピールポイント"}<OptionalBadge /></>,
+                                <>{formData.entityType === 'corporate' ? "自社のアピールポイント（最大400文字）" : "あなたのアピールポイント"}<OptionalBadge /></>,
                                 "appealPoint",
                                 role === 'buyer'
                                     ? "売り手に対するアピールポイントや、希望する買取条件等をお願いします。"
