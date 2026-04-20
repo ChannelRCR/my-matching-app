@@ -465,7 +465,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Edge Functionを利用して売り手へメール通知
         const myName = authUser?.user_metadata?.company_name || '買主';
         const chatUrl = `${import.meta.env.VITE_APP_URL || window.location.origin}/chat?dealId=${data.id}`;
-        sendEmailNotification(
+        await sendEmailNotification(
             [sellerId],
             "【FactorMatch】新しい交渉が開始されました",
             `<p>ご登録の債権に対して、${myName}様より新しく交渉（チャット）が開始されました。</p>
@@ -548,7 +548,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Edge Functionを利用して売り手へメール通知
         const myName = authUser?.user_metadata?.company_name || '買主';
         const chatUrl = `${import.meta.env.VITE_APP_URL || window.location.origin}/chat?dealId=${data.id}`;
-        sendEmailNotification(
+        await sendEmailNotification(
             [sellerId],
             "【FactorMatch】新しい交渉・オファーが開始されました",
             `<p>ご登録の債権に対して、${myName}様より新しくオファー（交渉）が届きました。</p>

@@ -12,6 +12,10 @@ interface AuthContextType {
     signUp: (email: string, pass: string, role: UserRole, extraData: {
         name: string;
         companyName: string;
+    }) => Promise<{ error: unknown }>;
+    completeOnboarding: (role: UserRole, extraData: {
+        name: string;
+        companyName: string;
         representativeName: string;
         contactPerson: string;
         address: string;
@@ -30,6 +34,7 @@ interface AuthContextType {
         websiteUrl?: string;
         idDocumentUrl?: string;
         idDocumentFile?: File;
+        budget?: string | number;
         privacySettings: Record<string, boolean>;
     }) => Promise<{ error: unknown }>;
     updateProfile: (data: Partial<PublicUser>) => Promise<{ error: unknown }>;
@@ -161,26 +166,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const signUp = async (email: string, pass: string, role: UserRole, extraData: {
         name: string;
         companyName: string;
-        representativeName: string;
-        contactPerson: string;
-        address: string;
-        bankAccountInfo: string;
-        phone: string;
-        email: string; // The profile email, usually the same as auth email
-        entityType: 'corporate' | 'individual';
-        hasNoTradeName: boolean;
-        postalCode: string;
-        companyNameKana: string;
-        representativeNameKana: string;
-        industry: string;
-        industryOther: string;
-        appealPoint: string;
-        corporateNumber?: string;
-        websiteUrl?: string;
-        idDocumentUrl?: string;
-        idDocumentFile?: File;
-        budget?: string | number;
-        privacySettings: Record<string, boolean>;
     }) => {
         // 1. Sign up to Auth
         const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -198,7 +183,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (authError) return { error: authError };
         if (!authData.user) return { error: { message: 'User data missing' } };
 
-        const userId = authData.user.id;
+        return { error: null };
+    };
+
+    const completeOnboarding = async (role: UserRole, extraData: {
+        name: string;
+        companyName: string;
+        representativeName: string;
+        contactPerson: string;
+        address: string;
+        bankAccountInfo: string;
+        phone: string;
+        email: string;
+        entityType: 'corporate' | 'individual';
+        hasNoTradeName: boolean;
+        postalCode: string;
+        companyNameKana: string;
+        representativeNameKana: string;
+        industry: string;
+        industryOther: string;
+        appealPoint: string;
+        corporateNumber?: string;
+        websiteUrl?: string;
+        idDocumentUrl?: string;
+        idDocumentFile?: File;
+        budget?: string | number;
+        privacySettings: Record<string, boolean>;
+    }) => {
+        if (!user) return { error: { message: '認証セッションが存在しません。再度ログインしてください。' } };
+
+        const userId = user.id;
 
         let finalIdDocumentUrl = extraData.idDocumentUrl || null;
         if (extraData.idDocumentFile) {
@@ -294,6 +308,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return { error: { message: `アカウントIDは作成されましたが、詳細プロフィールの保存に失敗しました。エラー内容を確認してください: ${profileError.message || '不明なエラー'}`, details: profileError } };
         }
 
+        // 4. Fetch the profile to initialize app state
+        await fetchProfile(userId);
+
         return { error: null };
     };
 
@@ -375,7 +392,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ session, user, profile, loading, signIn, signUp, updateProfile, signOut }}>
+        <AuthContext.Provider value={{ session, user, profile, loading, signIn, signUp, completeOnboarding, updateProfile, signOut }}>
             {children}
         </AuthContext.Provider>
     );

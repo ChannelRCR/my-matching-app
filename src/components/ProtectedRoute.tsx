@@ -22,6 +22,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) 
         return <Navigate to="/login" replace />;
     }
 
+    if (!profile) {
+        return <Navigate to="/onboarding" replace />;
+    }
+
     // If roles are specified, check if user has one of them
     if (allowedRoles && profile) {
         if (!allowedRoles.includes(profile.role)) {

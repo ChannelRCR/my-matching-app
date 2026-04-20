@@ -3,6 +3,7 @@ import { Layout } from './components/Layout';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { OnboardingPage } from './pages/OnboardingPage';
 
 import { SellerDashboard } from './pages/SellerDashboard';
 import { SellerInvoiceDetail } from './pages/SellerInvoiceDetail';
@@ -36,6 +37,7 @@ function App() {
               <Route element={<Layout />}>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/onboarding" element={<OnboardingPage />} />
 
                 {/* Protected Routes: General */}
                 <Route element={<ProtectedRoute />}>

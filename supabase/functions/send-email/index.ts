@@ -5,7 +5,9 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+// We fetch environment variables inside the handler to provide better runtime error logs.
+// Delaying client initialization if variables are missing prevents module-level crashes.
+// Edge functions restart on new deployments, so fetching env at request is safe for debugging.
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -15,10 +17,21 @@ const corsHeaders = {
 serve(async (req) => {
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
-        return new Response('ok', { headers: corsHeaders })
+        return new Response('ok', { headers: corsHeaders });
     }
 
     try {
+        console.log("--- New Email Request Received ---");
+
+        if (!RESEND_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+            console.error("CRITICAL: Missing environment variables.");
+            console.error(`RESEND_API_KEY exists: ${!!RESEND_API_KEY}`);
+            console.error(`SUPABASE_URL exists: ${!!SUPABASE_URL}`);
+            console.error(`SUPABASE_SERVICE_ROLE_KEY exists: ${!!SUPABASE_SERVICE_ROLE_KEY}`);
+            throw new Error("Missing required environment variables for email function.");
+        }
+
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
         const payload = await req.json();
         
         // Webhookベースの送信ロジックはスキップ・無効化し、手動通知のみ処理
@@ -36,21 +49,25 @@ serve(async (req) => {
             return new Response(JSON.stringify({ message: "No email triggered. Missing fields." }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
 
-        const targetEmails: string[] = [];
+        const rawEmails: string[] = [];
         for (const uid of targetUserIds) {
             const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(uid);
             if (!userError && user?.email) {
-                targetEmails.push(user.email);
+                rawEmails.push(user.email);
             } else {
                 console.warn(`Failed to fetch user email for ID ${uid}. Error: ${userError?.message}`);
             }
         }
 
-        if (targetEmails.length === 0) {
-             throw new Error("Could not resolve any emails from targetUserIds");
+        // 1. 宛先メールアドレスの厳密なフィルタリング
+        const validEmails = rawEmails.filter(email => typeof email === 'string' && email.includes('@'));
+
+        if (validEmails.length === 0) {
+             throw new Error("Could not resolve any valid emails from targetUserIds. No emails to send.");
         }
 
-        console.log(`Recipient emails resolved: ${targetEmails.join(', ')}`);
+        const finalToEmails = validEmails;
+        console.log(`Recipient emails resolved: ${finalToEmails.join(', ')}`);
 
         const emailResponse = await fetch("https://api.resend.com/emails", {
             method: "POST",
@@ -60,7 +77,7 @@ serve(async (req) => {
             },
             body: JSON.stringify({
                 from: "FactorMatch <onboarding@resend.dev>",
-                to: targetEmails, // Array of dynamic emails
+                to: finalToEmails, // Array of dynamic emails
                 subject: subject,
                 html: messageHtml,
             }),
@@ -68,32 +85,7 @@ serve(async (req) => {
 
         if (!emailResponse.ok) {
             const errorText = await emailResponse.text();
-
-            // Auto fallback for unverified sandbox emails
-            if (emailResponse.status === 403 && !targetEmails.includes("info@nipponrcr.com")) {
-                console.warn(`Resend Sandbox restriction hit for ${targetEmails.join(', ')}. Falling back to default test email (info@nipponrcr.com)...`);
-
-                const fallbackResponse = await fetch("https://api.resend.com/emails", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${RESEND_API_KEY}`,
-                    },
-                    body: JSON.stringify({
-                        from: "FactorMatch <onboarding@resend.dev>",
-                        to: ["info@nipponrcr.com"],
-                        subject: `[TEST FOR ${targetEmails.join(', ')}] ` + subject,
-                        html: messageHtml,
-                    }),
-                });
-
-                if (fallbackResponse.ok) {
-                    const fallbackResult = await fallbackResponse.json();
-                    console.log("Fallback email sent successfully:", fallbackResult.id);
-                    return new Response(JSON.stringify(fallbackResult), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-                }
-            }
-
+            // In production, no fallback is allowed. Sandbox restrictions will hard fail here.
             throw new Error(`Resend API Error: ${errorText}`);
         }
 

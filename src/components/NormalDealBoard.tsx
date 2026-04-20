@@ -204,12 +204,23 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                     completeDeal(invoice.amount, deal.currentAmount);
 
                     const chatUrl = getChatUrl(deal.id);
+                    
+                    // 売主への通知
                     await sendEmailNotification(
-                        [deal.buyerId, deal.sellerId],
-                        "✅ 債権譲渡契約が成立しました [FactorMatch]",
-                        `<p>対象案件の債権譲渡契約が成立（締結）しました。</p>
-                        <p>速やかに決済手続きへ進み、ダッシュボードから相手方への支払い（または回収）を行ってください。</p>
-                        <p><a href="${chatUrl}">チャット画面を開く（契約書PDFもこちらから）</a></p>`
+                        [deal.sellerId],
+                        "【重要】契約が締結されました（譲渡代金の支払待ち） [FactorMatch]",
+                        `<p>対象案件（Deal ID: ${deal.id}）の債権譲渡契約が締結されました。</p>
+                        <p>買主からの譲渡代金の振込をお待ちください。</p>
+                        <p><a href="${chatUrl}">チャット画面で確認する（契約書PDFもこちらから）</a></p>`
+                    );
+                    
+                    // 買主への通知
+                    await sendEmailNotification(
+                        [deal.buyerId],
+                        "【重要】契約が締結されました（譲渡代金のお支払い手続き） [FactorMatch]",
+                        `<p>対象案件（Deal ID: ${deal.id}）の債権譲渡契約が締結されました。</p>
+                        <p>指定の口座へ速やかに譲渡代金（<strong>¥${finalAmount.toLocaleString()}</strong>）のお支払い（ご送金）を行ってください。</p>
+                        <p><a href="${chatUrl}">チャット画面で確認する（契約書PDFもこちらから）</a></p>`
                     );
                     
                     const competingDealsToReject = activeDealsForInvoice.filter(d => d.id !== deal.id && !['rejected', 'withdrawn', 'cancelled'].includes(d.status));
@@ -410,9 +421,9 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
             const chatUrl = getChatUrl(deal.id);
             await sendEmailNotification(
                 [deal.buyerId],
-                "【重要】売主様より譲渡代金のお支払いについて督促がありました [FactorMatch]",
-                `<p>売主様が譲渡代金の着金を確認できておりません。直ちにお支払い状況をご確認ください。</p>
-                <p>未払いが続く場合、取引がキャンセルされる可能性があります。</p>
+                "【督促】売主様より譲渡代金の着金未確認の連絡がありました [FactorMatch]",
+                `<p>対象案件（Deal ID: ${deal.id}）について、売主様が譲渡代金（<strong>¥${(deal.currentAmount || 0).toLocaleString()}</strong>）の着金を確認できていない旨の連絡がありました。</p>
+                <p>至急送金状況をご確認いただき、未送金の場合は直ちにお手続きをお願いします。</p>
                 <p><a href="${chatUrl}">チャット画面を開いて状況を確認する</a></p>`
             );
         }
@@ -460,9 +471,9 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
             const chatUrl = getChatUrl(deal.id);
             await sendEmailNotification(
                 [deal.buyerId],
-                "【フェーズ移行】売主様が着金を確認しました [FactorMatch]",
-                `<p>売主様が買取代金の着金を確認しました。</p>
-                <p>以降はフェーズ2となり、期日後の売主様からの回収金送金をお待ちいただく状態となります。</p>
+                "【受領完了】売主様が譲渡代金の着金を確認しました [FactorMatch]",
+                `<p>対象案件（Deal ID: ${deal.id}）について、譲渡代金（<strong>¥${(deal.currentAmount || 0).toLocaleString()}</strong>）の着金が確認され、債権譲渡手続が完了しました。</p>
+                <p>期日後の売主様からの回収金額の送金をお待ちください。</p>
                 <p><a href="${chatUrl}">チャット画面を開く</a></p>`
             );
         }
@@ -489,8 +500,9 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
             const chatUrl = getChatUrl(deal.id);
             await sendEmailNotification(
                 [deal.buyerId],
-                "売主から回収・送金報告がありました [FactorMatch]",
-                `<p>売主より、最終的な回収・送金報告がありました。ご自身の口座入金をご確認のうえ、最終確認を行ってください。</p>
+                "【報告】売主様より回収金送金の報告がありました [FactorMatch]",
+                `<p>対象案件（Deal ID: ${deal.id}）について、第三債務者からの回収を買主様へ送金（報告）いたしました。</p>
+                <p>至急ご自身の口座にて回収対象額（<strong>¥${(invoice.requestedAmount || invoice.amount).toLocaleString()}</strong>）付近の着金を確認し、「着金確認」操作を行ってください。</p>
                 <p><a href="${chatUrl}">チャット画面を開く</a></p>`
             );
         }
@@ -512,9 +524,9 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
             const chatUrl = getChatUrl(deal.id);
             await sendEmailNotification(
                 [deal.sellerId],
-                "【重要】買主様より回収金の送金について督促がありました [FactorMatch]",
-                `<p>買主様が回収金の着金を確認できておりません。直ちにご送金ください。</p>
-                <p>迅速な対応がない場合、買主様から直接第三債務者（取引先）へ連絡が行く可能性があります。至急状況をご確認ください。</p>
+                "【督促】買主様より回収金の着金未確認の連絡がありました [FactorMatch]",
+                `<p>対象案件（Deal ID: ${deal.id}）について、回収対象額（<strong>¥${(invoice.requestedAmount || invoice.amount).toLocaleString()}</strong>）の着金を現在も確認できていない旨の連絡が買主様からありました。</p>
+                <p>至急送金手続きの状況を確認し、直ちにご対応ください。</p>
                 <p><a href="${chatUrl}">チャット画面を開いて状況を確認する</a></p>`
             );
         }
