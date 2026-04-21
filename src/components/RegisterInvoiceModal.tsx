@@ -4,6 +4,7 @@ import { Input } from './ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import type { Invoice } from '../types';
 import { X, Upload, FileText, Trash2 } from 'lucide-react';
+import { InfoTooltip } from './ui/InfoTooltip';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
@@ -483,7 +484,7 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
                                             譲渡対象金額 (円)<ConditionalBadge />
                                         </label>
                                         <Input
@@ -504,8 +505,9 @@ export const RegisterInvoiceModal: React.FC<RegisterInvoiceModalProps> = ({ isOp
                                         )}
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
                                             希望売却額 (円)<ConditionalBadge />
+                                            <InfoTooltip content="売却時に希望する手数料（ディスカウント）の割合・金額です。相場に対して低すぎるとマッチングしにくくなる場合があります。" />
                                         </label>
                                         <Input
                                             name="sellingAmount"

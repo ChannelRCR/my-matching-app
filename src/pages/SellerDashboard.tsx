@@ -190,17 +190,33 @@ export const SellerDashboard: React.FC = () => {
             {/* Invoice List */}
             <div className={`grid gap-6 ${activeTab === 'market' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'}`}>
                 {filteredAndSortedInvoices.length === 0 ? (
-                    <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-300 col-span-full">
-                        <Search className="h-8 w-8 text-slate-400 mx-auto mb-3" />
-                        <p className="text-slate-500 font-medium">
-                            {activeTab === 'completed' ? '取引完了の案件はありません。' : activeTab === 'processing' ? '成約済・手続中の案件はありません。' : activeTab === 'negotiating' ? 'まだ登録された案件はありません。' : activeTab === 'withdrawn' ? '中止した案件はありません。' : '条件に一致する案件は見つかりませんでした。'}
-                        </p>
-                        {activeTab === 'market' && (
-                            <Button variant="ghost" onClick={resetFilters} className="text-primary mt-2">
-                                検索条件をクリアする
+                    !invoices.some(inv => inv.sellerId === user?.id) && activeTab === 'negotiating' ? (
+                        <div className="text-center py-20 bg-white rounded-2xl border border-blue-100 shadow-sm col-span-full flex flex-col items-center justify-center">
+                            <div className="w-20 h-20 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-6">
+                                <FileText className="h-10 w-10" />
+                            </div>
+                            <h2 className="text-2xl font-bold text-slate-800 mb-4">ご登録ありがとうございます！</h2>
+                            <p className="text-slate-600 mb-8 max-w-md mx-auto leading-relaxed">
+                                まだ登録された案件がありません。まずは現金化したい売掛債権（請求書）を登録して、買主からのオファーを待ちましょう。
+                            </p>
+                            <Button size="lg" onClick={() => setIsRegisterModalOpen(true)} className="font-bold shadow-md rounded-full px-8">
+                                <PlusCircle className="mr-2 h-5 w-5" />
+                                新規案件を登録する
                             </Button>
-                        )}
-                    </div>
+                        </div>
+                    ) : (
+                        <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-300 col-span-full">
+                            <Search className="h-8 w-8 text-slate-400 mx-auto mb-3" />
+                            <p className="text-slate-500 font-medium">
+                                {activeTab === 'completed' ? '取引完了の案件はありません。' : activeTab === 'processing' ? '成約済・手続中の案件はありません。' : activeTab === 'negotiating' ? '現在進行中の案件はありません。' : activeTab === 'withdrawn' ? '中止した案件はありません。' : '条件に一致する案件は見つかりませんでした。'}
+                            </p>
+                            {activeTab === 'market' && (
+                                <Button variant="ghost" onClick={resetFilters} className="text-primary mt-2">
+                                    検索条件をクリアする
+                                </Button>
+                            )}
+                        </div>
+                    )
                 ) : (
                     filteredAndSortedInvoices.map((inv) => (
                         <InvoiceCard

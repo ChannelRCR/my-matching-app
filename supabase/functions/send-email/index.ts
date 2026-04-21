@@ -76,7 +76,7 @@ serve(async (req) => {
                 "Authorization": `Bearer ${RESEND_API_KEY}`,
             },
             body: JSON.stringify({
-                from: "FactorMatch <onboarding@resend.dev>",
+                from: "FactorMatch <info@nipponrcr.com>",
                 to: finalToEmails, // Array of dynamic emails
                 subject: subject,
                 html: messageHtml,

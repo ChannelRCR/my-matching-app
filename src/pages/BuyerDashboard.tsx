@@ -189,11 +189,27 @@ export const BuyerDashboard: React.FC = () => {
                     </div>
 
                     {activeDeals.length === 0 ? (
-                        <div className={`text-center py-12 bg-white rounded-xl border border-dashed col-span-full ${activeTab === 'negotiating' ? 'border-orange-200' : activeTab === 'withdrawn' ? 'border-slate-300' : 'border-green-200'}`}>
-                            <p className="text-slate-500 font-medium">
-                                {activeTab === 'negotiating' ? '現在進行中の案件はありません。' : activeTab === 'processing' ? '成約済・手続中の案件はありません。' : activeTab === 'withdrawn' ? '中止・失注した案件はありません。' : '取引完了の案件はありません。'}
-                            </p>
-                        </div>
+                        !deals.some(d => d.buyerId === user?.id) && activeTab === 'negotiating' ? (
+                            <div className="text-center py-20 bg-white rounded-2xl border border-[var(--color-gold)] shadow-sm col-span-full flex flex-col items-center justify-center">
+                                <div className="w-20 h-20 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mb-6">
+                                    <Search className="h-10 w-10" />
+                                </div>
+                                <h2 className="text-2xl font-bold text-slate-800 mb-4">ご登録ありがとうございます！</h2>
+                                <p className="text-slate-600 mb-8 max-w-md mx-auto leading-relaxed">
+                                    現在、あなたの交渉・購入履歴はありません。まずは現在募集中の優良な売掛債権を探してみましょう。
+                                </p>
+                                <Button size="lg" onClick={() => setActiveTab('all')} className="bg-[var(--color-gold)] hover:bg-amber-600 text-white font-bold shadow-md rounded-full px-8">
+                                    <Search className="mr-2 h-5 w-5" />
+                                    募集中の案件を探す
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className={`text-center py-12 bg-white rounded-xl border border-dashed col-span-full ${activeTab === 'negotiating' ? 'border-orange-200' : activeTab === 'withdrawn' ? 'border-slate-300' : 'border-green-200'}`}>
+                                <p className="text-slate-500 font-medium">
+                                    {activeTab === 'negotiating' ? '現在進行中の案件はありません。' : activeTab === 'processing' ? '成約済・手続中の案件はありません。' : activeTab === 'withdrawn' ? '中止・失注した案件はありません。' : '取引完了の案件はありません。'}
+                                </p>
+                            </div>
+                        )
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {activeDeals.map((deal) => {

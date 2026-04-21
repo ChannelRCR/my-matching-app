@@ -230,9 +230,13 @@ export const Layout: React.FC = () => {
                         <Briefcase className="h-5 w-5 text-slate-400" />
                         <span className="font-bold text-slate-700">FactorMatch</span>
                     </div>
-                    <p className="text-sm text-slate-500 mb-4">
+                    <p className="text-sm text-slate-500 mb-6">
                         日本初の完全自由型・債権流動化プラットフォーム
                     </p>
+                    <div className="flex justify-center gap-6 mb-6">
+                        <Link to="/terms" className="text-sm font-medium text-slate-500 hover:text-primary transition-colors">利用規約</Link>
+                        <Link to="/help" className="text-sm font-medium text-slate-500 hover:text-primary transition-colors">よくある質問（ヘルプ）</Link>
+                    </div>
                     <div className="text-xs text-slate-400">
                         © 2026 FactorMatch. All rights reserved.
                     </div>

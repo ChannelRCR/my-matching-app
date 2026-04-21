@@ -8,6 +8,7 @@ import { Button } from '../components/ui/Button';
 import { useMarket } from '../contexts/MarketContext';
 import { useNavigate } from 'react-router-dom';
 import { PublicDealsBoard } from '../components/PublicDealsBoard';
+import { TeaserDealsBoard } from '../components/TeaserDealsBoard';
 
 export const LandingPage: React.FC = () => {
     const { stats } = useMarket();
@@ -278,8 +279,25 @@ export const LandingPage: React.FC = () => {
                 </div>
             </section>
 
+            {/* Teaser Deals Section (Open Invoices) */}
+            <section className="py-24 bg-slate-100 border-t border-slate-200">
+                <div className="container mx-auto px-4 max-w-6xl">
+                    <div className="text-center mb-12">
+                        <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4 tracking-tight">
+                            現在募集中の優良案件
+                        </h2>
+                        <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                            当プラットフォームで現在買い手を募集している案件の一部を公開しています。<br />
+                            詳細な情報や購入交渉を進めるには、無料の買い手登録が必要です。
+                        </p>
+                    </div>
+
+                    <TeaserDealsBoard />
+                </div>
+            </section>
+
             {/* Public Deals Board Section */}
-            <section className="py-24 bg-slate-50 border-t border-slate-200">
+            <section className="py-24 bg-white border-t border-slate-200">
                 <div className="container mx-auto px-4 max-w-6xl">
                     <div className="text-center mb-12">
                         <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4 tracking-tight">

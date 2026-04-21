@@ -605,6 +605,12 @@ export const OnboardingPage: React.FC = () => {
                                 </div>
                             </div>
                         ) : (
+                            <div className="pt-6 border-t border-slate-200">
+                                <Button type="submit" className={`w-full py-6 text-lg shadow-md font-bold ${role === 'buyer' ? 'bg-[var(--color-gold)] hover:bg-amber-600 text-white' : 'bg-primary hover:bg-primary/90'}`} disabled={loading}>
+                                    {loading ? '処理中...' : '入力内容を確認する'}
+                                </Button>
+                            </div>
+                        )}
                     </form>
                 </CardContent>
             </Card>
