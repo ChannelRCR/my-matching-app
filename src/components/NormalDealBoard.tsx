@@ -158,16 +158,9 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
             document.body.appendChild(overlay);
 
             try {
-                await addMessage({
-                    id: `sys_agree_${Date.now()}`,
-                    dealId: deal.id,
-                    senderId: user.id,
-                    receiverId: isBuyer ? deal.sellerId : deal.buyerId,
-                    content: `【システム通知】\n${roleName}が契約締結の意思表示を行いました。`,
-                    timestamp: now,
-                    isSystemMessage: true
-                });
-                
+                // 1. 金額を変数として上位スコープに定義（ReferenceError修正）
+                const finalAmount = latestDeal.current_buyer_price || latestDeal.current_seller_price || latestDeal.current_amount || deal.currentBuyerPrice || deal.currentSellerPrice || deal.currentAmount || 0;
+
                 const dbUpdates: Partial<Deal> & Record<string, unknown> = {};
                 if (isBuyer) {
                     dbUpdates.buyer_agreed_at = now;
@@ -176,30 +169,49 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                 }
                 
                 if (willBeConcluded) {
-                    const finalAmount = latestDeal.current_buyer_price || latestDeal.current_seller_price || latestDeal.current_amount || deal.currentBuyerPrice || deal.currentSellerPrice || deal.currentAmount || 0;
                     dbUpdates.status = 'concluded';
                     dbUpdates.contract_date = now;
                     dbUpdates.current_amount = finalAmount;
                 }
                 
+                // 2. 最も重要な deals テーブルの更新を先に実行（整合性担保）
                 const { error: updateError } = await supabase.from('deals').update(dbUpdates).eq('id', deal.id);
                 if (updateError) throw updateError;
+
+                if (willBeConcluded) {
+                    // 契約成立時: invoices テーブルの更新
+                    const { error: invoiceUpdateError } = await supabase.from('invoices').update({ status: 'sold' }).eq('id', deal.invoiceId);
+                    if (invoiceUpdateError) {
+                        console.error("Invoice update failed, but deal is already concluded:", invoiceUpdateError);
+                    }
+                }
+
+                // 3. メッセージの送信
+                await addMessage({
+                    id: crypto.randomUUID(),
+                    dealId: deal.id,
+                    senderId: user.id,
+                    receiverId: isBuyer ? deal.sellerId : deal.buyerId,
+                    content: `【システム通知】\n${roleName}が契約締結の意思表示を行いました。`,
+                    timestamp: now,
+                    isSystemMessage: true
+                }).catch(e => console.error("System message (agree) failed:", e));
                 
                 if (willBeConcluded) {
+                    // 契約成立時のシステムメッセージ（ID欠落エラー修正）
                     const systemMsg = {
+                        id: crypto.randomUUID(),
                         deal_id: deal.id,
                         sender_id: user.id,
                         receiver_id: isBuyer ? deal.sellerId : deal.buyerId,
                         content: "【システム】双方が合意し、契約成立しました🎉",
-                        is_system_message: true
+                        is_system_message: true,
+                        created_at: now
                     };
                     const { error: msgInsertError } = await supabase.from('messages').insert([systemMsg]);
                     if (msgInsertError) {
-                        console.error("System message insert failed but continuing contract creation:", msgInsertError);
+                        console.error("System message (concluded) insert failed but continuing contract creation:", msgInsertError);
                     }
-                    
-                    const { error: invoiceUpdateError } = await supabase.from('invoices').update({ status: 'sold' }).eq('id', deal.invoiceId);
-                    if (invoiceUpdateError) throw invoiceUpdateError;
                     
                     completeDeal(invoice.amount, deal.currentAmount);
 
@@ -588,9 +600,8 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                     <form onSubmit={(e) => { e.preventDefault(); handleProposePrice(); }} className="flex gap-2">
                         <Input
                             type="text"
-                            pattern="\d*"
                             inputMode="numeric"
-                            value={proposedPrice}
+                            value={proposedPrice ? Number(proposedPrice.replace(/,/g, '')).toLocaleString() : ''}
                             onChange={(e) => {
                                 let val = e.target.value;
                                 val = val.replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)).replace(/[^0-9]/g, '');

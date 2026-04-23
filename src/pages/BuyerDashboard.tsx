@@ -104,7 +104,11 @@ export const BuyerDashboard: React.FC = () => {
         return [];
     }, [invoices, activeTab, user]);
 
-    const filterProps = useInvoiceFilter(displayInvoices, (sellerId) => getUserTrackRecord(sellerId, 'seller'));
+    const filterProps = useInvoiceFilter(
+        displayInvoices, 
+        (sellerId) => getUserTrackRecord(sellerId, 'seller'),
+        (sellerId) => users.find(u => u.id === sellerId)?.industry
+    );
     const {
         filteredAndSortedInvoices,
         resetFilters

@@ -1,10 +1,15 @@
 import { useState, useMemo } from 'react';
 import type { Invoice } from '../types';
 
-export function useInvoiceFilter(initialInvoices: Invoice[], getTrackRecord?: (sellerId: string) => number) {
+export function useInvoiceFilter(
+    initialInvoices: Invoice[], 
+    getTrackRecord?: (sellerId: string) => number,
+    getSellerIndustry?: (sellerId: string) => string | undefined
+) {
     const [minAmount, setMinAmount] = useState('');
     const [maxAmount, setMaxAmount] = useState('');
     const [industryFilter, setIndustryFilter] = useState('');
+    const [sellerIndustryFilter, setSellerIndustryFilter] = useState('');
     const [trackRecordFilter, setTrackRecordFilter] = useState('');
     const [sortBy, setSortBy] = useState('newest'); // 'newest', 'priceDesc', 'priceAsc'
     const [isFilterOpen, setIsFilterOpen] = useState(false); // For mobile tracking
@@ -21,6 +26,12 @@ export function useInvoiceFilter(initialInvoices: Invoice[], getTrackRecord?: (s
         }
         if (industryFilter) {
             result = result.filter(inv => inv.industry.includes(industryFilter));
+        }
+        if (sellerIndustryFilter && getSellerIndustry) {
+            result = result.filter(inv => {
+                const sIndustry = getSellerIndustry(inv.sellerId);
+                return sIndustry && sIndustry.includes(sellerIndustryFilter);
+            });
         }
         if (trackRecordFilter && getTrackRecord) {
             result = result.filter(inv => {
@@ -54,6 +65,7 @@ export function useInvoiceFilter(initialInvoices: Invoice[], getTrackRecord?: (s
         setMinAmount('');
         setMaxAmount('');
         setIndustryFilter('');
+        setSellerIndustryFilter('');
         setTrackRecordFilter('');
         setSortBy('newest');
     };
@@ -62,11 +74,13 @@ export function useInvoiceFilter(initialInvoices: Invoice[], getTrackRecord?: (s
         minAmount, setMinAmount,
         maxAmount, setMaxAmount,
         industryFilter, setIndustryFilter,
+        sellerIndustryFilter, setSellerIndustryFilter,
         trackRecordFilter, setTrackRecordFilter,
         sortBy, setSortBy,
         isFilterOpen, setIsFilterOpen,
         filteredAndSortedInvoices,
         resetFilters,
-        showTrackRecordFilter: !!getTrackRecord
+        showTrackRecordFilter: !!getTrackRecord,
+        showSellerIndustryFilter: !!getSellerIndustry
     };
 }

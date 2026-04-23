@@ -176,7 +176,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     role: role,
                     name: extraData.name,
                     company_name: extraData.companyName,
-                }
+                },
+                emailRedirectTo: `${window.location.origin}/onboarding`
             }
         });
 
@@ -235,7 +236,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             name: extraData.name,
             company_name: extraData.companyName,
             role: role,
-            email: email, // Fix email missing
+            email: extraData.email, // Fix email missing
             budget: extraData.budget || null,
             status: 'active',
             registered_at: new Date().toISOString(),

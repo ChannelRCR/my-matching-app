@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import { Briefcase, Wallet, LineChart, Building2, User } from 'lucide-react';
+import { Briefcase, Wallet, LineChart, Building2, User, CheckCircle2, X } from 'lucide-react';
 import type { UserRole } from '../types';
 import { fetchAddressFromZip } from '../utils/zipcode';
 import { INDUSTRY_OPTIONS } from '../utils/constants';
@@ -16,18 +16,32 @@ const OptionalBadge = () => <span className="ml-2 inline-flex items-center px-1.
 export const OnboardingPage: React.FC = () => {
     const { user, profile, completeOnboarding } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const role = (user?.user_metadata?.role as UserRole) || 'seller';
     const email = user?.email || '';
 
+    const [showSuccessToast, setShowSuccessToast] = useState(false);
+
     // If profile exists or no user auth, redirect appropriately
-    React.useEffect(() => {
+    useEffect(() => {
         if (!user) {
             navigate('/login');
         } else if (profile) {
             navigate('/dashboard'); // Already onboarded
         }
     }, [user, profile, navigate]);
+
+    useEffect(() => {
+        // LandingPageからのリダイレクトか、直接ハッシュ付きで遷移してきた場合を判定
+        if (location.state?.showSuccessToast || window.location.hash.includes('type=signup') || window.location.hash.includes('access_token')) {
+            setShowSuccessToast(true);
+            
+            // 5秒後にトーストを消す
+            const timer = setTimeout(() => setShowSuccessToast(false), 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [location]);
 
     // Basic profile fields
     const [companyName, setCompanyName] = useState(user?.user_metadata?.company_name || '');
@@ -135,30 +149,36 @@ export const OnboardingPage: React.FC = () => {
             return;
         }
 
-        const { error: submitError } = await completeOnboarding(role, {
-            name: companyName, // Dummy name field for internal auth since it's deprecated
-            companyName,
-            ...formData,
-            idDocumentFile: formData.idDocumentFile || undefined,
-            email, 
-            contactPerson: formData.contactPerson || (formData.entityType === 'corporate' ? companyName : formData.representativeName), // フォールバック: 法人の場合は法人名、個人の場合は代表者名を使用
-            privacySettings
-        });
+        try {
+            const { error: submitError } = await completeOnboarding(role, {
+                name: companyName, // Dummy name field for internal auth since it's deprecated
+                companyName,
+                ...formData,
+                idDocumentFile: formData.idDocumentFile || undefined,
+                email, 
+                contactPerson: formData.contactPerson, // 空白の場合はそのまま空白として送信する
+                privacySettings
+            });
 
-        if (submitError) {
-            console.error(submitError);
-            const errObj = submitError as { message?: string, status?: number };
-            setError(`登録に失敗しました: ${errObj.message || '不明なエラー'}`);
-            setLoading(false);
-        } else {
-            // Success, context will trigger refetch and ProtectedRoute will redirect when profile arrives.
-            // Just local navigation
-            alert('プロフィール設定が完了しました！');
-            if (role === 'seller') {
-                navigate('/seller/dashboard');
+            if (submitError) {
+                console.error(submitError);
+                const errObj = submitError as { message?: string, status?: number };
+                setError(`登録に失敗しました: ${errObj.message || '不明なエラー'}`);
+                setLoading(false);
             } else {
-                navigate('/buyer/dashboard');
+                // Success, context will trigger refetch and ProtectedRoute will redirect when profile arrives.
+                // Just local navigation
+                alert('プロフィール設定が完了しました！');
+                if (role === 'seller') {
+                    navigate('/seller/dashboard');
+                } else {
+                    navigate('/buyer/dashboard');
+                }
             }
+        } catch (err) {
+            console.error('予期せぬエラーが発生しました:', err);
+            setError('システムエラーが発生しました。しばらく経ってから再度お試しください。');
+            setLoading(false);
         }
     };
 
@@ -234,7 +254,21 @@ export const OnboardingPage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 py-12">
+        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 py-12 relative">
+            {/* トースト通知 */}
+            {showSuccessToast && (
+                <div className="fixed top-6 right-6 z-50 bg-emerald-50 text-emerald-800 border border-emerald-200 px-4 py-3 rounded-lg shadow-lg flex items-start gap-3 max-w-sm shadow-emerald-900/5">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                        <p className="font-bold text-sm mb-1">認証成功</p>
+                        <p className="text-xs text-emerald-700">メールアドレスの確認が完了しました！続けてプロフィールを登録しましょう。</p>
+                    </div>
+                    <button onClick={() => setShowSuccessToast(false)} className="text-emerald-400 hover:text-emerald-600 transition-colors">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
+
             <Link to="/" className="flex items-center gap-2 font-bold text-2xl text-primary tracking-tight mb-8">
                 <Briefcase className="h-8 w-8" />
                 <span>FactorMatch</span>
@@ -338,7 +372,7 @@ export const OnboardingPage: React.FC = () => {
                                 <div className="space-y-4">
                                     <div className="space-y-1">
                                         <div className="flex justify-between items-center">
-                                            <label className="text-sm font-medium text-gray-700">屋号<RequiredBadge /></label>
+                                            <label className="text-sm font-medium text-gray-700">屋号／氏名<RequiredBadge /></label>
                                             <div className="flex items-center gap-2 text-xs">
                                                 <span className={privacySettings.companyName ? "text-blue-600 font-bold" : "text-slate-400"}>
                                                     {privacySettings.companyName ? "公開" : "非公開"}

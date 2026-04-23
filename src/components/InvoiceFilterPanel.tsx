@@ -10,6 +10,8 @@ interface InvoiceFilterPanelProps {
     setMaxAmount: (v: string) => void;
     industryFilter: string;
     setIndustryFilter: (v: string) => void;
+    sellerIndustryFilter?: string;
+    setSellerIndustryFilter?: (v: string) => void;
     trackRecordFilter?: string;
     setTrackRecordFilter?: (v: string) => void;
     sortBy: string;
@@ -17,16 +19,19 @@ interface InvoiceFilterPanelProps {
     isFilterOpen: boolean;
     setIsFilterOpen: (v: boolean) => void;
     showTrackRecordFilter?: boolean;
+    showSellerIndustryFilter?: boolean;
 }
 
 export const InvoiceFilterPanel: React.FC<InvoiceFilterPanelProps> = ({
     minAmount, setMinAmount,
     maxAmount, setMaxAmount,
     industryFilter, setIndustryFilter,
+    sellerIndustryFilter = '', setSellerIndustryFilter = () => {},
     trackRecordFilter = '', setTrackRecordFilter = () => {},
     sortBy, setSortBy,
     isFilterOpen, setIsFilterOpen,
-    showTrackRecordFilter = false
+    showTrackRecordFilter = false,
+    showSellerIndustryFilter = false
 }) => {
     return (
         <>
@@ -47,7 +52,7 @@ export const InvoiceFilterPanel: React.FC<InvoiceFilterPanelProps> = ({
             {/* Filter and Sort Panel */}
             <div className={`${isFilterOpen ? 'block' : 'hidden'} md:block bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6`}>
                 <div className="flex flex-col md:flex-row gap-4 items-end">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 w-full">
+                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 flex-1 w-full">
                         <div>
                             <label className="text-xs font-bold text-slate-500 mb-1.5 block">売却希望額（下限 〜 上限）</label>
                             <div className="flex items-center gap-2">
@@ -69,7 +74,7 @@ export const InvoiceFilterPanel: React.FC<InvoiceFilterPanelProps> = ({
                             </div>
                         </div>
                         <div>
-                            <label className="text-xs font-bold text-slate-500 mb-1.5 block">業種で絞り込み</label>
+                            <label className="text-xs font-bold text-slate-500 mb-1.5 block">取引先の業種で絞り込み</label>
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                                 <select
@@ -85,6 +90,25 @@ export const InvoiceFilterPanel: React.FC<InvoiceFilterPanelProps> = ({
                                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                             </div>
                         </div>
+                        {showSellerIndustryFilter && (
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 mb-1.5 block">売り手の業種で絞り込み</label>
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                                    <select
+                                        value={sellerIndustryFilter}
+                                        onChange={(e) => setSellerIndustryFilter(e.target.value)}
+                                        className="w-full h-9 rounded-md border border-slate-300 bg-white pl-9 pr-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary shadow-sm appearance-none"
+                                    >
+                                        <option value="">すべての業種</option>
+                                        {INDUSTRY_OPTIONS.map(opt => (
+                                            <option key={opt} value={opt}>{opt}</option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                                </div>
+                            </div>
+                        )}
                         {showTrackRecordFilter && (
                             <div>
                                 <label className="text-xs font-bold text-slate-500 mb-1.5 block">売主の実績回数</label>

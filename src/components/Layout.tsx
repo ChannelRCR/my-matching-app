@@ -4,6 +4,7 @@ import { Briefcase, Coins, Menu, X, ChevronRight, Settings, CheckCircle, AlertTr
 import { SystemFeeModal } from './SystemFeeModal';
 import { useAuth } from '../contexts/AuthContext';
 import { getDisplayName } from '../utils/displayName';
+import { WelcomeTutorialModal } from './WelcomeTutorialModal';
 
 export const Layout: React.FC = () => {
     const [isSystemFeeModalOpen, setIsSystemFeeModalOpen] = useState(false);
@@ -247,6 +248,7 @@ export const Layout: React.FC = () => {
                 isOpen={isSystemFeeModalOpen}
                 onClose={() => setIsSystemFeeModalOpen(false)}
             />
+            <WelcomeTutorialModal user={user} />
         </div>
     );
 };

@@ -293,18 +293,6 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
                             <span className="bg-indigo-50 text-indigo-700 text-xs px-2 py-1 rounded font-medium border border-indigo-100 table text-center h-auto align-middle">
                                 <span className="align-middle inline-block">{inv.claimType || '売掛金'}</span>
                             </span>
-                            <span className="bg-emerald-50 text-emerald-700 text-xs px-2 py-1 rounded font-medium border border-emerald-100 flex items-center">
-                                償還請求権なし (ノンリコース)
-                                <InfoTooltip content="万が一、売掛先が倒産した場合でも、買主（投資家）から売主へ返金を求めない特約のことです。" />
-                            </span>
-                            <span className="bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded font-medium border border-blue-100 flex items-center">
-                                二者間ファクタリング
-                                <InfoTooltip content="二者間は売掛先に内密に取引できます。三者間は売掛先の承諾が必要ですが、その一手間により手数料が安くなる傾向があります。" />
-                            </span>
-                            <span className="bg-slate-50 text-slate-700 text-xs px-2 py-1 rounded font-medium border border-slate-200 flex items-center">
-                                債権譲渡登記: 未設定
-                                <InfoTooltip content="債権の持ち主が変わったことを法務局に登録する手続きです。登記を『可』にすると、買い手が安心するためマッチング率が上がります。" />
-                            </span>
                         </div>
 
                         {/* 金額情報 */}

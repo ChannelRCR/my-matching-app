@@ -204,8 +204,8 @@ export const RegisterPage: React.FC = () => {
                         <div className="space-y-4">
                             <h3 className="font-bold text-slate-700">基本情報（仮）</h3>
                             <Input
-                                label={<>法人名または屋号 <RequiredBadge /></>}
-                                placeholder="例 〇〇株式会社 / 〇〇商会"
+                                label={<>法人名または屋号／氏名 <RequiredBadge /></>}
+                                placeholder="例 〇〇株式会社 / 〇〇商会 / 山田 太郎"
                                 value={companyName}
                                 maxLength={50}
                                 onChange={(e) => setCompanyName(e.target.value)}

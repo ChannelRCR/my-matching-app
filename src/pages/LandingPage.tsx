@@ -7,12 +7,21 @@ import {
 import { Button } from '../components/ui/Button';
 import { useMarket } from '../contexts/MarketContext';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { PublicDealsBoard } from '../components/PublicDealsBoard';
 import { TeaserDealsBoard } from '../components/TeaserDealsBoard';
 
 export const LandingPage: React.FC = () => {
     const { stats } = useMarket();
     const navigate = useNavigate();
+    const { session, profile, loading } = useAuth();
+
+    // メール認証後などのリダイレクト処理
+    React.useEffect(() => {
+        if (!loading && session && !profile) {
+            navigate('/onboarding', { state: { showSuccessToast: true } });
+        }
+    }, [session, profile, loading, navigate]);
 
     return (
         <div className="flex flex-col min-h-screen bg-slate-50 font-sans">
@@ -62,16 +71,16 @@ export const LandingPage: React.FC = () => {
                                 className="bg-blue-600 hover:bg-blue-500 text-white font-bold w-full sm:w-auto h-14 px-8 text-base shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_30px_rgba(37,99,235,0.5)] transition-all rounded-xl"
                                 onClick={() => navigate('/register?role=seller')}
                             >
+                                <UserPlus className="mr-2 w-5 h-5" />
                                 売り手として無料登録
-                                <ArrowRight className="ml-2 w-5 h-5" />
                             </Button>
                             <Button
                                 size="lg"
                                 className="bg-white hover:bg-slate-100 text-slate-900 font-bold w-full sm:w-auto h-14 px-8 text-base shadow-lg hover:shadow-xl transition-all rounded-xl border border-slate-200"
                                 onClick={() => navigate('/register?role=buyer')}
                             >
+                                <UserPlus className="mr-2 w-5 h-5 text-slate-500" />
                                 買い手として無料登録
-                                <Briefcase className="ml-2 w-5 h-5 text-slate-500" />
                             </Button>
                         </div>
                     </div>
@@ -159,8 +168,8 @@ export const LandingPage: React.FC = () => {
                                     <li className="flex gap-4 items-start">
                                         <CheckCircle2 className="w-6 h-6 text-blue-500 shrink-0 mt-0.5" />
                                         <div>
-                                            <h4 className="font-bold text-slate-900 text-lg mb-1">取引先に知られない二社間契約</h4>
-                                            <p className="text-slate-600 text-sm leading-relaxed">売却の事実を取引先に通知しない二社間ファクタリングで、信用不安を防ぎます。</p>
+                                            <h4 className="font-bold text-slate-900 text-lg mb-1">市場原理に基づく最適な買い手とのマッチング</h4>
+                                            <p className="text-slate-600 text-sm leading-relaxed">複数の買い手との交渉により、自己の大切な売掛金を最高価格で売却できます。</p>
                                         </div>
                                     </li>
                                     <li className="flex gap-4 items-start">
