@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
@@ -7,13 +7,25 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import { Briefcase } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-    const { signIn } = useAuth();
+    const { signIn, user, profile, loading: authLoading } = useAuth();
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // ログイン済みの場合のリダイレクトガード
+    useEffect(() => {
+        if (authLoading) return;
+        if (user) {
+            if (profile) {
+                navigate('/dashboard');
+            } else {
+                navigate('/');
+            }
+        }
+    }, [user, profile, authLoading, navigate]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

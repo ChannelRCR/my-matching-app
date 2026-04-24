@@ -244,7 +244,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const { error: userDbError } = await supabase
             .from('users')
-            .insert([commonUser]);
+            .upsert([commonUser]);
 
         if (userDbError) {
             console.error('Error creating public user record:', userDbError);
@@ -276,7 +276,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 id_document_url: finalIdDocumentUrl,
                 privacy_settings: extraData.privacySettings,
             };
-            const { error } = await supabase.from('sellers').insert([sellerProfile]);
+            const { error } = await supabase.from('sellers').upsert([sellerProfile]);
             profileError = error;
         } else if (role === 'buyer') {
             const buyerProfile = {
@@ -300,7 +300,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 id_document_url: extraData.idDocumentUrl,
                 privacy_settings: extraData.privacySettings,
             };
-            const { error } = await supabase.from('buyers').insert([buyerProfile]);
+            const { error } = await supabase.from('buyers').upsert([buyerProfile]);
             profileError = error;
         }
 

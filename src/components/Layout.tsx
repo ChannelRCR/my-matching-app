@@ -18,12 +18,12 @@ export const Layout: React.FC = () => {
         const payment = searchParams.get('payment');
         if (payment === 'success' || payment === 'cancel') {
             setPaymentResult(payment);
-            
+
             // Remove the parameter from URL
             const newUrl = new URL(window.location.href);
             newUrl.searchParams.delete('payment');
             window.history.replaceState({ path: newUrl.toString() }, '', newUrl.toString());
-            
+
             // Auto hide
             setTimeout(() => {
                 setPaymentResult(null);
@@ -48,19 +48,18 @@ export const Layout: React.FC = () => {
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900">
             {paymentResult && (
-                <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full shadow-lg border flex items-center gap-3 animate-in fade-in slide-in-from-top-4 ${
-                    paymentResult === 'success' 
-                        ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                        : 'bg-amber-50 border-amber-200 text-amber-800'
-                }`}>
+                <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full shadow-lg border flex items-center gap-3 animate-in fade-in slide-in-from-top-4 ${paymentResult === 'success'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                    : 'bg-amber-50 border-amber-200 text-amber-800'
+                    }`}>
                     {paymentResult === 'success' ? (
                         <CheckCircle className="w-5 h-5 text-emerald-600" />
                     ) : (
                         <AlertTriangle className="w-5 h-5 text-amber-600" />
                     )}
                     <span className="font-bold text-sm">
-                        {paymentResult === 'success' 
-                            ? 'ご支援ありがとうございます！決済が正常に完了しました。' 
+                        {paymentResult === 'success'
+                            ? 'ご支援ありがとうございます！決済が正常に完了しました。'
                             : '決済処理がキャンセルされました。'}
                     </span>
                     <button onClick={() => setPaymentResult(null)} className="ml-2 hover:opacity-70">

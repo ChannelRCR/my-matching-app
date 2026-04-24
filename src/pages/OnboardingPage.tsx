@@ -14,7 +14,7 @@ const ConditionalBadge = ({ text = "案件登録に必須" }: { text?: string })
 const OptionalBadge = () => <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">任意</span>;
 
 export const OnboardingPage: React.FC = () => {
-    const { user, profile, completeOnboarding } = useAuth();
+    const { user, profile, completeOnboarding, loading: authLoading } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -25,12 +25,13 @@ export const OnboardingPage: React.FC = () => {
 
     // If profile exists or no user auth, redirect appropriately
     useEffect(() => {
+        if (authLoading) return;
         if (!user) {
             navigate('/login');
         } else if (profile) {
             navigate('/dashboard'); // Already onboarded
         }
-    }, [user, profile, navigate]);
+    }, [user, profile, authLoading, navigate]);
 
     useEffect(() => {
         // LandingPageからのリダイレクトか、直接ハッシュ付きで遷移してきた場合を判定
@@ -252,6 +253,14 @@ export const OnboardingPage: React.FC = () => {
         </div>
         );
     };
+
+    if (authLoading) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 py-12 relative">

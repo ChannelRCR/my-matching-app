@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
@@ -14,9 +14,21 @@ const ConditionalBadge = ({ text = "案件登録に必須" }: { text?: string })
 const OptionalBadge = () => <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">任意</span>;
 
 export const RegisterPage: React.FC = () => {
-    const { signUp } = useAuth();
+    const { signUp, user, profile, loading: authLoading } = useAuth();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
+
+    // ログイン済みの場合のリダイレクトガード
+    useEffect(() => {
+        if (authLoading) return;
+        if (user) {
+            if (profile) {
+                navigate('/dashboard');
+            } else {
+                navigate('/');
+            }
+        }
+    }, [user, profile, authLoading, navigate]);
 
     // Default role from URL ?role=seller or ?role=buyer
     const defaultRole = (searchParams.get('role') as UserRole) || 'seller';
