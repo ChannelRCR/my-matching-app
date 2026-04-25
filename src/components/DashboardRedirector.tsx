@@ -24,8 +24,10 @@ export const DashboardRedirector: React.FC = () => {
                 navigate({ pathname: '/admin', search: location.search }, { replace: true });
             } else {
                 // Fallback
-                navigate({ pathname: '/', search: location.search }, { replace: true });
+                navigate({ pathname: '/onboarding', search: location.search }, { replace: true });
             }
+        } else {
+            navigate('/onboarding', { replace: true });
         }
     }, [user, profile, loading, navigate, location.search]);
 

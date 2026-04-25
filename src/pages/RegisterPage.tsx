@@ -25,7 +25,7 @@ export const RegisterPage: React.FC = () => {
             if (profile) {
                 navigate('/dashboard');
             } else {
-                navigate('/');
+                navigate('/onboarding');
             }
         }
     }, [user, profile, authLoading, navigate]);
@@ -81,6 +81,7 @@ export const RegisterPage: React.FC = () => {
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isDuplicateEmail, setIsDuplicateEmail] = useState(false);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
     const handleChange = (field: keyof typeof formData, value: string | boolean | File | null) => {
@@ -118,10 +119,8 @@ export const RegisterPage: React.FC = () => {
 
         setLoading(true);
         setError(null);
-
-        setLoading(true);
-        setError(null);
         setSuccessMessage(null);
+        setIsDuplicateEmail(false);
 
         // Pre-validation
         if (!email || !password || !companyName) {
@@ -145,7 +144,8 @@ export const RegisterPage: React.FC = () => {
             console.error(signUpError);
             const errObj = signUpError as { message?: string, status?: number };
             if (errObj.message?.includes('already registered') || errObj.message?.includes('already in use') || errObj.status === 422) {
-                setError('このメールアドレスは既に登録されています。ログインするか、別のアドレスを使用してください。');
+                setError('このメールアドレスは既に登録されています。');
+                setIsDuplicateEmail(true);
             } else {
                 setError(`登録に失敗しました: ${errObj.message}`);
             }
@@ -263,8 +263,27 @@ export const RegisterPage: React.FC = () => {
                         </div>
 
                         {error && (
-                            <div className="bg-red-50 text-red-600 p-3 rounded text-sm">
-                                {error}
+                            <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded text-sm">
+                                <p className="font-bold">{error}</p>
+                                {isDuplicateEmail && (
+                                    <div className="mt-4 flex flex-col sm:flex-row gap-2">
+                                        <Link to="/login" className="inline-flex justify-center items-center px-4 py-2 bg-primary text-white rounded font-medium hover:bg-primary/90 transition-colors">
+                                            ログイン画面へ進む
+                                        </Link>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => {
+                                                setEmail('');
+                                                setPassword('');
+                                                setError(null);
+                                                setIsDuplicateEmail(false);
+                                            }}
+                                            className="inline-flex justify-center items-center px-4 py-2 bg-white text-slate-700 border border-slate-300 rounded font-medium hover:bg-slate-50 transition-colors"
+                                        >
+                                            別のメールアドレスを試す
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         )}
 

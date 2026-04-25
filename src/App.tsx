@@ -19,7 +19,7 @@ import { HelpPage } from './pages/HelpPage';
 
 import { DataProvider } from './contexts/DataContext';
 import { MarketProvider } from './contexts/MarketContext';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminProtectedRoute } from './components/AdminProtectedRoute';
 import { DashboardRedirector } from './components/DashboardRedirector';

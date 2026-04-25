@@ -22,7 +22,7 @@ export const LoginPage: React.FC = () => {
             if (profile) {
                 navigate('/dashboard');
             } else {
-                navigate('/');
+                navigate('/onboarding');
             }
         }
     }, [user, profile, authLoading, navigate]);

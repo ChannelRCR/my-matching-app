@@ -66,6 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setSession(session);
             setUser(session?.user ?? null);
             if (session?.user) {
+                setLoading(true); // Profile is being fetched, ensure loading is true
                 fetchProfile(session.user.id);
             } else {
                 setProfile(null);
@@ -183,6 +184,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (authError) return { error: authError };
         if (!authData.user) return { error: { message: 'User data missing' } };
+
+        // Supabaseの仕様で、重複登録時は成功レスポンスと共にidentitiesが空になる場合がある
+        if (authData.user?.identities?.length === 0) {
+            return { error: { message: 'User already registered', status: 422 } };
+        }
 
         return { error: null };
     };

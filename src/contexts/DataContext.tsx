@@ -30,7 +30,7 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { user: authUser } = useAuth();
+    const { user: authUser, profile, loading: authLoading } = useAuth();
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [users, setUsers] = useState<User[]>([]);
     const [buyers, setBuyers] = useState<User[]>([]);
@@ -42,7 +42,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [sellerUncompletedCounts, setSellerUncompletedCounts] = useState<Record<string, number>>({});
 
     useEffect(() => {
-        if (!authUser) {
+        if (authLoading) return;
+
+        if (!authUser || !profile || !profile.role) {
             setInvoices([]);
             setDeals([]);
             setUsers([]);
@@ -89,7 +91,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             supabase.removeChannel(dealsSub);
             supabase.removeChannel(msgsSub);
         };
-    }, [authUser?.id]);
+    }, [authUser?.id, profile?.id, authLoading]);
 
     const fetchUsers = async () => {
         const { data: usersData } = await supabase.from('users').select('*');
@@ -242,7 +244,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // --- Deals/Messages Real Implementation ---
     const fetchDeals = async () => {
-        if (!authUser) return;
+        if (!authUser || !profile || !profile.role) return;
         const { data } = await supabase.from('deals')
             .select('*')
             .or(`seller_id.eq.${authUser.id},buyer_id.eq.${authUser.id}`)
@@ -299,7 +301,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const fetchMessages = async () => {
-        if (!authUser) return;
+        if (!authUser || !profile || !profile.role) return;
         const { data } = await supabase.from('messages')
             .select('*')
             .or(`sender_id.eq.${authUser.id},receiver_id.eq.${authUser.id}`)
