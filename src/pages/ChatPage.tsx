@@ -1050,9 +1050,9 @@ export const ChatPage: React.FC = () => {
                                                 )}
                                             </div>
                                             <div className="px-3">
-                                                {renderInvoicePrivateField('debtorInfo', '企業名', invoice.debtorName, invoice.isClientNamePublic, !isBuyer, isBuyer ? opponentRevealedFields['debtorInfo'] : myRevealedFields['debtorInfo'], true)}
-                                                {renderInvoicePrivateField('debtorInfo', '郵便番号', invoice.debtorPostalCode ? `〒${invoice.debtorPostalCode}` : null, invoice.isClientAddressPublic, !isBuyer, isBuyer ? opponentRevealedFields['debtorInfo'] : myRevealedFields['debtorInfo'], true)}
-                                                {renderInvoicePrivateField('debtorInfo', '所在地', invoice.debtorAddress, invoice.isClientAddressPublic, !isBuyer, isBuyer ? opponentRevealedFields['debtorInfo'] : myRevealedFields['debtorInfo'], true)}
+                                                {renderInvoicePrivateField('debtorInfo', '企業名', invoice.debtorName, invoice.isClientNamePublic ?? false, !isBuyer, isBuyer ? (opponentRevealedFields['debtorInfo'] ?? false) : (myRevealedFields['debtorInfo'] ?? false), true)}
+                                                {renderInvoicePrivateField('debtorInfo', '郵便番号', invoice.debtorPostalCode ? `〒${invoice.debtorPostalCode}` : null, invoice.isClientAddressPublic ?? false, !isBuyer, isBuyer ? (opponentRevealedFields['debtorInfo'] ?? false) : (myRevealedFields['debtorInfo'] ?? false), true)}
+                                                {renderInvoicePrivateField('debtorInfo', '所在地', invoice.debtorAddress, invoice.isClientAddressPublic ?? false, !isBuyer, isBuyer ? (opponentRevealedFields['debtorInfo'] ?? false) : (myRevealedFields['debtorInfo'] ?? false), true)}
                                             </div>
                                         </div>
                                         <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">

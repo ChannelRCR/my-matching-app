@@ -5,7 +5,7 @@ import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 
 // TODO: 後で運営の実際のアドレスに書き換えてください
-const ADMIN_EMAIL = "TODO_ADMIN_ADDRESS";
+// const ADMIN_EMAIL = "TODO_ADMIN_ADDRESS";
 
 const faqs = [
   {

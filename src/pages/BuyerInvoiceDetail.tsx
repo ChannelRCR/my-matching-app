@@ -251,7 +251,6 @@ export const BuyerInvoiceDetail: React.FC = () => {
                                                 if (newDeal) {
                                                     try {
                                                         const chatUrl = getChatUrl(newDeal.id);
-                                                        const myName = user.user_metadata?.company_name || '買主（インベスター）'; // Note: Buyer Name can't be fetched perfectly here without a lookup, but it's fine for subject
                                                         await sendEmailNotification(
                                                             [invoice.sellerId],
                                                             "【FactorMatch】新しい交渉が開始されました",

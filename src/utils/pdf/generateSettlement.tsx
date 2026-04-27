@@ -31,7 +31,7 @@ export const generateSettlementPDFBlob = async (_deal: Deal, dispute: Dispute, s
     // 総額（和解請求総額）と月額（月々の分割支払額）の分離
     const claimAmountStr = (dispute.claim_amount || 0).toLocaleString();
     const monthlyAmountStr = (dispute.settlement_amount || 0).toLocaleString();
-    const installmentsCount = dispute.installments_count || 1;
+    // const installmentsCount = dispute.installments_count || 1;
     
     // 甲乙の定義を要件通りに設定
     const partyA = seller.companyName || seller.name; // 甲（譲渡人 / 売主）
