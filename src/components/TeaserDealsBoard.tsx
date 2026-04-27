@@ -155,7 +155,7 @@ export const TeaserDealsBoard: React.FC = () => {
                                             <div className="font-bold text-slate-800 text-sm truncate flex items-center gap-2">
                                                 {inv.debtor_industry || '業種非公開'} 
                                                 <span className="text-slate-400 text-xs font-medium bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
-                                                    {translateCompanySize(inv.debtor_company_size) || '規模非公開'}
+                                                    {translateCompanySize(inv.debtor_company_size || undefined) || '規模非公開'}
                                                 </span>
                                             </div>
                                         </div>

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import { Briefcase, Wallet, LineChart, Building2, User, CheckCircle2, X } from 'lucide-react';
+import { Briefcase, Building2, User, CheckCircle2, X } from 'lucide-react';
 import type { UserRole } from '../types';
 import { fetchAddressFromZip } from '../utils/zipcode';
 import { INDUSTRY_OPTIONS } from '../utils/constants';

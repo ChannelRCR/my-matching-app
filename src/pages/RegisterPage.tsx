@@ -4,14 +4,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import { Briefcase, Wallet, LineChart, Building2, User } from 'lucide-react';
+import { Briefcase, Wallet, LineChart } from 'lucide-react';
 import type { UserRole } from '../types';
-import { fetchAddressFromZip } from '../utils/zipcode';
-import { INDUSTRY_OPTIONS } from '../utils/constants';
 
 const RequiredBadge = () => <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 border border-red-200">必須</span>;
-const ConditionalBadge = ({ text = "案件登録に必須" }: { text?: string }) => <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200">{text}</span>;
-const OptionalBadge = () => <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">任意</span>;
 
 export const RegisterPage: React.FC = () => {
     const { signUp, user, profile, loading: authLoading } = useAuth();
@@ -43,68 +39,14 @@ export const RegisterPage: React.FC = () => {
     // Basic profile fields
     const [companyName, setCompanyName] = useState('');
 
-    // Detailed profile fields
-    const [formData, setFormData] = useState({
-        entityType: 'corporate' as 'corporate' | 'individual',
-        hasNoTradeName: false,
-        postalCode: '',
-        companyNameKana: '',
-        representativeNameKana: '',
-        representativeName: '',
-        contactPerson: '',
-        address: '',
-        bankAccountInfo: '',
-        phone: '',
-        appealPoint: '',
-        industry: '',
-        industryOther: '',
-        budget: '',
-        corporateNumber: '',
-        websiteUrl: '',
-        idDocumentUrl: '',
-        idDocumentFile: null as File | null,
-    });
-
-    const [privacySettings, setPrivacySettings] = useState({
-        companyName: true,
-        representativeName: true,
-        contactPerson: false,
-        address: false,
-        bankAccountInfo: false,
-        phone: false,
-        email: false,
-        corporateNumber: false,
-        websiteUrl: false,
-        idDocumentUrl: false,
-        idDocumentFile: false,
-    });
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isDuplicateEmail, setIsDuplicateEmail] = useState(false);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-    const handleChange = (field: keyof typeof formData, value: string | boolean | File | null) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-    };
 
-    const handlePostalCodeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = e.target.value;
-        handleChange('postalCode', val);
 
-        // Only fetch if exactly 7 digits (with or without hyphen)
-        const cleaned = val.replace(/[^\d]/g, '');
-        if (cleaned.length === 7) {
-            const fetchedAddress = await fetchAddressFromZip(cleaned);
-            if (fetchedAddress) {
-                handleChange('address', fetchedAddress);
-            }
-        }
-    };
-
-    const togglePrivacy = (field: keyof typeof privacySettings) => {
-        setPrivacySettings(prev => ({ ...prev, [field]: !prev[field] }));
-    };
 
     const handleSubmit = async (e: React.FormEvent | React.MouseEvent) => {
         e.preventDefault();

@@ -2,7 +2,7 @@ import React from 'react';
 import {
     TrendingUp, LineChart, DollarSign, Clock, ShieldCheck,
     Zap, Layers, ArrowRight, UserPlus, Search,
-    Handshake, CheckCircle2, Building2, Briefcase
+    Handshake, CheckCircle2, Building2
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useMarket } from '../contexts/MarketContext';
