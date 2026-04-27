@@ -514,7 +514,7 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                 [deal.buyerId],
                 "【報告】売主様より回収金送金の報告がありました [FactorMatch]",
                 `<p>対象案件（Deal ID: ${deal.id}）について、第三債務者からの回収を買主様へ送金（報告）いたしました。</p>
-                <p>至急ご自身の口座にて回収対象額（<strong>¥${(invoice.requestedAmount || invoice.amount).toLocaleString()}</strong>）付近の着金を確認し、「着金確認」操作を行ってください。</p>
+                <p>至急ご自身の口座にて回収対象額（<strong>¥${(invoice.requestedAmount || invoice.amount).toLocaleString()}</strong>）着金を確認し、「着金確認」操作を行ってください。</p>
                 <p><a href="${chatUrl}">チャット画面を開く</a></p>`
             );
         }
@@ -825,7 +825,7 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                                     {/* PHASE 2 (回収・手渡し待ち) */}
                                     {deal.paymentStatus === 'seller_received' && (
                                         <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg shadow-sm text-center font-bold relative">
-                                            <p className="text-blue-800 mb-2">フェーズ2: 売主からの回収金引渡しをお待ちください</p>
+                                            <p className="text-blue-800 mb-2">フェーズ2: 売主の回収および送金をお待ちください。</p>
                                             <p className="text-xs text-blue-600 font-normal">引渡しの報告後、ここで最終確認を行います。</p>
                                         </div>
                                     )}

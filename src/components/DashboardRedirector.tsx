@@ -16,6 +16,13 @@ export const DashboardRedirector: React.FC = () => {
         }
 
         if (profile) {
+            const redirectPath = sessionStorage.getItem('redirectPath');
+            if (redirectPath) {
+                sessionStorage.removeItem('redirectPath');
+                navigate(redirectPath, { replace: true });
+                return;
+            }
+
             if (profile.role === 'seller') {
                 navigate({ pathname: '/seller/dashboard', search: location.search }, { replace: true });
             } else if (profile.role === 'buyer') {

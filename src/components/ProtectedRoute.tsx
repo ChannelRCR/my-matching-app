@@ -19,6 +19,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) 
     }
 
     if (!user) {
+        sessionStorage.setItem('redirectPath', window.location.pathname + window.location.search);
         return <Navigate to="/login" replace />;
     }
 

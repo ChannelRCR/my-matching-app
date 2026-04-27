@@ -278,7 +278,7 @@ export const BuyerDashboard: React.FC = () => {
                                                 </div>
                                                 <div className="flex justify-between items-center pt-1">
                                                     <span className="text-blue-800 font-bold">あなたの提示額:</span>
-                                                    <span className="font-bold text-lg text-blue-900">¥{deal.currentAmount.toLocaleString()}</span>
+                                                    <span className="font-bold text-lg text-blue-900">¥{(deal.currentBuyerPrice || deal.currentAmount).toLocaleString()}</span>
                                                 </div>
                                                 <div className="flex justify-between items-center text-xs text-slate-500 mt-2">
                                                     <span>最終更新:</span>
