@@ -1,6 +1,4 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect } from 'react';
-import { supabase } from './lib/supabase';
 import { Layout } from './components/Layout';
 
 import { LandingPage } from './pages/LandingPage';
