@@ -3,34 +3,6 @@ import { useEffect } from 'react';
 import { supabase } from './lib/supabase';
 import { Layout } from './components/Layout';
 
-function HealthCheck() {
-  useEffect(() => {
-    const checkSupabase = async () => {
-      console.log('🔄 [Health Check] Supabase接続テストを開始します...');
-      
-      // 1. セッションの確認
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) {
-        console.error('❌ [Health Check] セッション取得エラー:', sessionError.message);
-      } else {
-        console.log('✅ [Health Check] セッション通信成功。現在のユーザー:', session?.user?.email || '未ログイン');
-      }
-
-      // 2. データベースの確認 (profilesテーブルから1件取得)
-      const { data: profiles, error: dbError } = await supabase.from('profiles').select('id').limit(1);
-      if (dbError) {
-        console.error('❌ [Health Check] データベース通信エラー:', dbError.message);
-        console.warn('⚠️ 接続先のSupabaseプロジェクトが間違っている可能性があります。');
-      } else {
-        console.log('✅ [Health Check] データベース通信成功。正しいプロジェクトに接続されています。');
-      }
-    };
-    checkSupabase();
-  }, []);
-
-  return null;
-}
-
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
@@ -72,7 +44,6 @@ function GlobalLoader({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <BrowserRouter>
-      <HealthCheck />
       <AuthProvider>
         <MarketProvider>
           <DataProvider>
