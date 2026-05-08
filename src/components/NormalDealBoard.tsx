@@ -55,6 +55,17 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
     const [isTermsAgreed, setIsTermsAgreed] = useState(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
     const [isFeeModalOpen, setIsFeeModalOpen] = useState(false);
+    const [isScrolledToBottom, setIsScrolledToBottom] = useState(false);
+    const [signature, setSignature] = useState('');
+
+    const isValidSignature = React.useMemo(() => {
+        if (!signature || !loggedInProfile) return false;
+        const inputStr = signature.replace(/[\s　]+/g, '');
+        const repStr = (loggedInProfile.representativeName || '').replace(/[\s　]+/g, '');
+        const nameStr = (loggedInProfile.name || '').replace(/[\s　]+/g, '');
+        
+        return (repStr && inputStr === repStr) || (nameStr && inputStr === nameStr);
+    }, [signature, loggedInProfile]);
 
     const opponentProfile = isBuyer ? users.find(u => u.id === deal?.sellerId) : users.find(u => u.id === deal?.buyerId);
     const highestOfferAmount = activeDealsForInvoice.length > 0 ? Math.max(...activeDealsForInvoice.map(d => d.currentBuyerPrice || 0)) : 0;
@@ -693,49 +704,90 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                                 </Button>
                             ) : (
                                 <div className="flex flex-col gap-3">
-                                    {!hasViewedTerms ? (
-                                        <div className="bg-blue-50 p-4 rounded text-center border border-blue-100">
-                                            <p className="text-sm tracking-tight text-blue-800 mb-2 font-bold">
-                                                「約款および債権譲渡契約条項」を確認願います
-                                            </p>
-                                            <Link
-                                                to="/terms"
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                onClick={handleTermsClick}
-                                                className="text-blue-600 hover:text-blue-800 underline font-bold"
-                                            >
-                                                約款および債権譲渡契約条項を読む
-                                            </Link>
+                                    <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 flex flex-col gap-3">
+                                        <p className="text-sm font-bold text-slate-800 text-center">
+                                            契約内容の最終確認
+                                        </p>
+                                        <div 
+                                            className="bg-white border border-slate-300 p-4 h-64 overflow-y-auto text-xs text-slate-600 leading-relaxed rounded shadow-inner"
+                                            onScroll={(e) => {
+                                                const target = e.target as HTMLDivElement;
+                                                // スクロール判定（20pxの遊びを設ける）
+                                                if (target.scrollHeight - target.scrollTop - target.clientHeight <= 20) {
+                                                    setIsScrolledToBottom(true);
+                                                }
+                                            }}
+                                        >
+                                            <h4 className="font-bold text-center mb-4 text-sm tracking-widest text-slate-800">重要事項説明書 兼 契約書（プレビュー）</h4>
+                                            <p className="mb-4">譲渡人（以下「甲」という。）と、譲受人（以下「乙」という。）は、以下の通り債権譲渡に関して合意し、契約を締結する。</p>
+                                            
+                                            <h5 className="font-bold mb-2 border-b border-slate-400 pb-1 text-slate-800">1. 譲渡対象債権</h5>
+                                            <ul className="list-disc pl-5 mb-4 space-y-1">
+                                                <li><strong>債務者名:</strong> {invoice.debtorName || '記載なし'}</li>
+                                                <li><strong>債務者住所:</strong> {invoice.debtorAddress || '記載なし'}</li>
+                                                <li><strong>債権額面金額:</strong> {invoice.amount.toLocaleString()}円</li>
+                                                <li><strong>支払期日:</strong> {invoice.dueDate ? `${new Date(invoice.dueDate).getFullYear()}年${new Date(invoice.dueDate).getMonth() + 1}月${new Date(invoice.dueDate).getDate()}日` : '未定'}</li>
+                                            </ul>
+                                            
+                                            <h5 className="font-bold mb-2 border-b border-slate-400 pb-1 text-slate-800">2. 譲渡代金</h5>
+                                            <p className="mb-4 pl-2">金 {(deal.currentBuyerPrice || deal.currentSellerPrice || deal.currentAmount || 0).toLocaleString()} 円</p>
+                                            
+                                            <h5 className="font-bold mb-2 border-b border-slate-400 pb-1 text-slate-800">3. 権利移転時期（所有権留保）</h5>
+                                            <p className="mb-4 pl-2 font-bold text-black underline decoration-slate-300 underline-offset-4">譲渡対象債権の所有権は、乙が譲渡代金を完済した時に甲から乙へ移転するものとする。</p>
+                                            
+                                            <div className="bg-slate-100 p-3 mt-4 text-[10px] border border-slate-200">
+                                                <strong>【約款の適用】</strong><br />
+                                                本契約書に記載のない事項については、当プラットフォームの利用規約および債権譲渡約款（<Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" onClick={handleTermsClick}>リンク</Link>）の定めるところによる。
+                                            </div>
+                                            <div className="mt-8 pt-4 border-t border-slate-200 text-center text-slate-400 font-bold">
+                                                【プレビューの末尾】
+                                            </div>
                                         </div>
-                                    ) : (
-                                        <label className="flex items-start gap-2 text-sm text-slate-700 cursor-pointer p-2 rounded hover:bg-slate-50 border border-transparent hover:border-slate-200 bg-white shadow-sm">
+
+                                        <label className={`flex items-start gap-2 text-sm p-3 rounded border shadow-sm transition-colors ${isScrolledToBottom ? 'cursor-pointer hover:bg-slate-50 border-slate-300 bg-white' : 'cursor-not-allowed bg-slate-100 border-slate-200 text-slate-400'}`}>
                                             <input
                                                 type="checkbox"
                                                 checked={isTermsAgreed}
                                                 onChange={(e) => setIsTermsAgreed(e.target.checked)}
-                                                className="mt-1 w-4 h-4 text-green-600 rounded border-slate-300 focus:ring-green-500 shrink-0 cursor-pointer"
+                                                disabled={!isScrolledToBottom}
+                                                className="mt-1 w-4 h-4 text-green-600 rounded border-slate-300 focus:ring-green-500 shrink-0 cursor-pointer disabled:opacity-50"
                                             />
-                                            <span className="leading-snug select-none">
-                                                <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline inline-block mr-1">
-                                                    約款および債権譲渡契約条項
-                                                </Link>
-                                                を確認しました
+                                            <span className="leading-snug select-none flex-1">
+                                                <span className="font-bold">上記内容を十分に確認し、債権譲渡契約の締結に同意します</span>
+                                                {!isScrolledToBottom && (
+                                                    <span className="block text-[10px] text-red-500 mt-1 font-bold">※プレビューを最後までスクロールするとチェックできます</span>
+                                                )}
                                             </span>
                                         </label>
-                                    )}
+
+                                        <div className="flex flex-col gap-1.5 mt-2 bg-white p-3 rounded border border-slate-200">
+                                            <label className="text-xs font-bold text-slate-700">署名（フルネーム）</label>
+                                            <Input 
+                                                type="text" 
+                                                value={signature} 
+                                                onChange={(e) => setSignature(e.target.value)} 
+                                                placeholder="例：山田 太郎"
+                                                className="text-sm border-slate-300 focus:border-blue-500 focus:ring-blue-500 bg-white h-9"
+                                            />
+                                            <p className="text-[10px] text-slate-500">※ご登録の氏名または代表者名を入力してください</p>
+                                        </div>
+                                    </div>
 
                                     <Button
                                         size="sm"
-                                        className={`w-full font-bold shadow-md transition-transform ${isTermsAgreed ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-slate-300 text-slate-500 cursor-not-allowed'}`}
+                                        className={`w-full font-bold shadow-md transition-all h-10 ${
+                                            isTermsAgreed && isValidSignature
+                                                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                                                : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                        }`}
                                         onClick={(e) => {
                                             e.preventDefault();
                                             handleAgree();
                                         }}
-                                        disabled={!isTermsAgreed}
+                                        disabled={!isTermsAgreed || !isValidSignature}
                                     >
-                                        <Handshake className="w-5 h-5 mr-2" />
-                                        契約手続に進む（合意する）
+                                        <FileTextIcon className="w-5 h-5 mr-2" />
+                                        契約を締結してPDFを発行する
                                     </Button>
                                 </div>
                             )}
