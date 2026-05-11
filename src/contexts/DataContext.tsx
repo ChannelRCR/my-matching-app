@@ -3,7 +3,7 @@ import type { Invoice, Deal, User, Message } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { isTransitioning } from '../utils/transitionState';
-import { sendEmailNotification } from '../utils/notification';
+import { sendEmailNotification, getChatUrl } from '../utils/notification';
 
 interface DataContextType {
     invoices: Invoice[];
@@ -466,7 +466,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Edge Functionを利用して売り手へメール通知
         const myName = authUser?.user_metadata?.company_name || '買主';
-        const chatUrl = `${import.meta.env.VITE_APP_URL || window.location.origin}/chat?dealId=${data.id}`;
+        const chatUrl = getChatUrl(data.id);
         await sendEmailNotification(
             [sellerId],
             "【FactorMatch】新しい交渉が開始されました",
@@ -549,7 +549,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Edge Functionを利用して売り手へメール通知
         const myName = authUser?.user_metadata?.company_name || '買主';
-        const chatUrl = `${import.meta.env.VITE_APP_URL || window.location.origin}/chat?dealId=${data.id}`;
+        const chatUrl = getChatUrl(data.id);
         await sendEmailNotification(
             [sellerId],
             "【FactorMatch】新しい交渉・オファーが開始されました",

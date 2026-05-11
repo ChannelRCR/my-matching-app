@@ -1,19 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Scale, Handshake, CheckCircle, ChevronRight, ChevronLeft } from 'lucide-react';
 import { Button } from './ui/Button';
+import { useAuth } from '../contexts/AuthContext';
 
-export const WelcomeTutorialModal: React.FC<{ user: any }> = ({ user }) => {
+export const WelcomeTutorialModal: React.FC = () => {
+    const { user, profile } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [currentSlide, setCurrentSlide] = useState(0);
 
     useEffect(() => {
-        if (!user) return;
+        if (!user || !profile) return;
         
         const hasSeen = localStorage.getItem('has_seen_tutorial');
         if (!hasSeen) {
             setIsOpen(true);
         }
-    }, [user]);
+    }, [user, profile]);
 
     if (!isOpen) return null;
 

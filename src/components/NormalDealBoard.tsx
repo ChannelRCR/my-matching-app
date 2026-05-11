@@ -94,9 +94,16 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
         setProposedPrice('');
         setIsPriceUnlocked(false);
 
+        const effectiveSellerPrice = (deal.currentSellerPrice && deal.currentSellerPrice !== invoice.requestedAmount && deal.currentSellerPrice !== invoice.amount) 
+            ? deal.currentSellerPrice 
+            : (invoice.sellingAmount || invoice.amount || 0);
+
+        const isMatch = isBuyer ? (numPrice === effectiveSellerPrice) : (numPrice === deal.currentBuyerPrice);
+
         const now = new Date();
         const receiverId = isBuyer ? deal.sellerId : deal.buyerId;
         const proposerRole = isBuyer ? '買主' : '売主';
+        
         await addMessage({
             id: `sys_${Date.now()}`,
             dealId: deal.id,
@@ -107,14 +114,36 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
             isSystemMessage: true
         });
 
-        const chatUrl = getChatUrl(deal.id);
-        await sendEmailNotification(
-            [receiverId],
-            "新着オファーのお知らせ [FactorMatch]",
-            `<p>${proposerRole}様より新しい金額の提示（¥${numPrice.toLocaleString()}）がありました。</p>
-            <p>FactorMatchのチャット画面より条件を確認し、検討をお願いいたします。</p>
-            <p><a href="${chatUrl}">チャット画面を開く</a></p>`
-        );
+        if (isMatch) {
+            const matchedPriceMsg = `【システム通知】\n金額が ¥${numPrice.toLocaleString()} で合致しました。`;
+            await addMessage({
+                id: `sys_match_${Date.now()}`,
+                dealId: deal.id,
+                senderId: user.id,
+                receiverId: receiverId,
+                content: matchedPriceMsg,
+                timestamp: new Date().toISOString(),
+                isSystemMessage: true
+            });
+
+            const chatUrl = getChatUrl(deal.id);
+            await sendEmailNotification(
+                [deal.buyerId, deal.sellerId],
+                "【金額の合致】自動取引システムより [FactorMatch]",
+                `<p>お互いの提示金額が合致しました！（¥${numPrice.toLocaleString()}）</p>
+                <p>速やかにチャット画面へアクセスし、対象債権の契約手続（合意）を行ってください。</p>
+                <p><a href="${chatUrl}">チャット画面を開く</a></p>`
+            );
+        } else {
+            const chatUrl = getChatUrl(deal.id);
+            await sendEmailNotification(
+                [receiverId],
+                "新着オファーのお知らせ [FactorMatch]",
+                `<p>${proposerRole}様より新しい金額の提示（¥${numPrice.toLocaleString()}）がありました。</p>
+                <p>FactorMatchのチャット画面より条件を確認し、検討をお願いいたします。</p>
+                <p><a href="${chatUrl}">チャット画面を開く</a></p>`
+            );
+        }
     };
 
     const handleAgree = async () => {
@@ -186,6 +215,30 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                 // 2. 最も重要な deals テーブルの更新を先に実行（整合性担保）
                 const { error: updateError } = await supabase.from('deals').update(dbUpdates).eq('id', deal.id);
                 if (updateError) throw updateError;
+
+                // 2.5 契約締結証明ログの保存
+                let ipAddress = null;
+                try {
+                    const response = await fetch('https://api.ipify.org?format=json');
+                    if (response.ok) {
+                        const data = await response.json();
+                        ipAddress = data.ip;
+                    }
+                } catch (e) {
+                    console.error("IP fetching failed:", e);
+                }
+
+                const { error: logError } = await supabase.from('contract_logs').insert([{
+                    deal_id: deal.id,
+                    user_id: user.id,
+                    role: isBuyer ? 'buyer' : 'seller',
+                    signature_name: signature,
+                    user_agent: navigator.userAgent,
+                    ip_address: ipAddress
+                }]);
+                if (logError) {
+                    console.error("Contract log save failed:", logError);
+                }
 
                 if (willBeConcluded) {
                     // 契約成立時: invoices テーブルの更新

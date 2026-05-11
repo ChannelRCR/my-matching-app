@@ -564,7 +564,16 @@ export const OnboardingPage: React.FC = () => {
 
                             {renderInputWithPrivacy(<>自社ホームページURL<OptionalBadge /></>, "websiteUrl", "例: https://example.com/ (任意)", "url")}
 
-                            {renderInputWithPrivacy(<>本人確認書類 (登記簿、身分証明書等)<ConditionalBadge text={role === 'seller' ? '案件登録に必須' : '取引に必須'} /></>, "idDocumentFile", "ファイルをアップロード", "file")}
+                            {renderInputWithPrivacy(
+                                <>
+                                    本人確認書類 (登記簿、身分証明書等)
+                                    {/* <ConditionalBadge text={role === 'seller' ? '案件登録に必須' : '取引に必須'} /> */}
+                                    <OptionalBadge />
+                                </>,
+                                "idDocumentFile",
+                                "ファイルをアップロード",
+                                "file"
+                            )}
                             <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 flex items-start gap-2">
                                 <span className="text-red-500 mt-0.5 shrink-0">⚠️</span>
                                 <span>

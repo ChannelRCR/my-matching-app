@@ -249,18 +249,6 @@ export const BuyerInvoiceDetail: React.FC = () => {
                                             if (user && ['open', 'pending', 'negotiating'].includes(invoice.status)) {
                                                 const newDeal = await createChatRoom(invoice.id, user.id);
                                                 if (newDeal) {
-                                                    try {
-                                                        const chatUrl = getChatUrl(newDeal.id);
-                                                        await sendEmailNotification(
-                                                            [invoice.sellerId],
-                                                            "【FactorMatch】新しい交渉が開始されました",
-                                                            `<p>ご登録の債権に対して、新しく買い手候補から交渉（チャット）が開始されました。</p>
-                                                            <p>FactorMatchのチャット画面よりご確認ください。</p>
-                                                            <p><a href="${chatUrl}">チャット画面を開く</a></p>`
-                                                        ).catch(err => console.error("Email notification failed:", err));
-                                                    } catch (e) {
-                                                        console.error("Error setting up email notification:", e);
-                                                    }
                                                     navigate(`/chat?dealId=${newDeal.id}`);
                                                 }
                                             }

@@ -239,40 +239,7 @@ export const ChatPage: React.FC = () => {
         }
     }, [dealId, deals, invoices, allMessages, users, user, markMessagesAsRead]);
 
-    // 1. 金額合致時の自動メッセージ
-    useEffect(() => {
-        if (!deal || !user || !isPriceMatched || deal.status === 'concluded') return;
-
-        const matchedPriceMsg = `【システム通知】\n金額が ¥${deal.currentBuyerPrice?.toLocaleString()} で合致しました。`;
-        const hasMatchedMsg = messages.some(m => m.text === matchedPriceMsg && m.isSystemMessage);
-
-        if (!hasMatchedMsg && !hasSentMatchMessageRef.current) {
-            hasSentMatchMessageRef.current = true;
-            const receiverId = isBuyer ? deal.sellerId : deal.buyerId;
-            addMessage({
-                id: `sys_match_${Date.now()}`,
-                dealId: deal.id,
-                senderId: user.id,
-                receiverId: receiverId,
-                content: matchedPriceMsg,
-                timestamp: new Date().toISOString(),
-                isSystemMessage: true
-            }).then(async () => {
-                // Email notification securely triggers asynchronously
-                const chatUrl = getChatUrl(deal.id);
-                await sendEmailNotification(
-                    [deal.buyerId, deal.sellerId],
-                    "【金額の合致】自動取引システムより [FactorMatch]",
-                    `<p>お互いの提示金額が合致しました！（¥${deal.currentBuyerPrice?.toLocaleString()}）</p>
-                    <p>速やかにチャット画面へアクセスし、対象債権の契約手続（合意）を行ってください。</p>
-                    <p><a href="${chatUrl}">チャット画面を開く</a></p>`
-                );
-            }).catch(err => {
-                hasSentMatchMessageRef.current = false;
-                console.error("Error sending match message:", err);
-            });
-        }
-    }, [isPriceMatched, deal, messages, user, isBuyer, addMessage]);
+    // isPriceMatched message logic moved to NormalDealBoard.tsx
 
     const handleTermsClick = async () => {
         if (!hasViewedTerms && deal && user) {

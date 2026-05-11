@@ -247,7 +247,7 @@ export const Layout: React.FC = () => {
                 isOpen={isSystemFeeModalOpen}
                 onClose={() => setIsSystemFeeModalOpen(false)}
             />
-            <WelcomeTutorialModal user={user} />
+            <WelcomeTutorialModal />
         </div>
     );
 };

@@ -2,7 +2,11 @@ import { supabase } from '../lib/supabase';
 
 // VITE_APP_URL があれば使用、なければ location.origin をフォールバックとして使用
 const getAppUrl = () => {
-    return import.meta.env.VITE_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+    let url = import.meta.env.VITE_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+    if (url.endsWith('/')) {
+        url = url.slice(0, -1);
+    }
+    return url;
 };
 
 export const getChatUrl = (dealId: string) => {
