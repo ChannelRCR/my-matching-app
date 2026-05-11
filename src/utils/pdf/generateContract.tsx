@@ -5,20 +5,7 @@ import type { Deal, Invoice, User } from '../../types';
 import { supabase } from '../../lib/supabase';
 
 export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: User, buyer: User): Promise<void> => {
-    // Fetch contract logs for metadata page
-    let contractLogs: any[] = [];
-    try {
-        const { data, error } = await supabase
-            .from('contract_logs')
-            .select('*')
-            .eq('deal_id', deal.id)
-            .order('agreed_at', { ascending: true });
-        if (!error && data) {
-            contractLogs = data;
-        }
-    } catch (e) {
-        console.error("Failed to fetch contract logs:", e);
-    }
+    // We no longer fetch contract_logs; instead we use the properties embedded in the deal object.
     // 1. Create a wrapper div to contain the HTML template
     const wrapper = document.createElement('div');
 
@@ -211,7 +198,7 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
             </div>
 
             {/* --- PAGE 4: 契約締結証明書（合意記録） --- */}
-            {contractLogs.length > 0 && (
+            {deal.status === 'concluded' && deal.sellerAgreedAt && deal.buyerAgreedAt && (
                 <div id="pdf-page-4" style={pageContainerStyle}>
                     <h2 style={{ textAlign: 'center', fontSize: '18px', fontWeight: 'bold', marginBottom: '30px', letterSpacing: '2px' }}>
                         契約締結証明書
@@ -221,26 +208,33 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
                         本証明書は、当プラットフォームを通じて甲および乙間で締結された本契約の電磁的合意記録（アクセスログ・署名情報）を証明するものです。
                     </div>
 
-                    {contractLogs.map((log: any, index: number) => {
-                        const logDate = new Date(log.agreed_at);
-                        const roleName = log.role === 'buyer' ? '【乙】（譲受人）' : '【甲】（譲渡人）';
-                        return (
-                            <div key={log.id} style={{ marginBottom: '40px' }}>
-                                <h3 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '10px', backgroundColor: '#eee', padding: '5px 10px' }}>
-                                    {roleName} 合意記録 ({index + 1})
-                                </h3>
-                                <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000', fontSize: '12px' }}>
-                                    <tbody>
-                                        <tr><td style={{ border: '1px solid #000', padding: '8px', width: '25%', backgroundColor: '#f9f9f9' }}>合意日時</td><td style={{ border: '1px solid #000', padding: '8px' }}>{logDate.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</td></tr>
-                                        <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>署名（入力名）</td><td style={{ border: '1px solid #000', padding: '8px' }}>{log.signature_name}</td></tr>
-                                        <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>IPアドレス</td><td style={{ border: '1px solid #000', padding: '8px' }}>{log.ip_address || '取得不可'}</td></tr>
-                                        <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>ユーザーエージェント</td><td style={{ border: '1px solid #000', padding: '8px', wordBreak: 'break-all' }}>{log.user_agent}</td></tr>
-                                        <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>システムID</td><td style={{ border: '1px solid #000', padding: '8px' }}>{log.id}</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        );
-                    })}
+                    <div style={{ marginBottom: '40px' }}>
+                        <h3 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '10px', backgroundColor: '#eee', padding: '5px 10px' }}>
+                            【甲】（譲渡人・売主） 合意記録
+                        </h3>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000', fontSize: '12px' }}>
+                            <tbody>
+                                <tr><td style={{ border: '1px solid #000', padding: '8px', width: '25%', backgroundColor: '#f9f9f9' }}>合意日時</td><td style={{ border: '1px solid #000', padding: '8px' }}>{new Date(deal.sellerAgreedAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</td></tr>
+                                <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>署名（入力名）</td><td style={{ border: '1px solid #000', padding: '8px' }}>{deal.sellerSignatureName || '-'}</td></tr>
+                                <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>IPアドレス</td><td style={{ border: '1px solid #000', padding: '8px' }}>{deal.sellerIpAddress || '取得不可'}</td></tr>
+                                <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>ユーザーエージェント</td><td style={{ border: '1px solid #000', padding: '8px', wordBreak: 'break-all' }}>{deal.sellerUserAgent || '-'}</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div style={{ marginBottom: '40px' }}>
+                        <h3 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '10px', backgroundColor: '#eee', padding: '5px 10px' }}>
+                            【乙】（譲受人・買主） 合意記録
+                        </h3>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000', fontSize: '12px' }}>
+                            <tbody>
+                                <tr><td style={{ border: '1px solid #000', padding: '8px', width: '25%', backgroundColor: '#f9f9f9' }}>合意日時</td><td style={{ border: '1px solid #000', padding: '8px' }}>{new Date(deal.buyerAgreedAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</td></tr>
+                                <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>署名（入力名）</td><td style={{ border: '1px solid #000', padding: '8px' }}>{deal.buyerSignatureName || '-'}</td></tr>
+                                <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>IPアドレス</td><td style={{ border: '1px solid #000', padding: '8px' }}>{deal.buyerIpAddress || '取得不可'}</td></tr>
+                                <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>ユーザーエージェント</td><td style={{ border: '1px solid #000', padding: '8px', wordBreak: 'break-all' }}>{deal.buyerUserAgent || '-'}</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
         </div>
@@ -262,7 +256,7 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
         const pdfWidth = pdf.internal.pageSize.getWidth();
 
         const pagesToRender = ['pdf-page-1', 'pdf-page-2', 'pdf-page-3'];
-        if (contractLogs.length > 0) {
+        if (deal.status === 'concluded' && deal.sellerAgreedAt && deal.buyerAgreedAt) {
             pagesToRender.push('pdf-page-4');
         }
 

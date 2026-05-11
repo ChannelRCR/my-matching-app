@@ -111,6 +111,14 @@ export interface Deal {
     isDisputed?: boolean;
     contract_url?: string;
     settlement_url?: string;
+    // New contract log and notification properties
+    matchNotificationSent?: boolean;
+    buyerSignatureName?: string;
+    buyerIpAddress?: string;
+    buyerUserAgent?: string;
+    sellerSignatureName?: string;
+    sellerIpAddress?: string;
+    sellerUserAgent?: string;
 }
 
 export interface Dispute {

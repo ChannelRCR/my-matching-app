@@ -115,25 +115,32 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
         });
 
         if (isMatch) {
-            const matchedPriceMsg = `【システム通知】\n金額が ¥${numPrice.toLocaleString()} で合致しました。`;
-            await addMessage({
-                id: `sys_match_${Date.now()}`,
-                dealId: deal.id,
-                senderId: user.id,
-                receiverId: receiverId,
-                content: matchedPriceMsg,
-                timestamp: new Date().toISOString(),
-                isSystemMessage: true
-            });
+            // DBレベルでの重複送信防止チェック
+            const { data: latestDealData } = await supabase.from('deals').select('match_notification_sent').eq('id', deal.id).single();
+            if (latestDealData && !latestDealData.match_notification_sent) {
+                // すぐにフラグを立てる
+                await supabase.from('deals').update({ match_notification_sent: true }).eq('id', deal.id);
 
-            const chatUrl = getChatUrl(deal.id);
-            await sendEmailNotification(
-                [deal.buyerId, deal.sellerId],
-                "【金額の合致】自動取引システムより [FactorMatch]",
-                `<p>お互いの提示金額が合致しました！（¥${numPrice.toLocaleString()}）</p>
-                <p>速やかにチャット画面へアクセスし、対象債権の契約手続（合意）を行ってください。</p>
-                <p><a href="${chatUrl}">チャット画面を開く</a></p>`
-            );
+                const matchedPriceMsg = `【システム通知】\n金額が ¥${numPrice.toLocaleString()} で合致しました。`;
+                await addMessage({
+                    id: `sys_match_${Date.now()}`,
+                    dealId: deal.id,
+                    senderId: user.id,
+                    receiverId: receiverId,
+                    content: matchedPriceMsg,
+                    timestamp: new Date().toISOString(),
+                    isSystemMessage: true
+                });
+
+                const chatUrl = getChatUrl(deal.id);
+                await sendEmailNotification(
+                    [deal.buyerId, deal.sellerId],
+                    "【金額の合致】自動取引システムより [FactorMatch]",
+                    `<p>お互いの提示金額が合致しました！（¥${numPrice.toLocaleString()}）</p>
+                    <p>速やかにチャット画面へアクセスし、対象債権の契約手続（合意）を行ってください。</p>
+                    <p><a href="${chatUrl}">チャット画面を開く</a></p>`
+                );
+            }
         } else {
             const chatUrl = getChatUrl(deal.id);
             await sendEmailNotification(
@@ -213,10 +220,7 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                 }
                 
                 // 2. 最も重要な deals テーブルの更新を先に実行（整合性担保）
-                const { error: updateError } = await supabase.from('deals').update(dbUpdates).eq('id', deal.id);
-                if (updateError) throw updateError;
-
-                // 2.5 契約締結証明ログの保存
+                // 契約締結証明ログ（署名、IP、UA）も一緒に保存する
                 let ipAddress = null;
                 try {
                     const response = await fetch('https://api.ipify.org?format=json');
@@ -228,17 +232,18 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                     console.error("IP fetching failed:", e);
                 }
 
-                const { error: logError } = await supabase.from('contract_logs').insert([{
-                    deal_id: deal.id,
-                    user_id: user.id,
-                    role: isBuyer ? 'buyer' : 'seller',
-                    signature_name: signature,
-                    user_agent: navigator.userAgent,
-                    ip_address: ipAddress
-                }]);
-                if (logError) {
-                    console.error("Contract log save failed:", logError);
+                if (isBuyer) {
+                    dbUpdates.buyer_signature_name = signature;
+                    dbUpdates.buyer_ip_address = ipAddress;
+                    dbUpdates.buyer_user_agent = navigator.userAgent;
+                } else {
+                    dbUpdates.seller_signature_name = signature;
+                    dbUpdates.seller_ip_address = ipAddress;
+                    dbUpdates.seller_user_agent = navigator.userAgent;
                 }
+
+                const { error: updateError } = await supabase.from('deals').update(dbUpdates).eq('id', deal.id);
+                if (updateError) throw updateError;
 
                 if (willBeConcluded) {
                     // 契約成立時: invoices テーブルの更新

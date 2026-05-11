@@ -272,6 +272,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 is_disputed: d.is_disputed,
                 contract_url: d.contract_url,
                 settlement_url: d.settlement_url,
+                matchNotificationSent: d.match_notification_sent,
+                buyerSignatureName: d.buyer_signature_name,
+                buyerIpAddress: d.buyer_ip_address,
+                buyerUserAgent: d.buyer_user_agent,
+                sellerSignatureName: d.seller_signature_name,
+                sellerIpAddress: d.seller_ip_address,
+                sellerUserAgent: d.seller_user_agent,
             })));
         }
     };
