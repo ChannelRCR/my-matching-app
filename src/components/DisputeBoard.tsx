@@ -347,7 +347,7 @@ export const DisputeBoard: React.FC<DisputeBoardProps> = ({
                         onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            const url = `/contract-print?dealId=${deal.id}`;
+                            const url = `/contract/${deal.id}`;
                             window.open(url, '_blank', 'noopener,noreferrer');
                         }}
                     >
