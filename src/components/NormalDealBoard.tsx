@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
-import { Handshake, FileTextIcon } from 'lucide-react';
+import { FileTextIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { setTransitioning } from '../utils/transitionState';
@@ -28,7 +28,6 @@ interface NormalDealBoardProps {
     setProposedPrice: React.Dispatch<React.SetStateAction<string>>;
     isPriceUnlocked: boolean;
     setIsPriceUnlocked: React.Dispatch<React.SetStateAction<boolean>>;
-    hasViewedTerms: boolean;
     handleTermsClick: () => Promise<void>;
 }
 
@@ -46,7 +45,6 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
     proposedPrice,
     setProposedPrice,
     setIsPriceUnlocked,
-    hasViewedTerms,
     handleTermsClick
 }) => {
     const { completeDeal } = useMarket();

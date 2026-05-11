@@ -1003,7 +1003,6 @@ export const ChatPage: React.FC = () => {
                                     setProposedPrice={setProposedPrice}
                                     isPriceUnlocked={isPriceUnlocked}
                                     setIsPriceUnlocked={setIsPriceUnlocked}
-                                    hasViewedTerms={hasViewedTerms}
                                     handleTermsClick={handleTermsClick}
                                 />
                             )}
