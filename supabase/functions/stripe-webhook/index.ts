@@ -42,13 +42,15 @@ serve(async (req: Request) => {
       const status = session.payment_status;
       // Extract user_id from metadata or client_reference_id
       const user_id = session.metadata?.user_id || session.client_reference_id;
+      const deal_id = session.metadata?.deal_id || null;
 
       if (status === 'paid' && stripe_session_id) {
         const { error } = await supabase
-          .from('system_payments')
+          .from('donations')
           .upsert({
             stripe_session_id,
             user_id: user_id === 'guest' ? null : user_id,
+            deal_id,
             amount,
             status: 'succeeded'
           }, { onConflict: 'stripe_session_id' });

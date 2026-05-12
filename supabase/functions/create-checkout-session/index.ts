@@ -18,7 +18,7 @@ serve(async (req: Request) => {
   try {
     const payload = await req.json();
     console.log("Received payload:", payload);
-    const { amount, success_url, cancel_url, user_id } = payload;
+    const { amount, success_url, cancel_url, user_id, deal_id } = payload;
 
     if (!amount || typeof amount !== 'number' || amount < 500) {
       throw new Error("Amount must be at least 500 JPY");
@@ -33,13 +33,14 @@ serve(async (req: Request) => {
       client_reference_id: user_id || undefined,
       metadata: {
         user_id: user_id || 'guest',
+        deal_id: deal_id || null,
       },
       line_items: [
         {
           price_data: {
             currency: 'jpy',
             product_data: {
-              name: 'システム利用料',
+              name: 'FactorMatch 運営へのサポート（投げ銭）',
             },
             unit_amount: amount,
           },

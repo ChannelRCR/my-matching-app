@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Briefcase, Coins, Menu, X, ChevronRight, Settings, CheckCircle, AlertTriangle } from 'lucide-react';
-import { SystemFeeModal } from './SystemFeeModal';
+import { Briefcase, Gift, Menu, X, ChevronRight, Settings, CheckCircle, AlertTriangle } from 'lucide-react';
+import { DonationModal } from './DonationModal';
 import { useAuth } from '../contexts/AuthContext';
 import { getDisplayName } from '../utils/displayName';
 import { WelcomeTutorialModal } from './WelcomeTutorialModal';
 
 export const Layout: React.FC = () => {
-    const [isSystemFeeModalOpen, setIsSystemFeeModalOpen] = useState(false);
+    const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [paymentResult, setPaymentResult] = useState<'success' | 'cancel' | null>(null);
     const location = useLocation();
@@ -119,11 +119,11 @@ export const Layout: React.FC = () => {
                                 </div>
 
                                 <button
-                                    className="flex items-center gap-1 text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-full transition-colors border border-emerald-100"
-                                    onClick={() => setIsSystemFeeModalOpen(true)}
+                                    className="flex items-center gap-1 text-rose-700 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-full transition-colors border border-rose-100"
+                                    onClick={() => setIsDonationModalOpen(true)}
                                 >
-                                    <Coins className="h-4 w-4 fill-emerald-700/20" />
-                                    <span className="text-xs font-bold">利用手数料（任意）</span>
+                                    <Gift className="h-4 w-4 fill-rose-700/20" />
+                                    <span className="text-xs font-bold">運営サポート（投げ銭）</span>
                                 </button>
 
                                 <div className="w-px h-6 bg-slate-200 mx-1"></div>
@@ -187,14 +187,14 @@ export const Layout: React.FC = () => {
                                     </Link>
                                 )}
                                 <button
-                                    className="mt-4 flex items-center justify-center gap-2 text-emerald-700 bg-emerald-50 py-3 rounded-lg font-bold"
+                                    className="mt-4 flex items-center justify-center gap-2 text-rose-700 bg-rose-50 py-3 rounded-lg font-bold"
                                     onClick={() => {
-                                        setIsSystemFeeModalOpen(true);
+                                        setIsDonationModalOpen(true);
                                         setIsMenuOpen(false);
                                     }}
                                 >
-                                    <Coins className="h-5 w-5" />
-                                    利用手数料（任意）を支払う
+                                    <Gift className="h-5 w-5" />
+                                    運営サポート（投げ銭）を贈る
                                 </button>
                                 <button
                                     onClick={() => {
@@ -243,9 +243,10 @@ export const Layout: React.FC = () => {
                 </div>
             </footer>
 
-            <SystemFeeModal
-                isOpen={isSystemFeeModalOpen}
-                onClose={() => setIsSystemFeeModalOpen(false)}
+            <DonationModal
+                isOpen={isDonationModalOpen}
+                onClose={() => setIsDonationModalOpen(false)}
+                contextType="common"
             />
             <WelcomeTutorialModal />
         </div>

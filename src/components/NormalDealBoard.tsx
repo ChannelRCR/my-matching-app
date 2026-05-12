@@ -9,7 +9,7 @@ import { useMarket } from '../contexts/MarketContext';
 import { useAuth } from '../contexts/AuthContext';
 import { DealStepper } from './DealStepper';
 import { sendEmailNotification, getChatUrl } from '../utils/notification';
-import { SystemFeeModal } from './SystemFeeModal';
+import { DonationModal } from './DonationModal';
 import { isLineBrowser } from '../utils/browser';
 import type { Deal, Invoice, User as UserType } from '../types';
 
@@ -52,7 +52,8 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
     
     const [isTermsAgreed, setIsTermsAgreed] = useState(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-    const [isFeeModalOpen, setIsFeeModalOpen] = useState(false);
+    const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
+    const [donationContextType, setDonationContextType] = useState<'common' | 'seller_success' | 'buyer_success'>('common');
     const [isScrolledToBottom, setIsScrolledToBottom] = useState(false);
     const [signature, setSignature] = useState('');
 
@@ -1040,18 +1041,31 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                                             )}
                                         </div>
                                     )}
+                                    {!isBuyer && (deal.paymentStatus === 'seller_received' || deal.paymentStatus === 'seller_repaid' || deal.paymentStatus === 'fully_settled') && (
+                                        <div className="bg-rose-50 border border-rose-200 p-4 rounded-lg shadow-sm text-center font-bold text-rose-800 flex flex-col gap-3 mt-4">
+                                            <p>🎉 無事に資金調達が完了しました！</p>
+                                            <p className="text-xs font-normal text-slate-700 leading-relaxed">もしよろしければ、今後のサービス継続と向上のため、<br/>運営へのサポート（投げ銭）をお願いいたします。</p>
+                                            <Button onClick={() => { setDonationContextType('seller_success'); setIsDonationModalOpen(true); }} className="bg-rose-600 text-white hover:bg-rose-700 w-full sm:w-auto mx-auto px-8 rounded-full shadow-md">
+                                                運営をサポートする
+                                            </Button>
+                                        </div>
+                                    )}
                                     
-                                    {deal.paymentStatus === 'fully_settled' && (
-                                        <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-lg shadow-sm text-center font-bold text-emerald-800">
-                                            <p>買主の最終確認済み。全取引が完了しました。</p>
+                                    {isBuyer && deal.paymentStatus === 'fully_settled' && (
+                                        <div className="bg-rose-50 border border-rose-200 p-4 rounded-lg shadow-sm text-center font-bold text-rose-800 flex flex-col gap-3 mt-4">
+                                            <p>🎉 無事に利益確定が完了しました！全取引が完了しました。</p>
+                                            <p className="text-xs font-normal text-slate-700 leading-relaxed">もしよろしければ、今後のサービス継続と向上のため、<br/>運営へのサポート（投げ銭）をお願いいたします。</p>
+                                            <Button onClick={() => { setDonationContextType('buyer_success'); setIsDonationModalOpen(true); }} className="bg-rose-600 text-white hover:bg-rose-700 w-full sm:w-auto mx-auto px-8 rounded-full shadow-md">
+                                                運営をサポートする
+                                            </Button>
                                         </div>
                                     )}
                                 </div>
                             )}
 
                             <div className="mt-4 pt-4 border-t border-slate-200 flex justify-center w-full">
-                                <Button onClick={() => setIsFeeModalOpen(true)} className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-300 outline-none shadow-sm gap-2 rounded-full py-1.5 px-6 text-sm" variant="outline">
-                                    💰 プラットフォームを支援する（任意）
+                                <Button onClick={() => { setDonationContextType('common'); setIsDonationModalOpen(true); }} className="bg-white text-rose-700 hover:bg-rose-50 border border-rose-200 outline-none shadow-sm gap-2 rounded-full py-1.5 px-6 text-sm" variant="outline">
+                                    💰 運営サポート（投げ銭）を贈る
                                 </Button>
                             </div>
                         </div>
@@ -1063,7 +1077,7 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                 </div>
             )}
             
-            <SystemFeeModal isOpen={isFeeModalOpen} onClose={() => setIsFeeModalOpen(false)} />
+            <DonationModal isOpen={isDonationModalOpen} onClose={() => setIsDonationModalOpen(false)} dealId={deal.id} contextType={donationContextType} />
         </div>
     );
 };
