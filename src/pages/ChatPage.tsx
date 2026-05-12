@@ -50,7 +50,7 @@ export const ChatPage: React.FC = () => {
     const [isReportingDispute, setIsReportingDispute] = useState(false);
     
     const fileInputRef = React.useRef<HTMLInputElement>(null);
-    const hasSentMatchMessageRef = React.useRef(false);
+
 
     // --- CRITICAL FIX: Permanent Dispute State Latch ---
     // 一度でも事故状態が検出された場合、以降のチャット送信等の再フェッチや古い状態のプッシュで

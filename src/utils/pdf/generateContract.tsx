@@ -2,7 +2,7 @@ import { createRoot } from 'react-dom/client';
 import jsPDF from 'jspdf';
 import { toPng } from 'html-to-image';
 import type { Deal, Invoice, User } from '../../types';
-import { supabase } from '../../lib/supabase';
+
 
 export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: User, buyer: User): Promise<void> => {
     // We no longer fetch contract_logs; instead we use the properties embedded in the deal object.

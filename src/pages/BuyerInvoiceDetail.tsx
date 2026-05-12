@@ -9,7 +9,7 @@ import { ArrowLeft, MessageCircle, FileText, Calendar, CreditCard, DollarSign, A
 import { calculateAnnualYield } from '../utils/calculations';
 import { translateCompanySize } from '../utils/translations';
 import { supabase } from '../lib/supabase';
-import { sendEmailNotification, getChatUrl } from '../utils/notification';
+
 
 export const BuyerInvoiceDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
