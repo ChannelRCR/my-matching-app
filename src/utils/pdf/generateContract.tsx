@@ -198,7 +198,7 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
             </div>
 
             {/* --- PAGE 4: 契約締結証明書（合意記録） --- */}
-            {deal.status === 'concluded' && deal.sellerAgreedAt && deal.buyerAgreedAt && (
+            {deal.status === 'concluded' && (
                 <div id="pdf-page-4" style={pageContainerStyle}>
                     <h2 style={{ textAlign: 'center', fontSize: '18px', fontWeight: 'bold', marginBottom: '30px', letterSpacing: '2px' }}>
                         契約締結証明書
@@ -214,10 +214,10 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
                         </h3>
                         <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000', fontSize: '12px' }}>
                             <tbody>
-                                <tr><td style={{ border: '1px solid #000', padding: '8px', width: '25%', backgroundColor: '#f9f9f9' }}>合意日時</td><td style={{ border: '1px solid #000', padding: '8px' }}>{new Date(deal.sellerAgreedAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</td></tr>
-                                <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>署名（入力名）</td><td style={{ border: '1px solid #000', padding: '8px' }}>{deal.sellerSignatureName || '-'}</td></tr>
-                                <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>IPアドレス</td><td style={{ border: '1px solid #000', padding: '8px' }}>{deal.sellerIpAddress || '取得不可'}</td></tr>
-                                <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>ユーザーエージェント</td><td style={{ border: '1px solid #000', padding: '8px', wordBreak: 'break-all' }}>{deal.sellerUserAgent || '-'}</td></tr>
+                                <tr><td style={{ border: '1px solid #000', padding: '8px', width: '25%', backgroundColor: '#f9f9f9' }}>合意日時</td><td style={{ border: '1px solid #000', padding: '8px' }}>{new Date(deal.sellerAgreedAt || (deal as any).seller_agreed_at || deal.contractDate || new Date()).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</td></tr>
+                                <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>署名（入力名）</td><td style={{ border: '1px solid #000', padding: '8px' }}>{deal.sellerSignatureName || (deal as any).seller_signature_name || '-'}</td></tr>
+                                <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>IPアドレス</td><td style={{ border: '1px solid #000', padding: '8px' }}>{deal.sellerIpAddress || (deal as any).seller_ip_address || '取得不可'}</td></tr>
+                                <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>ユーザーエージェント</td><td style={{ border: '1px solid #000', padding: '8px', wordBreak: 'break-all' }}>{deal.sellerUserAgent || (deal as any).seller_user_agent || '-'}</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -228,10 +228,10 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
                         </h3>
                         <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000', fontSize: '12px' }}>
                             <tbody>
-                                <tr><td style={{ border: '1px solid #000', padding: '8px', width: '25%', backgroundColor: '#f9f9f9' }}>合意日時</td><td style={{ border: '1px solid #000', padding: '8px' }}>{new Date(deal.buyerAgreedAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</td></tr>
-                                <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>署名（入力名）</td><td style={{ border: '1px solid #000', padding: '8px' }}>{deal.buyerSignatureName || '-'}</td></tr>
-                                <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>IPアドレス</td><td style={{ border: '1px solid #000', padding: '8px' }}>{deal.buyerIpAddress || '取得不可'}</td></tr>
-                                <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>ユーザーエージェント</td><td style={{ border: '1px solid #000', padding: '8px', wordBreak: 'break-all' }}>{deal.buyerUserAgent || '-'}</td></tr>
+                                <tr><td style={{ border: '1px solid #000', padding: '8px', width: '25%', backgroundColor: '#f9f9f9' }}>合意日時</td><td style={{ border: '1px solid #000', padding: '8px' }}>{new Date(deal.buyerAgreedAt || (deal as any).buyer_agreed_at || deal.contractDate || new Date()).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</td></tr>
+                                <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>署名（入力名）</td><td style={{ border: '1px solid #000', padding: '8px' }}>{deal.buyerSignatureName || (deal as any).buyer_signature_name || '-'}</td></tr>
+                                <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>IPアドレス</td><td style={{ border: '1px solid #000', padding: '8px' }}>{deal.buyerIpAddress || (deal as any).buyer_ip_address || '取得不可'}</td></tr>
+                                <tr><td style={{ border: '1px solid #000', padding: '8px', backgroundColor: '#f9f9f9' }}>ユーザーエージェント</td><td style={{ border: '1px solid #000', padding: '8px', wordBreak: 'break-all' }}>{deal.buyerUserAgent || (deal as any).buyer_user_agent || '-'}</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -256,7 +256,7 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
         const pdfWidth = pdf.internal.pageSize.getWidth();
 
         const pagesToRender = ['pdf-page-1', 'pdf-page-2', 'pdf-page-3'];
-        if (deal.status === 'concluded' && deal.sellerAgreedAt && deal.buyerAgreedAt) {
+        if (deal.status === 'concluded') {
             pagesToRender.push('pdf-page-4');
         }
 

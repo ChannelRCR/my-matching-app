@@ -13,6 +13,20 @@ import { DonationModal } from './DonationModal';
 import { isLineBrowser } from '../utils/browser';
 import type { Deal, Invoice, User as UserType } from '../types';
 
+const generateUUID = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        try {
+            return crypto.randomUUID();
+        } catch (e) {
+            // fallback
+        }
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+};
+
 interface NormalDealBoardProps {
     deal: Deal;
     invoice: Invoice;
@@ -256,7 +270,7 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
 
                 // 3. メッセージの送信
                 await addMessage({
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     dealId: deal.id,
                     senderId: user.id,
                     receiverId: isBuyer ? deal.sellerId : deal.buyerId,
@@ -268,7 +282,7 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                 if (willBeConcluded) {
                     // 契約成立時のシステムメッセージ（ID欠落エラー修正）
                     const systemMsg = {
-                        id: crypto.randomUUID(),
+                        id: generateUUID(),
                         deal_id: deal.id,
                         sender_id: user.id,
                         receiver_id: isBuyer ? deal.sellerId : deal.buyerId,
