@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { Layout } from './components/Layout';
 
 import { LandingPage } from './pages/LandingPage';
@@ -46,6 +47,7 @@ function App() {
         <MarketProvider>
           <DataProvider>
             <GlobalLoader>
+              <Toaster position="top-center" />
               <Routes>
                 {/* Public Routes */}
                 <Route path="/login" element={<LoginPage />} />

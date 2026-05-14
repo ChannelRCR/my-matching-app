@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Briefcase, Gift, Menu, X, ChevronRight, Settings, CheckCircle, AlertTriangle } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { DonationModal } from './DonationModal';
 import { useAuth } from '../contexts/AuthContext';
 import { getDisplayName } from '../utils/displayName';
@@ -28,6 +29,28 @@ export const Layout: React.FC = () => {
             setTimeout(() => {
                 setPaymentResult(null);
             }, 5000);
+        }
+
+        const donationSuccess = searchParams.get('donation_success');
+        if (donationSuccess === 'true') {
+            toast.success('ご支援ありがとうございます！運営チームの励みになります🎉', {
+                duration: 5000,
+                style: {
+                    background: '#f0fdf4',
+                    color: '#166534',
+                    border: '1px solid #bbf7d0',
+                    fontWeight: 'bold',
+                },
+                iconTheme: {
+                    primary: '#16a34a',
+                    secondary: '#fff',
+                },
+            });
+
+            // Remove the parameter from URL
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.delete('donation_success');
+            window.history.replaceState({ path: newUrl.toString() }, '', newUrl.toString());
         }
     }, [location.search]);
 

@@ -5,6 +5,7 @@ import { FileTextIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { setTransitioning } from '../utils/transitionState';
 import { useMarket } from '../contexts/MarketContext';
+import { useData } from '../contexts/DataContext';
 import { sendEmailNotification, getChatUrl } from '../utils/notification';
 import { DonationModal } from './DonationModal';
 import { isLineBrowser } from '../utils/browser';
@@ -45,6 +46,7 @@ export const DisputeBoard: React.FC<DisputeBoardProps> = ({
     users
 }) => {
     const { completeDeal } = useMarket();
+    const { donatedDealIds } = useData();
     const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
     
     // In ChatPage, these were managed centrally, but it's cleaner to manage them here if we initialize from activeDispute.
@@ -329,11 +331,13 @@ export const DisputeBoard: React.FC<DisputeBoardProps> = ({
                         </Button>
                     </div>
 
+                    {(!donatedDealIds || !donatedDealIds.includes(deal.id)) && (
                     <div className="mt-4 pt-4 border-t border-red-200 flex justify-center w-full max-w-sm">
                         <Button onClick={() => setIsDonationModalOpen(true)} className="bg-white text-red-700 hover:bg-red-100 border border-red-300 outline-none shadow-sm gap-2 rounded-full py-1.5 px-6 text-sm w-full" variant="outline">
                             💰 運営サポート（投げ銭）を贈る
                         </Button>
                     </div>
+                    )}
                 </div>
             )}
 

@@ -25,6 +25,7 @@ interface DataContextType {
     agreeToDeal: (dealId: string, isBuyer: boolean) => Promise<void>;
     markMessagesAsRead: (dealId: string, userId: string) => Promise<void>;
     getUserTrackRecord: (userId: string, role: 'buyer' | 'seller') => number;
+    donatedDealIds: string[];
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -40,6 +41,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [messages, setMessages] = useState<Message[]>([]);
     const [invoiceStats, setInvoiceStats] = useState<Record<string, {offerCount: number, maxOffer: number}>>({});
     const [sellerUncompletedCounts, setSellerUncompletedCounts] = useState<Record<string, number>>({});
+    const [donatedDealIds, setDonatedDealIds] = useState<string[]>([]);
 
     useEffect(() => {
         if (authLoading) return;
@@ -53,6 +55,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setMessages([]);
             setSellerUncompletedCounts({});
             setInvoiceStats({});
+            setDonatedDealIds([]);
             setLoading(false);
             return;
         }
@@ -60,7 +63,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const initialize = async () => {
             setLoading(true);
             try {
-                await Promise.all([fetchUsers(), fetchInvoices(), fetchDeals(), fetchMessages(), fetchInvoiceStats(), fetchSellerStats()]);
+                await Promise.all([fetchUsers(), fetchInvoices(), fetchDeals(), fetchMessages(), fetchInvoiceStats(), fetchSellerStats(), fetchDonations()]);
             } catch (error) {
                 console.error('Error initializing data:', error);
             } finally {
@@ -280,6 +283,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 sellerIpAddress: d.seller_ip_address,
                 sellerUserAgent: d.seller_user_agent,
             })));
+        }
+    };
+
+    const fetchDonations = async () => {
+        if (!authUser) return;
+        const { data } = await supabase
+            .from('donations')
+            .select('deal_id')
+            .eq('user_id', authUser.id)
+            .eq('status', 'succeeded')
+            .not('deal_id', 'is', null);
+
+        if (data) {
+            setDonatedDealIds(data.map((d: any) => d.deal_id));
         }
     };
 
@@ -652,7 +669,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             invoices, deals, messages, users, buyers, sellers, invoiceStats, sellerUncompletedCounts, loading,
             addInvoice, addMessage, updateDeal, updateUser,
             createDeal, createChatRoom, acceptDeal, agreeToDeal,
-            markMessagesAsRead, getUserTrackRecord
+            markMessagesAsRead, getUserTrackRecord, donatedDealIds
         }}>
             {children}
         </DataContext.Provider>

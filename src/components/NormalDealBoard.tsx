@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase';
 import { setTransitioning } from '../utils/transitionState';
 import { useMarket } from '../contexts/MarketContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useData } from '../contexts/DataContext';
 import { DealStepper } from './DealStepper';
 import { sendEmailNotification, getChatUrl } from '../utils/notification';
 import { DonationModal } from './DonationModal';
@@ -63,6 +64,7 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
 }) => {
     const { completeDeal } = useMarket();
     const { profile: loggedInProfile } = useAuth();
+    const { donatedDealIds } = useData();
     
     const [isTermsAgreed, setIsTermsAgreed] = useState(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -1055,7 +1057,7 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                                             )}
                                         </div>
                                     )}
-                                    {!isBuyer && (deal.paymentStatus === 'seller_received' || deal.paymentStatus === 'seller_repaid' || deal.paymentStatus === 'fully_settled') && (
+                                    {(!donatedDealIds || !donatedDealIds.includes(deal.id)) && !isBuyer && (deal.paymentStatus === 'seller_received' || deal.paymentStatus === 'seller_repaid' || deal.paymentStatus === 'fully_settled') && (
                                         <div className="bg-rose-50 border border-rose-200 p-4 rounded-lg shadow-sm text-center font-bold text-rose-800 flex flex-col gap-3 mt-4">
                                             <p>🎉 無事に資金調達が完了しました！</p>
                                             <p className="text-xs font-normal text-slate-700 leading-relaxed">もしよろしければ、今後のサービス継続と向上のため、<br/>運営へのサポート（投げ銭）をお願いいたします。</p>
@@ -1065,7 +1067,7 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                                         </div>
                                     )}
                                     
-                                    {isBuyer && deal.paymentStatus === 'fully_settled' && (
+                                    {(!donatedDealIds || !donatedDealIds.includes(deal.id)) && isBuyer && deal.paymentStatus === 'fully_settled' && (
                                         <div className="bg-rose-50 border border-rose-200 p-4 rounded-lg shadow-sm text-center font-bold text-rose-800 flex flex-col gap-3 mt-4">
                                             <p>🎉 無事に利益確定が完了しました！全取引が完了しました。</p>
                                             <p className="text-xs font-normal text-slate-700 leading-relaxed">もしよろしければ、今後のサービス継続と向上のため、<br/>運営へのサポート（投げ銭）をお願いいたします。</p>
@@ -1077,11 +1079,13 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                                 </div>
                             )}
 
-                            <div className="mt-4 pt-4 border-t border-slate-200 flex justify-center w-full">
-                                <Button onClick={() => { setDonationContextType('common'); setIsDonationModalOpen(true); }} className="bg-white text-rose-700 hover:bg-rose-50 border border-rose-200 outline-none shadow-sm gap-2 rounded-full py-1.5 px-6 text-sm" variant="outline">
-                                    💰 運営サポート（投げ銭）を贈る
-                                </Button>
-                            </div>
+                            {(!donatedDealIds || !donatedDealIds.includes(deal.id)) && (
+                                <div className="mt-4 pt-4 border-t border-slate-200 flex justify-center w-full">
+                                    <Button onClick={() => { setDonationContextType('common'); setIsDonationModalOpen(true); }} className="bg-white text-rose-700 hover:bg-rose-50 border border-rose-200 outline-none shadow-sm gap-2 rounded-full py-1.5 px-6 text-sm" variant="outline">
+                                        💰 運営サポート（投げ銭）を贈る
+                                    </Button>
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <span className="bg-slate-100 text-slate-600 px-4 py-2 rounded-full text-sm font-bold border border-slate-200">

@@ -48,7 +48,7 @@ serve(async (req: Request) => {
         },
       ],
       mode: 'payment',
-      success_url: success_url,
+      success_url: success_url.includes('?') ? `${success_url}&donation_success=true` : `${success_url}?donation_success=true`,
       cancel_url: cancel_url,
     });
 
