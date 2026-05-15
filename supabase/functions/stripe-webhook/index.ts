@@ -101,6 +101,9 @@ serve(async (req: Request) => {
               targetEmails,
               subject: '【FactorMatch】ご支援（投げ銭）の領収書と御礼',
               messageHtml
+            },
+            headers: {
+              Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
             }
           });
 
