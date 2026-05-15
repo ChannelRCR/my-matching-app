@@ -94,21 +94,24 @@ serve(async (req: Request) => {
             </div>
           `;
 
-          const { error: emailError } = await supabase.functions.invoke('send-email', {
-            body: {
+          const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+            },
+            body: JSON.stringify({
               type: 'custom',
               targetUserIds,
               targetEmails,
               subject: '【FactorMatch】ご支援（投げ銭）の領収書と御礼',
               messageHtml
-            },
-            headers: {
-              Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
-            }
+            })
           });
 
-          if (emailError) {
-            console.error('Failed to send thank you email:', emailError);
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Failed to send thank you email:', response.status, errorText);
           } else {
             console.log('Thank you email sent successfully.');
           }
