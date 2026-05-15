@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Briefcase, Gift, Menu, X, ChevronRight, Settings, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Briefcase, Gift, Menu, X, ChevronRight, Settings } from 'lucide-react';
 import { DonationModal } from './DonationModal';
 import { useAuth } from '../contexts/AuthContext';
 import { getDisplayName } from '../utils/displayName';
