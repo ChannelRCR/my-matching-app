@@ -60,6 +60,56 @@ serve(async (req: Request) => {
           throw error;
         }
         console.log(`Successfully recorded payment ${stripe_session_id} for user ${user_id}`);
+
+        // Send thank you email / receipt
+        const email = session.customer_details?.email;
+        const targetEmails = email ? [email] : [];
+        const targetUserIds = user_id && user_id !== 'guest' ? [user_id] : [];
+
+        if (targetEmails.length > 0 || targetUserIds.length > 0) {
+          const formattedAmount = new Intl.NumberFormat('ja-JP').format(amount || 0);
+          const formattedDate = new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+          
+          const messageHtml = `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+              <h2 style="color: #e11d48; border-bottom: 2px solid #ffe4e6; padding-bottom: 10px;">ご支援ありがとうございました🎉</h2>
+              <p>この度は、FactorMatchの運営へ温かいご支援を賜り、誠にありがとうございます。</p>
+              <p>以下の内容で決済（投げ銭）が完了いたしましたので、領収書としてお知らせいたします。</p>
+              <br/>
+              <table style="border-collapse: collapse; width: 100%; max-width: 400px; background-color: #f8fafc; border-radius: 8px; overflow: hidden;">
+                <tr>
+                  <th style="text-align: left; padding: 12px; border-bottom: 1px solid #e2e8f0; width: 40%;">寄付金額</th>
+                  <td style="text-align: right; padding: 12px; border-bottom: 1px solid #e2e8f0; font-weight: bold; font-size: 1.1em;">${formattedAmount} 円</td>
+                </tr>
+                <tr>
+                  <th style="text-align: left; padding: 12px; border-bottom: 1px solid #e2e8f0;">決済完了日時</th>
+                  <td style="text-align: right; padding: 12px; border-bottom: 1px solid #e2e8f0;">${formattedDate}</td>
+                </tr>
+              </table>
+              <br/>
+              <p>いただいたご支援は、本プラットフォームのサービス維持および機能向上のために大切に活用させていただきます。</p>
+              <p>引き続き、FactorMatchをよろしくお願い申し上げます。</p>
+              <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
+              <p style="font-size: 0.8em; color: #666; text-align: center;">※本メールは送信専用です。</p>
+            </div>
+          `;
+
+          const { error: emailError } = await supabase.functions.invoke('send-email', {
+            body: {
+              type: 'custom',
+              targetUserIds,
+              targetEmails,
+              subject: '【FactorMatch】ご支援（投げ銭）の領収書と御礼',
+              messageHtml
+            }
+          });
+
+          if (emailError) {
+            console.error('Failed to send thank you email:', emailError);
+          } else {
+            console.log('Thank you email sent successfully.');
+          }
+        }
       }
     }
 

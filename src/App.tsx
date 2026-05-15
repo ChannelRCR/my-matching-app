@@ -72,6 +72,17 @@ function GlobalQueryHandler({ children }: { children: React.ReactNode }) {
       modified = true;
     }
 
+    const payment = searchParams.get('payment');
+    if (payment === 'cancel') {
+        toast.error('決済処理がキャンセルされました。');
+        searchParams.delete('payment');
+        modified = true;
+    } else if (payment === 'success') {
+        // success message is already handled by donation_success
+        searchParams.delete('payment');
+        modified = true;
+    }
+
     if (modified) {
       const newSearch = searchParams.toString();
       navigate({ pathname: location.pathname, search: newSearch ? `?${newSearch}` : '' }, { replace: true });

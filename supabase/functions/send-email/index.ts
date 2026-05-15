@@ -41,22 +41,29 @@ serve(async (req) => {
              return new Response(JSON.stringify({ message: "Webhook triggers are disabled. Only type='custom' is supported." }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
 
-        const { targetUserIds, subject, messageHtml } = payload;
+        const { targetUserIds, targetEmails, subject, messageHtml } = payload;
 
         console.log(`Processing custom email to userIds: ${targetUserIds?.join(', ')}`);
 
-        if (!targetUserIds || targetUserIds.length === 0 || !subject) {
-            console.log("No valid targetUserIds or subject generated. Skipping email.");
+        if ((!targetUserIds || targetUserIds.length === 0) && (!targetEmails || targetEmails.length === 0) || !subject) {
+            console.log("No valid targetUserIds, targetEmails, or subject generated. Skipping email.");
             return new Response(JSON.stringify({ message: "No email triggered. Missing fields." }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
 
         const rawEmails: string[] = [];
-        for (const uid of targetUserIds) {
-            const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(uid);
-            if (!userError && user?.email) {
-                rawEmails.push(user.email);
-            } else {
-                console.warn(`Failed to fetch user email for ID ${uid}. Error: ${userError?.message}`);
+        
+        if (targetEmails && Array.isArray(targetEmails)) {
+            rawEmails.push(...targetEmails);
+        }
+
+        if (targetUserIds && Array.isArray(targetUserIds)) {
+            for (const uid of targetUserIds) {
+                const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(uid);
+                if (!userError && user?.email) {
+                    rawEmails.push(user.email);
+                } else {
+                    console.warn(`Failed to fetch user email for ID ${uid}. Error: ${userError?.message}`);
+                }
             }
         }
 
