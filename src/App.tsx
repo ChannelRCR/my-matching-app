@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Toaster, toast } from 'react-hot-toast';
 import { Layout } from './components/Layout';
@@ -44,6 +44,7 @@ function GlobalLoader({ children }: { children: React.ReactNode }) {
 function GlobalQueryHandler({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const hasToastedRef = useRef(false);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
@@ -51,19 +52,22 @@ function GlobalQueryHandler({ children }: { children: React.ReactNode }) {
 
     const donationSuccess = searchParams.get('donation_success');
     if (donationSuccess === 'true') {
-      toast.success('ご支援ありがとうございます！運営チームの励みになります🎉', {
-        duration: 5000,
-        style: {
-          background: '#f0fdf4',
-          color: '#166534',
-          border: '1px solid #bbf7d0',
-          fontWeight: 'bold',
-        },
-        iconTheme: {
-          primary: '#16a34a',
-          secondary: '#fff',
-        },
-      });
+      if (!hasToastedRef.current) {
+        toast.success('ご支援ありがとうございます！運営チームの励みになります🎉', {
+          duration: 5000,
+          style: {
+            background: '#f0fdf4',
+            color: '#166534',
+            border: '1px solid #bbf7d0',
+            fontWeight: 'bold',
+          },
+          iconTheme: {
+            primary: '#16a34a',
+            secondary: '#fff',
+          },
+        });
+        hasToastedRef.current = true;
+      }
       searchParams.delete('donation_success');
       modified = true;
     }
