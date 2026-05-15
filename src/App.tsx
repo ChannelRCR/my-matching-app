@@ -1,5 +1,6 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Toaster, toast } from 'react-hot-toast';
 import { Layout } from './components/Layout';
 
 import { LandingPage } from './pages/LandingPage';
@@ -40,11 +41,48 @@ function GlobalLoader({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function GlobalQueryHandler({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    let modified = false;
+
+    const donationSuccess = searchParams.get('donation_success');
+    if (donationSuccess === 'true') {
+      toast.success('ご支援ありがとうございます！運営チームの励みになります🎉', {
+        duration: 5000,
+        style: {
+          background: '#f0fdf4',
+          color: '#166534',
+          border: '1px solid #bbf7d0',
+          fontWeight: 'bold',
+        },
+        iconTheme: {
+          primary: '#16a34a',
+          secondary: '#fff',
+        },
+      });
+      searchParams.delete('donation_success');
+      modified = true;
+    }
+
+    if (modified) {
+      const newSearch = searchParams.toString();
+      navigate({ pathname: location.pathname, search: newSearch ? `?${newSearch}` : '' }, { replace: true });
+    }
+  }, [location, navigate]);
+
+  return <>{children}</>;
+}
+
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <MarketProvider>
+      <GlobalQueryHandler>
+        <AuthProvider>
+          <MarketProvider>
           <DataProvider>
             <GlobalLoader>
               <Toaster position="top-center" />
@@ -97,6 +135,7 @@ function App() {
           </DataProvider>
         </MarketProvider>
       </AuthProvider>
+      </GlobalQueryHandler>
     </BrowserRouter>
   );
 }

@@ -30,28 +30,6 @@ export const Layout: React.FC = () => {
                 setPaymentResult(null);
             }, 5000);
         }
-
-        const donationSuccess = searchParams.get('donation_success');
-        if (donationSuccess === 'true') {
-            toast.success('ご支援ありがとうございます！運営チームの励みになります🎉', {
-                duration: 5000,
-                style: {
-                    background: '#f0fdf4',
-                    color: '#166534',
-                    border: '1px solid #bbf7d0',
-                    fontWeight: 'bold',
-                },
-                iconTheme: {
-                    primary: '#16a34a',
-                    secondary: '#fff',
-                },
-            });
-
-            // Remove the parameter from URL
-            const newUrl = new URL(window.location.href);
-            newUrl.searchParams.delete('donation_success');
-            window.history.replaceState({ path: newUrl.toString() }, '', newUrl.toString());
-        }
     }, [location.search]);
 
     // Close menu when route changes

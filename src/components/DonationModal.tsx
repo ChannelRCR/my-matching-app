@@ -40,10 +40,11 @@ export const DonationModal: React.FC<DonationModalProps> = ({ isOpen, onClose, d
             setIsLoading(true);
             setError(null);
 
-            // Construct full URLs for success/cancel redirects
+            // Construct full URLs for success/cancel redirects based on current page
             const baseUrl = window.location.origin;
-            const successUrl = `${baseUrl}/dashboard?payment=success`;
-            const cancelUrl = `${baseUrl}/dashboard?payment=cancel`;
+            const currentPath = window.location.pathname;
+            const successUrl = `${baseUrl}${currentPath}?payment=success`;
+            const cancelUrl = `${baseUrl}${currentPath}?payment=cancel`;
 
             // Get session token to ensure explicit authorization header
             const { data: { session } } = await supabase.auth.getSession();
