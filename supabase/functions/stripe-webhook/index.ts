@@ -94,11 +94,18 @@ serve(async (req: Request) => {
             </div>
           `;
 
-          const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email`, {
+          const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+          const supabaseUrl = Deno.env.get('SUPABASE_URL');
+
+          if (!serviceKey || !supabaseUrl) {
+            throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY or SUPABASE_URL environment variables.');
+          }
+
+          const response = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+              'Authorization': `Bearer ${serviceKey}`
             },
             body: JSON.stringify({
               type: 'custom',
