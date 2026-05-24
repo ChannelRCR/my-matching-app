@@ -22,7 +22,7 @@ export const PrivacyPolicy: React.FC = () => {
                             <div className="space-y-2 pl-4">
                                 <p><strong>法人名：</strong>株式会社日本RCR</p>
                                 <p><strong>所在地：</strong>〒102-0073 東京都千代田区九段北一丁目１０－３ animo kudan ６０１号</p>
-                                <p><strong>代表者：</strong>お問い合わせフォームよりご請求いただければ遅滞なく開示いたします。</p>
+                                <p><strong>代表者（運営責任者）：</strong>和田直樹</p>
                             </div>
                         </section>
 
@@ -51,7 +51,8 @@ export const PrivacyPolicy: React.FC = () => {
                             <h2 className="text-lg font-bold text-slate-800 border-l-4 border-primary pl-3 bg-slate-50 py-1">4. お問い合わせ窓口</h2>
                             <div className="space-y-2 pl-4">
                                 <p>
-                                    本ポリシーに関するお問い合わせは、本サービス内のお問い合わせフォームよりお願いいたします。
+                                    本ポリシーに関するお問い合わせは、以下のメールアドレスよりお願いいたします。<br />
+                                    <strong>メールアドレス：</strong>factormaching@gmail.com
                                 </p>
                             </div>
                         </section>

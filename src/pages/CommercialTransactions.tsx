@@ -23,12 +23,16 @@ export const CommercialTransactions: React.FC = () => {
                                     <td className="py-4 px-4">〒102-0073<br />東京都千代田区九段北一丁目１０－３ animo kudan ６０１号</td>
                                 </tr>
                                 <tr className="border-b border-slate-200">
-                                    <th className="py-4 px-4 bg-slate-50 font-semibold text-slate-800">代表者名</th>
-                                    <td className="py-4 px-4">お問い合わせフォームよりご請求いただければ遅滞なく開示いたします。</td>
+                                    <th className="py-4 px-4 bg-slate-50 font-semibold text-slate-800">代表者名（運営責任者）</th>
+                                    <td className="py-4 px-4">和田直樹</td>
                                 </tr>
                                 <tr className="border-b border-slate-200">
-                                    <th className="py-4 px-4 bg-slate-50 font-semibold text-slate-800">連絡先（電話番号等）</th>
-                                    <td className="py-4 px-4">お問い合わせフォームよりご請求いただければ遅滞なく開示いたします。</td>
+                                    <th className="py-4 px-4 bg-slate-50 font-semibold text-slate-800">連絡先メールアドレス</th>
+                                    <td className="py-4 px-4">factormaching@gmail.com</td>
+                                </tr>
+                                <tr className="border-b border-slate-200">
+                                    <th className="py-4 px-4 bg-slate-50 font-semibold text-slate-800">電話番号</th>
+                                    <td className="py-4 px-4">電話番号については、上記メールアドレスよりご請求いただければ、遅滞なく開示いたします。</td>
                                 </tr>
                                 <tr className="border-b border-slate-200">
                                     <th className="py-4 px-4 bg-slate-50 font-semibold text-slate-800">販売価格・手数料</th>
