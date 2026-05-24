@@ -193,9 +193,11 @@ export const Layout: React.FC = () => {
                     <p className="text-sm text-slate-500 mb-6">
                         日本初の完全自由型・債権流動化プラットフォーム
                     </p>
-                    <div className="flex justify-center gap-6 mb-6">
+                    <div className="flex flex-wrap justify-center gap-4 md:gap-6 mb-6">
                         <Link to="/terms" className="text-sm font-medium text-slate-500 hover:text-primary transition-colors">利用規約</Link>
-                        <Link to="/help" className="text-sm font-medium text-slate-500 hover:text-primary transition-colors">よくある質問（ヘルプ）</Link>
+                        <Link to="/privacy" className="text-sm font-medium text-slate-500 hover:text-primary transition-colors">プライバシーポリシー</Link>
+                        <Link to="/commercial-transactions" className="text-sm font-medium text-slate-500 hover:text-primary transition-colors">特定商取引法に基づく表記</Link>
+                        <Link to="/help" className="text-sm font-medium text-slate-500 hover:text-primary transition-colors">よくある質問</Link>
                     </div>
                     <div className="text-xs text-slate-400">
                         © 2026 FactorMatch. All rights reserved.

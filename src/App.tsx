@@ -18,6 +18,8 @@ import { ChatPage } from './pages/ChatPage';
 import { ContractPrintPage } from './pages/ContractPrintPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { TermsOfService } from './pages/TermsOfService';
+import { PrivacyPolicy } from './pages/PrivacyPolicy';
+import { CommercialTransactions } from './pages/CommercialTransactions';
 import { HelpPage } from './pages/HelpPage';
 
 import { DataProvider } from './contexts/DataContext';
@@ -109,6 +111,8 @@ function App() {
                 <Route element={<Layout />}>
                   <Route path="/" element={<LandingPage />} />
                   <Route path="/terms" element={<TermsOfService />} />
+                  <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/commercial-transactions" element={<CommercialTransactions />} />
                   <Route path="/help" element={<HelpPage />} />
                   <Route path="/onboarding" element={<OnboardingPage />} />
 
