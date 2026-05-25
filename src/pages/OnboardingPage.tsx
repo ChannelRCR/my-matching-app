@@ -36,11 +36,11 @@ export const OnboardingPage: React.FC = () => {
     useEffect(() => {
         // LandingPageからのリダイレクトか、直接ハッシュ付きで遷移してきた場合を判定
         if (location.state?.showSuccessToast || window.location.hash.includes('type=signup') || window.location.hash.includes('access_token')) {
-            setShowSuccessToast(true);
-            
-            // 5秒後にトーストを消す
-            const timer = setTimeout(() => setShowSuccessToast(false), 5000);
-            return () => clearTimeout(timer);
+            setTimeout(() => {
+                setShowSuccessToast(true);
+                // 5秒後にトーストを消す
+                setTimeout(() => setShowSuccessToast(false), 5000);
+            }, 0);
         }
     }, [location]);
 

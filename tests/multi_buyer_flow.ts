@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 import * as dotenv from 'dotenv';
-import path from 'path';
+// import path from 'path';
 
 dotenv.config();
 
@@ -124,11 +124,11 @@ async function runTest() {
   // Seller reveals info & clicks Accept Terms
   // Wait, there might be multiple "開示する"
   const revealBtns = await sellerPage.locator('button:has-text("開示する")').all();
-  for (let b of revealBtns) {
+  for (const b of revealBtns) {
       try {
           await b.click({ force: true, timeout: 500 });
           await sellerPage.waitForTimeout(300);
-      } catch (e) {
+      } catch {
           // May be hidden in an accordion, which is fine to skip
       }
   }

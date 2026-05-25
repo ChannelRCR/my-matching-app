@@ -13,7 +13,7 @@ export const WelcomeTutorialModal: React.FC = () => {
         
         const hasSeen = localStorage.getItem('has_seen_tutorial');
         if (!hasSeen) {
-            setIsOpen(true);
+            setTimeout(() => setIsOpen(true), 0);
         }
     }, [user, profile]);
 

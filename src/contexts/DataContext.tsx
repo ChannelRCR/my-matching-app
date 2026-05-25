@@ -94,6 +94,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             supabase.removeChannel(dealsSub);
             supabase.removeChannel(msgsSub);
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [authUser?.id, profile?.id, authLoading]);
 
     const fetchUsers = async () => {
@@ -296,7 +297,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .not('deal_id', 'is', null);
 
         if (data) {
-            setDonatedDealIds(data.map((d: any) => d.deal_id));
+            setDonatedDealIds(data.map((d: { deal_id: string }) => d.deal_id));
         }
     };
 

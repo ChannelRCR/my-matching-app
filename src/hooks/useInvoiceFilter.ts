@@ -59,7 +59,7 @@ export function useInvoiceFilter(
         });
 
         return result;
-    }, [initialInvoices, minAmount, maxAmount, industryFilter, sortBy, trackRecordFilter, getTrackRecord]);
+    }, [initialInvoices, minAmount, maxAmount, industryFilter, sellerIndustryFilter, sortBy, trackRecordFilter, getTrackRecord, getSellerIndustry]);
 
     const resetFilters = () => {
         setMinAmount('');

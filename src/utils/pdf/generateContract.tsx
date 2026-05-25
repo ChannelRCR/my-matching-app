@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createRoot } from 'react-dom/client';
 import jsPDF from 'jspdf';
 import { toPng } from 'html-to-image';

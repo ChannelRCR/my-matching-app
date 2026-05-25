@@ -95,7 +95,9 @@ export const TeaserDealsBoard: React.FC = () => {
                             const yi = calculateAnnualYield(inv.masked_amount, inv.masked_selling_amount, inv.due_date);
                             // Avoid showing exactly precise yield to maintain teasing, but close enough.
                             yieldEst = yi > 0 ? yi.toFixed(1) : '---';
-                        } catch(e) {}
+                        } catch {
+                            // ignore error
+                        }
                     }
 
                     // Format amounts

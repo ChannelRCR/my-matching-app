@@ -12,6 +12,7 @@ type TabId = 'summary' | 'alerts' | 'users' | 'invoices' | 'deals';
 export const AdminDashboard: React.FC = () => {
     const [activeTab, setActiveTab] = useState<TabId>('summary');
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [alerts, setAlerts] = useState<any[]>([]);
     const { stats } = useMarket();
     const { users, deals, invoices, updateUser, getUserTrackRecord } = useData();

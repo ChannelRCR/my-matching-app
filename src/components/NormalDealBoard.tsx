@@ -18,7 +18,7 @@ const generateUUID = () => {
     if (typeof crypto !== 'undefined' && crypto.randomUUID) {
         try {
             return crypto.randomUUID();
-        } catch (e) {
+        } catch {
             // fallback
         }
     }
@@ -75,9 +75,9 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
 
     const isValidSignature = React.useMemo(() => {
         if (!signature || !loggedInProfile) return false;
-        const inputStr = signature.replace(/[\s　]+/g, '');
-        const repStr = (loggedInProfile.representativeName || '').replace(/[\s　]+/g, '');
-        const nameStr = (loggedInProfile.name || '').replace(/[\s　]+/g, '');
+        const inputStr = signature.replace(/[\s\u3000]+/g, '');
+        const repStr = (loggedInProfile.representativeName || '').replace(/[\s\u3000]+/g, '');
+        const nameStr = (loggedInProfile.name || '').replace(/[\s\u3000]+/g, '');
         
         return (repStr && inputStr === repStr) || (nameStr && inputStr === nameStr);
     }, [signature, loggedInProfile]);
@@ -471,6 +471,7 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
             }
         };
         checkAutoConfirm();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [deal?.paymentStatus, deal?.buyer_reported_at, deal?.seller_reported_at, deal?.buyer_urged_at, deal?.seller_urged_at]);
 
     // ===== Phase 1 Handlers (Buyer to Seller) =====
