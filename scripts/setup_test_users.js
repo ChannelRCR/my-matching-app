@@ -47,6 +47,21 @@ async function checkOrUser(email, role, name) {
 async function run() {
     try {
         const seller = await checkOrUser('test_s_multi@example.com', 'seller', 'Seller S');
+        
+        // Clean up previous active invoices to prevent hitting the 3-item limit during tests
+        const { error: cleanupErr } = await supabaseAdmin
+            .from('invoices')
+            .update({ status: 'withdrawn' })
+            .eq('seller_id', seller.id)
+            .neq('status', 'sold')
+            .neq('status', 'withdrawn');
+            
+        if (cleanupErr) {
+            console.error("Failed to clean up old invoices:", cleanupErr);
+        } else {
+            console.log("Cleaned up old invoices for Seller S");
+        }
+
         const buyerA = await checkOrUser('test_a_multi@example.com', 'buyer', 'Buyer A');
         const buyerB = await checkOrUser('test_b_multi@example.com', 'buyer', 'Buyer B');
         console.log("Users are ready!");
