@@ -195,6 +195,7 @@ export const Layout: React.FC = () => {
                     </p>
                     <div className="flex flex-wrap justify-center gap-4 md:gap-6 mb-6">
                         <Link to="/terms" className="text-sm font-medium text-slate-500 hover:text-primary transition-colors">利用規約</Link>
+                        <Link to="/basic-terms" className="text-sm font-medium text-slate-500 hover:text-primary transition-colors">債権譲渡基本約款</Link>
                         <Link to="/privacy" className="text-sm font-medium text-slate-500 hover:text-primary transition-colors">プライバシーポリシー</Link>
                         <Link to="/commercial-transactions" className="text-sm font-medium text-slate-500 hover:text-primary transition-colors">特定商取引法に基づく表記</Link>
                         <Link to="/help" className="text-sm font-medium text-slate-500 hover:text-primary transition-colors">よくある質問</Link>

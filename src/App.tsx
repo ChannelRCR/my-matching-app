@@ -21,6 +21,7 @@ import { TermsOfService } from './pages/TermsOfService';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { CommercialTransactions } from './pages/CommercialTransactions';
 import { HelpPage } from './pages/HelpPage';
+import { BasicTerms } from './pages/BasicTerms';
 
 import { DataProvider } from './contexts/DataContext';
 import { MarketProvider } from './contexts/MarketContext';
@@ -111,6 +112,7 @@ function App() {
                 <Route element={<Layout />}>
                   <Route path="/" element={<LandingPage />} />
                   <Route path="/terms" element={<TermsOfService />} />
+                  <Route path="/basic-terms" element={<BasicTerms />} />
                   <Route path="/privacy" element={<PrivacyPolicy />} />
                   <Route path="/commercial-transactions" element={<CommercialTransactions />} />
                   <Route path="/help" element={<HelpPage />} />

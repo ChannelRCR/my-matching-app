@@ -55,14 +55,14 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
                 </div>
 
                 <div style={{ fontSize: '13px', marginBottom: '30px', lineHeight: 1.8, textIndent: '1em' }}>
-                    本契約の当事者である譲渡人（以下「甲」という。）と、譲受人（以下「乙」という。）は、当プラットフォームを通じて、以下の通り債権譲渡契約（以下「本契約」という）を締結した。なお、当事者の詳細は末尾当事者目録記載の通り。
+                    本契約の当事者である売主（譲渡人　以下「甲」といいます）と、買主（譲受人　以下「乙」といいます）は、当プラットフォームを通じて、以下の通り債権譲渡契約（以下「本契約」といいます）を締結しました。なお、当事者の詳細は末尾当事者目録記載の通りです。
                 </div>
 
                 <h2 style={{ fontSize: '15px', fontWeight: 'bold', borderBottom: '1px solid #000', paddingBottom: '5px', marginBottom: '15px', marginTop: '30px' }}>
                     第1条（債権の譲渡）
                 </h2>
                 <div style={{ fontSize: '13px', marginLeft: '20px', marginBottom: '20px', lineHeight: 1.8 }}>
-                    甲は乙に対し、甲が末尾債権目録記載の原債務者に対して有する売掛債権（以下「本件債権」という）を譲渡し、乙はこれを譲り受けた。
+                    甲は乙に対し、甲が末尾債権目録記載の取引先（債務者）に対して有する売掛債権（以下「本件債権」といいます）を譲渡し、乙はこれを譲り受けました。
                     <br />
                     <strong>【対象債権】（末尾債権目録参照）</strong>
                 </div>
@@ -71,36 +71,35 @@ export const generateContractPDF = async (deal: Deal, invoice: Invoice, seller: 
                     第2条（譲渡代金および支払い方法）
                 </h2>
                 <div style={{ fontSize: '13px', marginLeft: '20px', marginBottom: '20px', lineHeight: 1.8 }}>
-                    乙は甲に対し、本件債権の譲受代金として金 {finalPrice.toLocaleString()} 円を、別途当事者間で合意した銀行口座（末尾当事者目録の振込先口座情報を参照）に振り込む方法により支払う。なお、振込手数料は乙の負担とする。
+                    乙は甲に対し、本件債権の譲受代金として金 {finalPrice.toLocaleString()} 円を、別途当事者間で合意した銀行口座（末尾当事者目録の甲の振込先口座情報を参照）に振り込む方法により支払います。なお、振込手数料は乙の負担とします。
                 </div>
 
                 <h2 style={{ fontSize: '15px', fontWeight: 'bold', borderBottom: '1px solid #000', paddingBottom: '5px', marginBottom: '15px', marginTop: '30px' }}>
                     第3条（権利移転時期および対抗要件）
                 </h2>
                 <div style={{ fontSize: '13px', marginLeft: '20px', marginBottom: '20px', lineHeight: 1.8 }}>
-                    1. 本件債権の権利は、乙が甲に対して前条の譲渡代金全額を支払い、甲がこれを受領した時点で、甲から乙へ移転するものとする。<br />
-                    2. 甲は、乙の請求があるときは、本件債権の譲渡について、原債務者に対する確定日付のある証書による譲渡通知、または原債務者の承諾を取得するための手続きに協力するものとする。
+                    1. 本件債権の権利は、乙が甲に対して前条の譲渡代金全額を支払い、甲がこれを受領した時点で、甲から乙へ移転するものとします。<br />
+                    2. 甲は、乙の請求があるときは、本件債権の譲渡について、原債務者に対する確定日付のある証書による譲渡通知、または原債務者の承諾を取得するための手続きに協力するものとします。
                 </div>
 
                 <h2 style={{ fontSize: '15px', fontWeight: 'bold', borderBottom: '1px solid #000', paddingBottom: '5px', marginBottom: '15px', marginTop: '30px' }}>
                     第4条（表明および保証）
                 </h2>
                 <div style={{ fontSize: '13px', marginLeft: '20px', marginBottom: '20px', lineHeight: 1.8 }}>
-                    甲は乙に対し、本契約締結日時点において以下の事項が真実かつ正確であることを表明し、保証する。<br />
-                    (1) 本件債権が有効に存在し、弁済期日が到来していないこと。<br />
-                    (2) 本件債権につき、第三者の担保権、差押え等の負担が付着していないこと。<br />
-                    (3) 原債務者との間で、債権譲渡を禁止または制限する特約が存在しないこと。
+                    甲は乙に対し、本契約締結日時点において以下の事項が真実かつ正確であることを表明し、保証します。<br />
+                    (1) 本件債権が有効に存在し、第三者の担保権、差押え等の負担が付着していないこと。<br />
+                    (2) 甲の知る限りにおいて、取引先（債務者）の信用不安は発生していないこと。
                 </div>
 
                 <h2 style={{ fontSize: '15px', fontWeight: 'bold', borderBottom: '1px solid #000', paddingBottom: '5px', marginBottom: '15px', marginTop: '30px' }}>
                     第5条（その他約款の適用）
                 </h2>
                 <div style={{ fontSize: '13px', marginLeft: '20px', marginBottom: '40px', lineHeight: 1.8 }}>
-                    本契約に定めのない事項、または本契約の解釈に疑義が生じた事項については、当プラットフォームの「プラットフォーム利用約款および債権譲渡契約条項」の規定が適用されるものとし、当事者間で誠実に協議のうえ解決するものとする。
+                    本契約に定めのない事項、または本契約の解釈に疑義が生じた事項については、当プラットフォームの「債権譲渡基本約款」の規定が適用されるものとし、当事者間で誠実に協議のうえ解決するものとします。
                 </div>
 
                 <div style={{ fontSize: '13px', marginBottom: '50px', lineHeight: 1.8, textIndent: '1em' }}>
-                    本契約の成立を証するため、本電磁的記録を作成し、甲および乙は各々保有するものとする。
+                    本契約の成立を証するため、本電磁的記録を作成し、甲および乙は各々保有するものとします。なお、本電磁的記録（契約締結証明書）をプリントアウトした書面をもって、民事訴訟法228条4項の「真正に成立した」ものとの推定が生じるものとします。
                 </div>
 
                 {/* 署名欄 */}

@@ -11,7 +11,7 @@ export const PrivacyPolicy: React.FC = () => {
                     </h1>
                 </div>
                 <CardContent className="p-8 sm:p-12">
-                    <div className="space-y-8 text-slate-700 text-sm sm:text-base leading-relaxed">
+                    <div className="space-y-10 text-slate-700 text-sm sm:text-base leading-relaxed">
                         
                         <p>
                             株式会社日本RCR（以下「当社」といいます）は、当社の提供するサービス（以下「本サービス」といいます）における、ユーザーの個人情報の取扱いについて、以下のとおりプライバシーポリシー（以下「本ポリシー」といいます）を定めます。
@@ -20,12 +20,14 @@ export const PrivacyPolicy: React.FC = () => {
                         <section className="space-y-4">
                             <h2 className="text-lg font-bold text-slate-800 border-l-4 border-primary pl-3 bg-slate-50 py-1">1. 事業者情報</h2>
                             <div className="space-y-2 pl-4">
-                                <p><strong>法人名：</strong>株式会社日本RCR</p>
-                                <p><strong>所在地：</strong>〒102-0073 東京都千代田区九段北一丁目１０－３ animo kudan ６０１号</p>
-                                <p><strong>代表者（運営責任者）：</strong>和田直樹</p>
+                                <ul className="list-none pl-0 space-y-2">
+                                    <li><span className="font-bold">法人名：</span> 株式会社日本RCR</li>
+                                    <li><span className="font-bold">所在地：</span> 〒102-0073 東京都千代田区九段北一丁目１０－３ animo kudan ６０１号</li>
+                                    <li><span className="font-bold">代表者（運営責任者）：</span> 和田直樹</li>
+                                </ul>
                             </div>
                         </section>
-
+                        
                         <section className="space-y-4">
                             <h2 className="text-lg font-bold text-slate-800 border-l-4 border-primary pl-3 bg-slate-50 py-1">2. 個人情報の収集方法</h2>
                             <div className="space-y-2 pl-4">
@@ -34,29 +36,29 @@ export const PrivacyPolicy: React.FC = () => {
                                 </p>
                             </div>
                         </section>
-
+                        
                         <section className="space-y-4">
                             <h2 className="text-lg font-bold text-slate-800 border-l-4 border-primary pl-3 bg-slate-50 py-1">3. 個人情報を収集・利用する目的</h2>
                             <div className="space-y-2 pl-4">
                                 <p>当社が個人情報を収集・利用する目的は、以下のとおりです。</p>
-                                <ul className="list-disc pl-6 space-y-2 text-slate-700 mt-2 marker:text-primary">
-                                    <li>当社サービスの提供・運営のため</li>
-                                    <li>ユーザーからのお問い合わせに回答するため（本人確認を行うことを含む）</li>
-                                    <li>利用規約に違反したユーザーや、不正・不当な目的でサービスを利用しようとするユーザーの特定をし、ご利用をお断りするため</li>
+                                <ul className="list-none pl-0 space-y-2 text-slate-700 mt-2">
+                                    <li>(1) 当社サービスの提供・運営のため</li>
+                                    <li>(2) ユーザーからのお問い合わせに回答するため（本人確認を行うことを含む）</li>
+                                    <li>(3) 利用規約に違反したユーザーや、不正・不当な目的でサービスを利用しようとするユーザーの特定をし、ご利用をお断りするため</li>
                                 </ul>
                             </div>
                         </section>
-
+                        
                         <section className="space-y-4">
                             <h2 className="text-lg font-bold text-slate-800 border-l-4 border-primary pl-3 bg-slate-50 py-1">4. お問い合わせ窓口</h2>
                             <div className="space-y-2 pl-4">
-                                <p>
-                                    本ポリシーに関するお問い合わせは、以下のメールアドレスよりお願いいたします。<br />
-                                    <strong>メールアドレス：</strong>factormaching@gmail.com
-                                </p>
+                                <p>本ポリシーに関するお問い合わせは、以下のメールアドレスよりお願いいたします。</p>
+                                <ul className="list-none pl-0 space-y-2">
+                                    <li><span className="font-bold">メールアドレス：</span> factormaching@gmail.com</li>
+                                </ul>
                             </div>
                         </section>
-
+                        
                     </div>
                 </CardContent>
             </Card>

@@ -638,6 +638,33 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Target Receivable becomes 'sold'
             await supabase.from('invoices').update({ status: 'sold' }).eq('id', dbDeal.invoice_id);
             setInvoices(prev => prev.map(inv => inv.id === dbDeal.invoice_id ? { ...inv, status: 'sold' } : inv));
+
+            // Cancel other ongoing deals for this invoice
+            const { data: otherDeals } = await supabase.from('deals')
+                .select('id, buyer_id')
+                .eq('invoice_id', dbDeal.invoice_id)
+                .neq('id', dealId)
+                .in('status', ['open', 'pending', 'negotiating']);
+
+            if (otherDeals && otherDeals.length > 0) {
+                const otherDealIds = otherDeals.map(d => d.id);
+                
+                // Update status to rejected for other deals
+                await supabase.from('deals')
+                    .update({ status: 'rejected' })
+                    .in('id', otherDealIds);
+                
+                // Add system message to other deals
+                const cancelMsgs = otherDeals.map(d => ({
+                    id: `msg_${Date.now()}_${d.id}`,
+                    deal_id: d.id,
+                    sender_id: authUser.id,
+                    receiver_id: d.buyer_id, // we don't strictly know if receiver is buyer or seller but system message is for both
+                    content: "【システム】この案件は他の方との契約が成立したため、交渉が自動的に終了しました。",
+                    is_system_message: true
+                }));
+                await supabase.from('messages').insert(cancelMsgs);
+            }
         }
 
         // Ensure database is updated immediately

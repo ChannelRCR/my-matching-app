@@ -792,26 +792,46 @@ export const NormalDealBoard: React.FC<NormalDealBoardProps> = ({
                                                 }
                                             }}
                                         >
-                                            <h4 className="font-bold text-center mb-4 text-sm tracking-widest text-slate-800">重要事項説明書 兼 契約書（プレビュー）</h4>
-                                            <p className="mb-4">譲渡人（以下「甲」という。）と、譲受人（以下「乙」という。）は、以下の通り債権譲渡に関して合意し、契約を締結する。</p>
+                                            <h4 className="font-bold text-center mb-4 text-sm tracking-widest text-slate-800">個別債権譲渡契約（プレビュー）</h4>
+                                            <p className="mb-4 text-sm">本契約の当事者である売主（譲渡人　以下「甲」といいます）と、買主（譲受人　以下「乙」といいます）は、当プラットフォームを通じて、以下の通り債権譲渡契約（以下「本契約」といいます）を締結します。</p>
                                             
-                                            <h5 className="font-bold mb-2 border-b border-slate-400 pb-1 text-slate-800">1. 譲渡対象債権</h5>
-                                            <ul className="list-disc pl-5 mb-4 space-y-1">
-                                                <li><strong>債務者名:</strong> {invoice.debtorName || '記載なし'}</li>
-                                                <li><strong>債務者住所:</strong> {invoice.debtorAddress || '記載なし'}</li>
-                                                <li><strong>債権額面金額:</strong> {invoice.amount.toLocaleString()}円</li>
-                                                <li><strong>支払期日:</strong> {invoice.dueDate ? `${new Date(invoice.dueDate).getFullYear()}年${new Date(invoice.dueDate).getMonth() + 1}月${new Date(invoice.dueDate).getDate()}日` : '未定'}</li>
-                                            </ul>
+                                            <h5 className="font-bold mb-2 border-b border-slate-400 pb-1 text-slate-800 text-sm">第1条（債権の譲渡）</h5>
+                                            <p className="mb-4 pl-2 text-sm">甲は乙に対し、甲が末尾債権目録記載の取引先（債務者）に対して有する売掛債権（以下「本件債権」といいます）を譲渡し、乙はこれを譲り受けます。</p>
                                             
-                                            <h5 className="font-bold mb-2 border-b border-slate-400 pb-1 text-slate-800">2. 譲渡代金</h5>
-                                            <p className="mb-4 pl-2">金 {(deal.currentBuyerPrice || deal.currentSellerPrice || deal.currentAmount || 0).toLocaleString()} 円</p>
+                                            <div className="bg-slate-50 border border-slate-200 p-3 mb-4 rounded text-xs">
+                                                <strong>【対象債権】</strong>
+                                                <ul className="list-disc pl-5 mt-1 space-y-1">
+                                                    <li><strong>取引先（債務者）名称:</strong> {invoice.debtorName || '記載なし'}</li>
+                                                    <li><strong>取引先（債務者）住所:</strong> {invoice.debtorAddress || '記載なし'}</li>
+                                                    <li><strong>債権の種類:</strong> 売掛金請求権</li>
+                                                    <li><strong>債権額面金額:</strong> {invoice.amount.toLocaleString()}円</li>
+                                                    <li><strong>支払期日:</strong> {invoice.dueDate ? `${new Date(invoice.dueDate).getFullYear()}年${new Date(invoice.dueDate).getMonth() + 1}月${new Date(invoice.dueDate).getDate()}日` : '未定'}</li>
+                                                </ul>
+                                            </div>
+
+                                            <h5 className="font-bold mb-2 border-b border-slate-400 pb-1 text-slate-800 text-sm">第2条（譲渡代金および支払い方法）</h5>
+                                            <p className="mb-4 pl-2 text-sm">乙は甲に対し、本件債権の譲受代金として金 {(deal.currentBuyerPrice || deal.currentSellerPrice || deal.currentAmount || 0).toLocaleString()} 円を、別途当事者間で合意した銀行口座に振り込む方法により支払います。なお、振込手数料は乙の負担とします。</p>
                                             
-                                            <h5 className="font-bold mb-2 border-b border-slate-400 pb-1 text-slate-800">3. 権利移転時期（所有権留保）</h5>
-                                            <p className="mb-4 pl-2 font-bold text-black underline decoration-slate-300 underline-offset-4">譲渡対象債権の所有権は、乙が譲渡代金を完済した時に甲から乙へ移転するものとする。</p>
+                                            <h5 className="font-bold mb-2 border-b border-slate-400 pb-1 text-slate-800 text-sm">第3条（権利移転時期および対抗要件）</h5>
+                                            <p className="mb-4 pl-2 text-sm">
+                                                1. 本件債権の権利は、乙が甲に対して前条の譲渡代金全額を支払い、甲がこれを受領した時点で、甲から乙へ移転するものとします。<br />
+                                                2. 甲は、乙の請求があるときは、本件債権の譲渡について、原債務者に対する確定日付のある証書による譲渡通知、または原債務者の承諾を取得するための手続きに協力するものとします。
+                                            </p>
+
+                                            <h5 className="font-bold mb-2 border-b border-slate-400 pb-1 text-slate-800 text-sm">第4条（表明および保証）</h5>
+                                            <p className="mb-4 pl-2 text-sm">
+                                                甲は乙に対し、本契約締結日時点において以下の事項が真実かつ正確であることを表明し、保証します。<br />
+                                                (1) 本件債権が有効に存在し、第三者の担保権、差押え等の負担が付着していないこと。<br />
+                                                (2) 甲の知る限りにおいて、取引先（債務者）の信用不安は発生していないこと。
+                                            </p>
+
+                                            <h5 className="font-bold mb-2 border-b border-slate-400 pb-1 text-slate-800 text-sm">第5条（その他約款の適用）</h5>
+                                            <p className="mb-4 pl-2 text-sm">本契約に定めのない事項、または本契約の解釈に疑義が生じた事項については、当プラットフォームの「債権譲渡基本約款」の規定が適用されるものとし、当事者間で誠実に協議のうえ解決するものとします。</p>
                                             
-                                            <div className="bg-slate-100 p-3 mt-4 text-[10px] border border-slate-200">
-                                                <strong>【約款の適用】</strong><br />
-                                                本契約書に記載のない事項については、当プラットフォームの利用規約および債権譲渡約款（<Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" onClick={handleTermsClick}>リンク</Link>）の定めるところによる。
+                                            <div className="bg-blue-50 p-3 mt-4 text-[10px] border border-blue-100 rounded text-slate-700">
+                                                <strong>【契約締結証明書の発行について】</strong><br />
+                                                本契約の成立を証するため、合意後「契約締結証明書」が電子的に作成されます。本同意により、ご入力いただいた署名と併せてIPアドレスおよび利用環境情報が合意証跡として記録されます。<br />
+                                                ※詳細は当プラットフォームの利用規約および<Link to="/basic-terms" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" onClick={handleTermsClick}>債権譲渡基本約款</Link>をご確認ください。
                                             </div>
                                             <div className="mt-8 pt-4 border-t border-slate-200 text-center text-slate-400 font-bold">
                                                 【プレビューの末尾】

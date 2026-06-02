@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, FileText, CheckCircle, ChevronRight, ChevronLeft } from 'lucide-react';
+import { ShieldCheck, Scale, Handshake, CheckCircle, ChevronRight, ChevronLeft } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -24,61 +24,68 @@ export const WelcomeTutorialModal: React.FC = () => {
         setIsOpen(false);
     };
 
-    const nextSlide = () => setCurrentSlide(prev => Math.min(prev + 1, 2));
+    const nextSlide = () => setCurrentSlide(prev => Math.min(prev + 1, 3));
+    const prevSlide = () => setCurrentSlide(prev => Math.max(prev - 1, 0));
 
     const slides = [
         {
             title: "「自由・公正・公平」な市場のために",
-            icon: <ShieldCheck className="w-16 h-16 text-blue-500 mb-4 mx-auto" />,
+            icon: <Handshake className="w-16 h-16 text-blue-500 mb-4 mx-auto" />,
             content: (
-                <div className="space-y-4 text-center">
-                    <p className="text-slate-600 leading-relaxed">
-                        当プラットフォームへようこそ。私たちは、誰もが安心して取引できるクリーンな市場を目指しています。
-                    </p>
-                    <p className="text-slate-600 leading-relaxed font-medium">
-                        嘘をつかない、他者の妨害をしない、欲張らない、不正をしない、そして自己責任を自覚する。これらが私たちの理念です。
-                    </p>
-                </div>
-            ),
-            buttonText: "次へ",
-            buttonAction: nextSlide,
-            buttonIcon: <ChevronRight className="w-5 h-5 ml-1" />
+                <p className="text-slate-600 leading-relaxed text-center">
+                    当プラットフォームへようこそ。私たちは、誰もが安心して取引できるクリーンな市場を目指しています。ご参加にあたり、以下の「5つのお約束」をご確認ください。
+                </p>
+            )
         },
         {
-            title: "利用規約と特商法の同意",
-            icon: <FileText className="w-16 h-16 text-emerald-500 mb-4 mx-auto" />,
+            title: "お約束 1 & 2",
+            icon: <ShieldCheck className="w-16 h-16 text-emerald-500 mb-4 mx-auto" />,
             content: (
                 <div className="space-y-4 text-left w-full">
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 h-32 overflow-y-auto text-sm text-slate-600">
-                        <p className="font-bold mb-2">利用規約および特定商取引法に基づく表記</p>
-                        <p>1. 本サービスの目的と範囲...</p>
-                        <p>2. ユーザーの義務と禁止事項について...</p>
-                        <p>3. 手数料および決済に関する規定...</p>
-                        <p>詳細は公式ドキュメントをご確認ください。</p>
+                    <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                        <h4 className="font-bold text-emerald-800 mb-1">①【嘘をつかない】</h4>
+                        <p className="text-slate-700 text-sm font-medium">出品情報や交渉において、常に正確で偽りのない情報を提供します。</p>
                     </div>
-                    <p className="text-center text-sm font-bold text-slate-700">
-                        すべての規約を確認し、内容に同意します。
-                    </p>
+                    <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                        <h4 className="font-bold text-emerald-800 mb-1">②【他人の妨害をしない】</h4>
+                        <p className="text-slate-700 text-sm font-medium">他者の取引を不当に邪魔したり、システムを悪用したりしません。</p>
+                    </div>
                 </div>
-            ),
-            buttonText: "同意する",
-            buttonAction: nextSlide,
-            buttonIcon: <CheckCircle className="w-5 h-5 ml-1" />
+            )
         },
         {
-            title: "準備が完了しました！",
+            title: "お約束 3 & 4",
+            icon: <Scale className="w-16 h-16 text-amber-500 mb-4 mx-auto" />,
+            content: (
+                <div className="space-y-4 text-left w-full">
+                    <div className="bg-amber-50 p-4 rounded-xl border border-amber-100">
+                        <h4 className="font-bold text-amber-800 mb-1">③【欲張らない】</h4>
+                        <p className="text-slate-700 text-sm font-medium">市場の相場を尊重し、極端に理不尽な条件を押し付けません。</p>
+                    </div>
+                    <div className="bg-amber-50 p-4 rounded-xl border border-amber-100">
+                        <h4 className="font-bold text-amber-800 mb-1">④【不正をしない】</h4>
+                        <p className="text-slate-700 text-sm font-medium">法律やプラットフォームの規約を守り、クリーンな取引を行います。</p>
+                    </div>
+                </div>
+            )
+        },
+        {
+            title: "お約束 5",
             icon: <CheckCircle className="w-16 h-16 text-primary mb-4 mx-auto" />,
             content: (
-                <div className="space-y-4 text-center">
-                    <p className="text-slate-600 leading-relaxed">
-                        アカウントの初期設定がすべて完了しました。<br />
-                        ダッシュボードからさっそく取引を始めてみましょう。
-                    </p>
+                <div className="space-y-6 text-left w-full">
+                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                        <h4 className="font-bold text-blue-800 mb-1">⑤【自己責任を自覚する】</h4>
+                        <p className="text-slate-700 text-sm font-medium">最終的な取引の判断は自分で行い、その結果に責任を持ちます。</p>
+                    </div>
+                    <Button 
+                        onClick={handleComplete}
+                        className="w-full py-6 text-lg font-bold shadow-lg bg-primary hover:bg-blue-700 text-white rounded-xl transition-all"
+                    >
+                        お約束に同意して、取引を始める
+                    </Button>
                 </div>
-            ),
-            buttonText: "始める",
-            buttonAction: handleComplete,
-            buttonIcon: null
+            )
         }
     ];
 
@@ -88,7 +95,7 @@ export const WelcomeTutorialModal: React.FC = () => {
                 
                 {/* Progress Bar */}
                 <div className="flex h-1.5 w-full bg-slate-100">
-                    {[0, 1, 2].map(step => (
+                    {[0, 1, 2, 3].map(step => (
                         <div 
                             key={step} 
                             className={`flex-1 transition-colors duration-300 ${step <= currentSlide ? 'bg-primary' : 'bg-transparent'}`}
@@ -105,13 +112,26 @@ export const WelcomeTutorialModal: React.FC = () => {
                 </div>
 
                 {/* Navigation Footer */}
-                <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-center">
+                <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
                     <Button 
-                        onClick={slides[currentSlide].buttonAction}
-                        className="bg-primary hover:bg-blue-700 text-white font-bold px-8 py-2 rounded-full w-full sm:w-auto shadow-md"
+                        variant="ghost" 
+                        onClick={prevSlide}
+                        disabled={currentSlide === 0}
+                        className={`text-slate-500 font-bold ${currentSlide === 0 ? 'invisible' : ''}`}
                     >
-                        {slides[currentSlide].buttonText} {slides[currentSlide].buttonIcon}
+                        <ChevronLeft className="w-5 h-5 mr-1" /> 戻る
                     </Button>
+                    
+                    {currentSlide < 3 ? (
+                        <Button 
+                            onClick={nextSlide}
+                            className="bg-slate-800 hover:bg-slate-700 text-white font-bold px-6 rounded-full"
+                        >
+                            次へ <ChevronRight className="w-5 h-5 ml-1" />
+                        </Button>
+                    ) : (
+                        <div className="w-[88px]" /> // Spacer to balance the "Prev" button width
+                    )}
                 </div>
             </div>
         </div>

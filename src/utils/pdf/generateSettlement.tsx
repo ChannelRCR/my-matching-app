@@ -53,56 +53,57 @@ export const generateSettlementPDFBlob = async (_deal: Deal, dispute: Dispute, s
                 </div>
 
                 <div style={{ fontSize: '13px', marginBottom: '30px', lineHeight: 1.8, textIndent: '1em' }}>
-                    本和解合意書は、当事者間において以下の通り和解が成立したことを証するものである。
+                    本和解合意書は、当事者間において以下の通り和解が成立したことを証するものです。
                 </div>
 
                 <h2 style={{ fontSize: '15px', fontWeight: 'bold', borderBottom: '1px solid #000', paddingBottom: '5px', marginBottom: '15px', marginTop: '30px' }}>
                     第1条（契約の存在確認）
                 </h2>
                 <div style={{ fontSize: '13px', marginLeft: '20px', marginBottom: '20px', lineHeight: 1.8 }}>
-                    譲渡人（以下「甲」という。）と譲受人（以下「乙」という。）は、本件債権譲渡契約が存在したことを相互に確認する。
+                    譲渡人（以下「甲」といいます）と譲受人（以下「乙」といいます）は、本件債権譲渡契約が存在したことを相互に確認します。
                 </div>
 
                 <h2 style={{ fontSize: '15px', fontWeight: 'bold', borderBottom: '1px solid #000', paddingBottom: '5px', marginBottom: '15px', marginTop: '30px' }}>
                     第2条（不履行の確認）
                 </h2>
                 <div style={{ fontSize: '13px', marginLeft: '20px', marginBottom: '20px', lineHeight: 1.8 }}>
-                    甲は、本件債権譲渡契約に基づく債務不履行が存在することを認める。
+                    甲は、本件債権譲渡契約に基づく債務不履行が存在することを認めます。
                 </div>
 
                 <h2 style={{ fontSize: '15px', fontWeight: 'bold', borderBottom: '1px solid #000', paddingBottom: '5px', marginBottom: '15px', marginTop: '30px' }}>
                     第3条（支払義務の確認）
                 </h2>
                 <div style={{ fontSize: '13px', marginLeft: '20px', marginBottom: '20px', lineHeight: 1.8 }}>
-                    甲は、乙に対し、解決金として金 {claimAmountStr} 円の支払義務を負うことを確認する。
+                    甲は、乙に対し、解決金として金 {claimAmountStr} 円の支払義務を負うことを確認します。
                 </div>
 
                 <h2 style={{ fontSize: '15px', fontWeight: 'bold', borderBottom: '1px solid #000', paddingBottom: '5px', marginBottom: '15px', marginTop: '30px' }}>
-                    第4条（分割支払詳細）
+                    第4条（支払詳細）
                 </h2>
                 <div style={{ fontSize: '13px', marginLeft: '20px', marginBottom: '20px', lineHeight: 1.8 }}>
-                    前項の金額について、甲は乙に対し、{startMonth}以降、毎月末日限り金 {monthlyAmountStr} 円ずつ支払う。ただし、最終月の支払は端数を調整した金 {finalAmountStr} 円とする。振込手数料は甲の負担とする。
+                    前項の金額について、甲は乙に対し以下の通り支払います。なお、振込手数料は甲の負担とします。<br/>
+                    {startMonth}以降、毎月末日限り金 {monthlyAmountStr} 円ずつ支払います。なお、最終月の支払は端数を調整した金 {finalAmountStr} 円とします。
                 </div>
 
                 <h2 style={{ fontSize: '15px', fontWeight: 'bold', borderBottom: '1px solid #000', paddingBottom: '5px', marginBottom: '15px', marginTop: '30px' }}>
                     第5条（期限の利益喪失）
                 </h2>
                 <div style={{ fontSize: '13px', marginLeft: '20px', marginBottom: '20px', lineHeight: 1.8 }}>
-                    甲が前項の支払を一度でも怠ったときは、当然に期限の利益を失い、未払金残額を直ちに一括して支払う。
+                    甲が前項の支払を一度でも怠ったときは、当然に期限の利益を失い、未払金残額を直ちに一括して支払います。
                 </div>
 
                 <h2 style={{ fontSize: '15px', fontWeight: 'bold', borderBottom: '1px solid #000', paddingBottom: '5px', marginBottom: '15px', marginTop: '30px' }}>
                     第6条（遅延損害金）
                 </h2>
                 <div style={{ fontSize: '13px', marginLeft: '20px', marginBottom: '20px', lineHeight: 1.8 }}>
-                    期限の利益を失った場合、以後完済に至るまで残金に対する年3％の割合による遅延損害金を付加して支払う。
+                    期限の利益を失った場合、以後完済に至るまで残金に対する年3％の割合による遅延損害金を付加して支払います。
                 </div>
 
                 <h2 style={{ fontSize: '15px', fontWeight: 'bold', borderBottom: '1px solid #000', paddingBottom: '5px', marginBottom: '15px', marginTop: '30px' }}>
                     第7条（清算条項）
                 </h2>
                 <div style={{ fontSize: '13px', marginLeft: '20px', marginBottom: '60px', lineHeight: 1.8 }}>
-                    甲および乙は、本件に関し、本和解合意書に定めるもののほかに何らの債権債務がないことを相互に確認する。
+                    甲および乙は、本件に関し、本和解合意書に定めるもののほかに何らの債権債務がないことを相互に確認します。
                 </div>
 
                 {/* 署名欄 */}
